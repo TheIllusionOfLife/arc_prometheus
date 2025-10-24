@@ -98,31 +98,48 @@ Grids are 2D arrays of integers (0-9) representing colors.
 ### Solver Function Signature
 All generated solvers must follow this exact signature:
 ```python
-def solve(task_grid: np.array) -> np.array:
+def solve(task_grid: np.ndarray) -> np.ndarray:
     """
     Transform input grid according to inferred rule.
     Must use only numpy for array operations.
     """
     pass
 ```
+**Note**: Use `np.ndarray` (the type) not `np.array` (the function) for type annotations.
 
 ### Safe Execution Protocol
 - All LLM-generated code runs in isolated `multiprocessing.Process`
 - Default timeout: 5 seconds per execution
-- Return format: `(success: bool, result_grid: np.array)`
+- Return format: `tuple[bool, Optional[np.ndarray]]`
+  - `(True, result_grid)` on successful execution
+  - `(False, None)` on failure/timeout/exception
 - Handle: timeouts, runtime exceptions, invalid return types
 
 ### LLM Integration (Gemini)
 - Primary model: Google Gemini API
 - Input format: ASCII art grids in prompts
-- Expected output: Pure Python code blocks (no markdown)
+- Expected output: Pure Python code blocks
+- Parser must handle:
+  - Code wrapped in \`\`\`python ... \`\`\` blocks
+  - Raw code without delimiters
+  - Multiple code blocks (extract the solve() function)
 - Always include "use only numpy" constraint in prompts
 
-### Fitness Evaluation Priority
-**Critical**: Test accuracy is 10x more important than train accuracy
-- A solver that overfits to training examples is not valuable
-- The goal is abstract reasoning and generalization to unseen problems
-- Fitness = `(train_correct * 1) + (test_correct * 10)`
+**Note**: LLMs often include markdown formatting despite instructions. Implement robust parsing.
+
+### Fitness Evaluation: Prioritize Generalization Over Memorization
+**Why Test Accuracy Matters 10x More**: Solvers that only work on training examples fail the core ARC challenge—abstract reasoning with unseen problems. Overfitting to training data means the AI has memorized patterns instead of learning the underlying transformation rule.
+
+**Consequences of Prioritizing Train Accuracy**:
+- Solver becomes a "lookup table" for known examples
+- Fails completely on novel test cases
+- Defeats the purpose of AGI research (generalization is the goal)
+- Wastes computational resources on non-generalizable solutions
+
+**Formula**: `Fitness = (train_correct * 1) + (test_correct * 10)`
+- Example: 3/3 train + 1/1 test = 13 points (good generalization)
+- Example: 3/3 train + 0/1 test = 3 points (pure overfitting)
+- Solvers that timeout or crash receive fitness = 0
 
 ### Data Persistence (Phase 3)
 Solver schema:
@@ -160,9 +177,14 @@ Modern deep learning fails at ARC because it requires millions of examples, whil
 ## GitHub Actions
 
 This repository has Claude Code integrated via GitHub Actions:
-- **@claude mentions**: Claude responds to `@claude` mentions in issues/PRs/comments
-- **Automated PR review**: Claude reviews all PRs for code quality, bugs, security
-- Reference `.github/workflows/claude.yml` and `.github/workflows/claude-code-review.yml`
+- **@claude mentions**: Claude responds to `@claude` mentions in issues/PRs/comments (`.github/workflows/claude.yml`)
+  - Triggered by: issue comments, PR comments, PR reviews, new issues
+  - Can read CI results and perform code operations
+  - Responds with code changes, analysis, or suggestions
+- **Automated PR review**: Claude reviews all PRs for code quality, bugs, security, and best practices (`.github/workflows/claude-code-review.yml`)
+  - Triggered on: PR open, PR synchronize (new commits)
+  - Checks: code quality, potential bugs, performance, security, test coverage
+  - Posts review comments with actionable feedback
 
 ## Reference Documents
 
