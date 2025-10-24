@@ -59,8 +59,8 @@ Expand to full ARC dataset with genetic operations:
 
 ### Environment Setup (Phase 1.1)
 ```bash
-# Download ARC Prize dataset from Kaggle
-# https://www.kaggle.com/competitions/arc-prize-2024/data
+# Download ARC Prize 2025 dataset from Kaggle
+# https://www.kaggle.com/competitions/arc-prize-2025/data
 
 # Install core dependencies
 pip install numpy google-generativeai
@@ -189,5 +189,6 @@ This repository has Claude Code integrated via GitHub Actions:
 ## Reference Documents
 
 - **kickoff.md**: Detailed project vision and complete task roadmap (in Japanese)
-- **ARC Prize**: https://www.kaggle.com/competitions/arc-prize-2024
+- **ARC Prize 2025**: https://www.kaggle.com/competitions/arc-prize-2025
 - **ARC Paper**: "On the Measure of Intelligence" by François Chollet
+- **plan_20251024.md**: Detailed Phase 1 implementation plan with incremental PRs
