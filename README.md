@@ -49,7 +49,7 @@ venv\Scripts\activate  # On Windows
 
 3. **Install dependencies**:
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 4. **Set up API key**:

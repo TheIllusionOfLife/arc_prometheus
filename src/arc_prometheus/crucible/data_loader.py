@@ -6,14 +6,17 @@ Provides functions to load ARC tasks from JSON files and display grids.
 import json
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 
-def load_task(filepath: str) -> Dict[str, List[Dict[str, np.ndarray]]]:
+def load_task(filepath: str, task_id: Optional[str] = None) -> Dict[str, List[Dict[str, np.ndarray]]]:
     """Load ARC task from JSON file.
 
     Args:
-        filepath: Path to ARC task JSON file
+        filepath: Path to ARC task JSON file (single task or collection)
+        task_id: Optional task ID to extract from a collection file.
+                If provided, filepath should be a collection (e.g., arc-agi_training_challenges.json).
+                If not provided, filepath should be a single task file.
 
     Returns:
         Dictionary with structure:
@@ -24,7 +27,7 @@ def load_task(filepath: str) -> Dict[str, List[Dict[str, np.ndarray]]]:
 
     Raises:
         FileNotFoundError: If file doesn't exist
-        ValueError: If JSON structure is invalid or missing required keys
+        ValueError: If JSON structure is invalid, missing required keys, or task_id not found
     """
     filepath = Path(filepath)
 
@@ -35,7 +38,15 @@ def load_task(filepath: str) -> Dict[str, List[Dict[str, np.ndarray]]]:
         with open(filepath, 'r') as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format in {filepath}: {e}")
+        raise ValueError(f"Invalid JSON format in {filepath}: {e}") from e
+
+    # If task_id provided, extract from collection
+    if task_id is not None:
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected collection format (dict of tasks), got {type(data)}")
+        if task_id not in data:
+            raise ValueError(f"Task ID '{task_id}' not found in {filepath}")
+        data = data[task_id]
 
     # Validate structure
     if not isinstance(data, dict):

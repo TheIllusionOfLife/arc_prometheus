@@ -50,32 +50,15 @@ def main():
         task_id = list(challenges.keys())[0]
         print(f"\nNo task ID provided, using first task: {task_id}")
 
-    # Load the task
+    # Load the task using task_id parameter
     task_file = DATA_DIR / "arc-agi_training_challenges.json"
 
     try:
-        # Load all tasks and extract the specific one
-        with open(task_file, 'r') as f:
-            all_tasks = json.load(f)
-
-        if task_id not in all_tasks:
-            print(f"\n❌ ERROR: Task ID '{task_id}' not found in dataset")
-            print(f"Available task IDs: {len(all_tasks)} total")
-            print(f"First few: {list(all_tasks.keys())[:5]}")
-            sys.exit(1)
-
-        # Convert to the format expected by load_task (save as temp file)
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
-            json.dump(all_tasks[task_id], tmp)
-            tmp_path = tmp.name
-
-        task_data = load_task(tmp_path)
-
-        # Clean up temp file
-        Path(tmp_path).unlink()
-
+        task_data = load_task(str(task_file), task_id=task_id)
     except FileNotFoundError as e:
+        print(f"\n❌ ERROR: {e}")
+        sys.exit(1)
+    except ValueError as e:
         print(f"\n❌ ERROR: {e}")
         sys.exit(1)
     except Exception as e:
@@ -137,7 +120,7 @@ def main():
     # Test 2: Different grids
     grid3 = task_data['train'][0]['output']
     result = evaluate_grids(grid1, grid3)
-    print(f"  - Different grids: {result == False} ✓" if not result else f"  - Different grids: {result == False} ❌")
+    print(f"  - Different grids: {not result} ✓" if not result else f"  - Different grids: {not result} ❌")
 
     # Summary
     print("\n" + "=" * 70)
