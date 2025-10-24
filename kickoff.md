@@ -63,8 +63,8 @@ ARCは、Kaggleで開催されているAGIコンペティションです。一�
 ### **Phase 1: コア・プロトタイプの構築 (最小の生態系)**
 
 * **目標**: 1つのARC問題に対し、「分析」→「コード生成」→「評価」という最小のサイクルを、あなたのローカルマシンでEnd-to-Endで動かすこと。  
-* **1.1. 環境セットアップ**  
-  * \[ \] KaggleからARC Prizeデータセット (arc-prize-2024) をダウンロードし、ローカルに展開する。  
+* **1.1. 環境セットアップ**
+  * \[ \] KaggleからARC Prizeデータセット (arc-prize-2025) をダウンロードし、ローカルに展開する。  
   * \[ \] numpy ライブラリをインストールする (pip install numpy)。  
   * \[ \] google-generativeai ライブラリをインストールする (pip install google-generativeai)。  
 * **1.2. 「るつぼ」v1: データローダーと評価**  
