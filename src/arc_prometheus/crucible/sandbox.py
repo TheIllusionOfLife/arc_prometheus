@@ -62,7 +62,7 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
         }
 
         # Execute the solver code to define solve() function
-        exec(code_str, exec_globals)  # noqa: S102 - Intentional use of exec in sandbox
+        exec(code_str, exec_globals)  # nosec B102 - Intentional use of exec in sandbox
 
         # Check if solve() function exists
         if "solve" not in exec_globals:
