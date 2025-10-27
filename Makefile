@@ -31,13 +31,15 @@ typecheck:  ## Run type checker (mypy)
 security:  ## Run security checks (bandit)
 	bandit -r src/ -ll
 
-ci:  ## Run all CI checks (typecheck, lint, format-check, test)
+ci:  ## Run all CI checks (typecheck, lint, format-check, security, test)
 	@echo "=== Running Type Checks ==="
 	@$(MAKE) typecheck
 	@echo "\n=== Running Linter ==="
 	@$(MAKE) lint
 	@echo "\n=== Checking Code Format ==="
 	@$(MAKE) format-check
+	@echo "\n=== Running Security Checks ==="
+	@$(MAKE) security
 	@echo "\n=== Running Tests ==="
 	@$(MAKE) test
 	@echo "\n✓ All CI checks passed!"
