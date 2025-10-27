@@ -302,14 +302,14 @@ Demo: Working with real dataset ✅
 ### Last Updated: October 27, 2025 01:15 AM JST
 
 #### Recently Completed
-- ✅ **[PR #3]**: Phase 1.1 - Foundation and Data Infrastructure
+- ✅ **#3**: Phase 1.1 - Foundation and Data Infrastructure
   - Project structure with modern Python packaging (pyproject.toml)
   - ARC dataset loading with task_id parameter support
   - Grid evaluation and colorized terminal visualization
   - 23 comprehensive tests (TDD approach)
   - Configuration management with lazy API key validation
   - Demo script working with real ARC Prize 2025 dataset
-- ✅ **[PR #2]**: CLAUDE.md for AI development guidance
+- ✅ **#2**: CLAUDE.md for AI development guidance
 - ✅ **Review feedback addressed**: All bot review comments from PR #3 systematically resolved
 
 #### Next Priority Tasks
