@@ -29,6 +29,11 @@ from arc_prometheus.utils.config import DATA_DIR
 def solve(task_grid: np.ndarray) -> np.ndarray:
     """Solve ARC task 05269061: Extract diagonal pattern and fill grid.
 
+    **IMPORTANT**: This solver is specifically designed for task 05269061,
+    which always uses 7x7 grids. It is NOT a general-purpose solver.
+    This is a validation solver for Phase 1.2 to test infrastructure
+    before building the LLM pipeline in Phase 1.4.
+
     Algorithm:
     1. Group non-zero values by diagonal lines (where row + col is constant)
     2. Extract one representative value per diagonal (first occurrence)
@@ -39,7 +44,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     4. Fill 7x7 grid with row-shifted repeating pattern
 
     Args:
-        task_grid: Input grid (7x7 numpy array)
+        task_grid: Input grid (7x7 numpy array for task 05269061)
 
     Returns:
         Output grid (7x7 numpy array) with repeating pattern
