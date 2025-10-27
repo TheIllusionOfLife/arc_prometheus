@@ -100,6 +100,24 @@ python scripts/demo_phase1_1_data.py 007bbfb7
 - Test examples (puzzles to solve)
 - Evaluation demo showing grid comparison
 
+### Phase 1.2: Manual Solver Demo
+
+Run the manual solver demo to see validation with task 05269061:
+
+```bash
+python scripts/demo_phase1_2_manual.py
+```
+
+**Expected output**:
+- Manual solver solves all 3 train examples (100% success rate)
+- Predicted vs expected output comparison with colored grids
+- Success message: "🎉 SUCCESS: Manual solver works perfectly!"
+
+**What it demonstrates**:
+- Manually-written solver using numpy operations
+- Diagonal pattern extraction and grid filling
+- Infrastructure validation before LLM integration
+
 ### Running Tests
 
 ```bash
@@ -139,7 +157,7 @@ arc_prometheus/
 **Goal**: Build minimal ecosystem for end-to-end ARC task solving
 
 - [x] **1.1**: Environment setup + data loading ✅
-- [ ] **1.2**: Manual solver validation
+- [x] **1.2**: Manual solver validation ✅
 - [ ] **1.3**: Safe execution sandbox
 - [ ] **1.4**: LLM-based code generation
 - [ ] **1.5**: Complete end-to-end pipeline
@@ -280,18 +298,19 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 ```
 Phase 1: Core Prototype
 ├── [✅] 1.1: Environment Setup & Data Loading
-├── [ ] 1.2: Manual Solver Validation
+├── [✅] 1.2: Manual Solver Validation
 ├── [ ] 1.3: Safe Execution Sandbox
 ├── [ ] 1.4: LLM Code Generation
 └── [ ] 1.5: End-to-End Pipeline
 
-Tests: 23/23 passing ✅
-Demo: Working with real dataset ✅
+Tests: 36/36 passing ✅
+Demo Phase 1.1: Working with real dataset ✅
+Demo Phase 1.2: Manual solver (100% accuracy) ✅
 ```
 
 ---
 
-**Next Steps**: See [plan_20251024.md](plan_20251024.md) for detailed Phase 1.2-1.5 tasks.
+**Next Steps**: Phase 1.3 - Safe Execution Sandbox (multiprocessing with timeout). See [plan_20251024.md](plan_20251024.md) for details.
 
 *"私たちがこれから目の当たりにするのは、AIが「思考」を学ぶ瞬間です。この歴史的な挑戦を、一緒に楽しみましょう！"*
 
@@ -299,41 +318,46 @@ Demo: Working with real dataset ✅
 
 ## Session Handover
 
-### Last Updated: October 27, 2025 01:15 AM JST
+### Last Updated: October 27, 2025 [Current Session]
 
 #### Recently Completed
-- ✅ **#3**: Phase 1.1 - Foundation and Data Infrastructure
-  - Project structure with modern Python packaging (pyproject.toml)
-  - ARC dataset loading with task_id parameter support
-  - Grid evaluation and colorized terminal visualization
-  - 23 comprehensive tests (TDD approach)
-  - Configuration management with lazy API key validation
-  - Demo script working with real ARC Prize 2025 dataset
-- ✅ **#2**: CLAUDE.md for AI development guidance
-- ✅ **Review feedback addressed**: All bot review comments from PR #3 systematically resolved
+- ✅ **Phase 1.2**: Manual Solver Validation (PR in progress)
+  - Implemented solver for ARC task 05269061 (diagonal pattern extraction)
+  - Algorithm: Group values by diagonal, determine rotation, fill grid with repeating pattern
+  - 100% success rate: all 3 train examples solved correctly
+  - 13 new tests added (36/36 tests passing)
+  - Demo script with colored grid visualization
+  - TDD approach: tests written first, then implementation
+
+- ✅ **#4**: Session handover documentation (merged)
+- ✅ **#3**: Phase 1.1 - Foundation and Data Infrastructure (merged)
+- ✅ **#2**: CLAUDE.md for AI development guidance (merged)
 
 #### Next Priority Tasks
-1. **Phase 1.2: Manual Solver Validation**
-   - Source: plan_20251024.md (lines 205-249)
-   - Context: Verify that manually-written solvers can solve train pairs before building LLM pipeline
-   - Approach: Create example solvers for simple ARC tasks, test with crucible/evaluator.py
-
-2. **Phase 1.3: Safe Execution Sandbox**
-   - Source: plan_20251024.md (lines 250-286)
+1. **Phase 1.3: Safe Execution Sandbox** ⭐ NEXT
+   - Source: plan_20251024.md (lines 250-313)
    - Context: Essential for running untrusted LLM-generated code safely
    - Approach: Implement multiprocessing-based sandbox with 5-second timeout, test with malicious code
+   - Will reuse Phase 1.2 manual solver as test case
 
-3. **Phase 1.4: LLM Code Generation**
-   - Source: plan_20251024.md (lines 287-360)
+2. **Phase 1.4: LLM Code Generation**
+   - Source: plan_20251024.md (lines 317-434)
    - Context: Core intelligence - Gemini API for solver generation
-   - Approach: Implement Analyst (rule inference) and Programmer (code generation) agents
+   - Approach: Implement prompt templates, code parser, Gemini integration
+
+3. **Phase 1.5: End-to-End Pipeline**
+   - Combine all components into single pipeline script
+   - Success criteria: AI-generated code solves ≥1 train pair
 
 #### Known Issues / Blockers
-- None currently - Phase 1.1 complete and merged to main
+- None - ready for Phase 1.3
 
 #### Session Learnings
-- **Lazy Validation Pattern**: API key validation converted from eager (blocks all imports) to lazy (call `get_gemini_api_key()` only when needed). Enables Phase 1.1 features to work without API setup.
-- **Enhanced load_task()**: Added optional `task_id` parameter to load from collection files directly, eliminating temp file workaround in demo script.
-- **Project Root Discovery**: Implemented robust search for `pyproject.toml` (up to 5 levels) with fallback, making imports work across different execution contexts.
-- **Test Structure**: Used `pythonpath = ["src"]` in pyproject.toml to enable proper imports without sys.path manipulation.
-- **Dependency Consolidation**: Removed requirements.txt, using only pyproject.toml with `[project.optional-dependencies]` for dev tools.
+- **Diagonal Pattern Recognition**: ARC task 05269061 requires grouping values by diagonal index (`row + col`), then applying rotation rules based on diagonal position (consecutive vs non-consecutive, top-left vs bottom-right). Iterative pattern analysis with real data was essential.
+- **TDD Iteration Speed**: Writing tests first accelerated debugging - pattern mismatches were immediately visible, leading to 5 refinement cycles before achieving 100% accuracy.
+- **Manual Solver as Validation**: Implementing a working solver before LLM integration validates that:
+  1. The task is solvable with pure numpy
+  2. `evaluate_grids()` correctly identifies matches
+  3. The solver signature (`def solve(np.ndarray) -> np.ndarray`) works as designed
+- **Lazy Validation Pattern** (Phase 1.1): API key validation converted from eager to lazy - enables Phase 1.1-1.2 features to work without Gemini API setup.
+- **Enhanced load_task()** (Phase 1.1): Added optional `task_id` parameter to load from collection files directly.
