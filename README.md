@@ -118,6 +118,31 @@ python scripts/demo_phase1_2_manual.py
 - Diagonal pattern extraction and grid filling
 - Infrastructure validation before LLM integration
 
+### Phase 1.3: Safe Execution Sandbox Demo
+
+Run the sandbox demo to see safe execution of untrusted code:
+
+```bash
+python scripts/demo_phase1_3_sandbox.py
+```
+
+**Expected output**:
+- Demo 1: Successful execution - Phase 1.2 solver in sandbox (3/3 correct, 100%)
+- Demo 2: Timeout enforcement - Infinite loop terminated after 2 seconds
+- Demo 3: Exception handling - ZeroDivisionError caught gracefully
+
+**What it demonstrates**:
+- Multiprocessing isolation for untrusted code execution
+- Timeout enforcement (configurable, default 5 seconds)
+- Exception handling (syntax errors, runtime errors)
+- Return type validation (must be np.ndarray)
+- Integration with Phase 1.2 manual solver
+
+**Security notes**:
+- Restricted builtins: eval, exec, compile, open removed
+- **Limitation**: Cannot prevent filesystem/network access (multiprocessing limitation)
+- **Production**: Use Docker with read-only filesystem and network disabled
+
 ### Running Tests
 
 ```bash
@@ -139,13 +164,13 @@ arc_prometheus/
 │   ├── crucible/           # Sandbox environment
 │   │   ├── data_loader.py  # Load ARC tasks from JSON
 │   │   ├── evaluator.py    # Compare grids for correctness
-│   │   └── sandbox.py      # (Phase 1.5) Safe code execution
+│   │   └── sandbox.py      # Safe code execution with multiprocessing ✅
 │   ├── cognitive_cells/    # LLM agents
 │   │   ├── prompts.py      # (Phase 1.4) Prompt templates
 │   │   └── programmer.py   # (Phase 1.4) Code generation
 │   └── utils/
 │       └── config.py       # Configuration management
-├── tests/                  # Test suite
+├── tests/                  # Test suite (59 tests passing)
 ├── scripts/                # Demo and utility scripts
 ├── data/                   # ARC dataset (gitignored)
 └── plan_20251024.md       # Detailed implementation plan
@@ -158,7 +183,7 @@ arc_prometheus/
 
 - [x] **1.1**: Environment setup + data loading ✅
 - [x] **1.2**: Manual solver validation ✅
-- [ ] **1.3**: Safe execution sandbox
+- [x] **1.3**: Safe execution sandbox ✅
 - [ ] **1.4**: LLM-based code generation
 - [ ] **1.5**: Complete end-to-end pipeline
 
@@ -333,18 +358,19 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 Phase 1: Core Prototype
 ├── [✅] 1.1: Environment Setup & Data Loading
 ├── [✅] 1.2: Manual Solver Validation
-├── [ ] 1.3: Safe Execution Sandbox
+├── [✅] 1.3: Safe Execution Sandbox
 ├── [ ] 1.4: LLM Code Generation
 └── [ ] 1.5: End-to-End Pipeline
 
-Tests: 37/37 passing ✅
+Tests: 59/59 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
+Demo Phase 1.3: Sandbox execution (all demos passed) ✅
 ```
 
 ---
 
-**Next Steps**: Phase 1.3 - Safe Execution Sandbox (multiprocessing with timeout). See [plan_20251024.md](plan_20251024.md) for details.
+**Next Steps**: Phase 1.4 - LLM Code Generation (Gemini API integration). See [plan_20251024.md](plan_20251024.md) for details.
 
 *"私たちがこれから目の当たりにするのは、AIが「思考」を学ぶ瞬間です。この歴史的な挑戦を、一緒に楽しみましょう！"*
 
