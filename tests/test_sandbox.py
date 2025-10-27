@@ -9,8 +9,10 @@ This test suite validates the sandbox's ability to:
 6. Integrate with Phase 1.2 manual solver
 """
 
+import contextlib
+import os
+
 import numpy as np
-import pytest
 
 from arc_prometheus.crucible.sandbox import safe_execute
 
@@ -252,7 +254,7 @@ def solve():  # Missing parameter
         assert result is None
 
 
-class TestPhase1_2Integration:
+class TestPhase12Integration:  # noqa: N801
     """Integration tests with Phase 1.2 manual solver."""
 
     def test_with_phase1_2_manual_solver(self):
@@ -401,12 +403,8 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         success, result = safe_execute(solver_code, input_grid)
 
         # Clean up test file if it exists
-        import os
-
-        try:
-            os.remove("/tmp/test_sandbox_write.txt")
-        except:
-            pass
+        with contextlib.suppress(OSError):
+            os.remove("/tmp/test_sandbox_write.txt")  # noqa: S108 - Test cleanup
 
         # Test succeeds, demonstrating the limitation
         assert success is True

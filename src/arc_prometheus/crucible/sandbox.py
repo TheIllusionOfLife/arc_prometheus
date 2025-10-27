@@ -17,14 +17,12 @@ IMPORTANT SECURITY LIMITATIONS:
 
 import multiprocessing as mp
 from multiprocessing import Queue
-from typing import Optional
+from typing import Any
 
 import numpy as np
 
 
-def _worker_execute(
-    code_str: str, task_grid: np.ndarray, result_queue: Queue
-) -> None:
+def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -> None:
     """Worker function that executes solver code in isolated process.
 
     This function runs in a separate process with restricted builtins.
@@ -48,7 +46,14 @@ def _worker_execute(
         # Copy safe builtins, excluding dangerous ones
         restricted_builtins = {}
         for name in dir(builtins):
-            if name not in ['eval', 'exec', 'compile', 'open', '__loader__', '__build_class__']:
+            if name not in [
+                "eval",
+                "exec",
+                "compile",
+                "open",
+                "__loader__",
+                "__build_class__",
+            ]:
                 restricted_builtins[name] = getattr(builtins, name)
 
         # Create execution namespace with restricted builtins
@@ -57,7 +62,7 @@ def _worker_execute(
         }
 
         # Execute the solver code to define solve() function
-        exec(code_str, exec_globals)
+        exec(code_str, exec_globals)  # noqa: S102 - Intentional use of exec in sandbox
 
         # Check if solve() function exists
         if "solve" not in exec_globals:
@@ -65,10 +70,11 @@ def _worker_execute(
             return
 
         # Get the solve function
-        solve_func = exec_globals["solve"]
+        # Use Any type because exec_globals dict contains dynamic content
+        solve_func: Any = exec_globals["solve"]
 
         # Execute solve() with the input grid
-        result = solve_func(task_grid)
+        result: Any = solve_func(task_grid)
 
         # Validate result type
         if not isinstance(result, np.ndarray):
@@ -92,7 +98,7 @@ def _worker_execute(
 
 def safe_execute(
     solver_code: str, task_grid: np.ndarray, timeout: int = 5
-) -> tuple[bool, Optional[np.ndarray]]:
+) -> tuple[bool, np.ndarray | None]:
     """Execute LLM-generated solver code safely in isolated process.
 
     Runs untrusted code in a separate process with:

@@ -23,9 +23,6 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from collections import OrderedDict
-
-import numpy as np
 
 from arc_prometheus.crucible.data_loader import load_task, print_grid
 from arc_prometheus.crucible.evaluator import evaluate_grids
@@ -159,7 +156,7 @@ def main():
         execution_time = time.time() - start_time
 
         if not success:
-            print(f"❌ Sandbox execution FAILED")
+            print("❌ Sandbox execution FAILED")
             print(f"   Execution time: {execution_time:.2f}s")
             continue
 
