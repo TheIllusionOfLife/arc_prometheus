@@ -256,13 +256,47 @@ pytest tests/ --cov=src/arc_prometheus --cov-report=term-missing
 
 ### Code Quality
 
-```bash
-# Type checking (future)
-mypy src/
+We use a comprehensive CI/CD pipeline with automated quality checks:
 
-# Linting (future)
-ruff check src/
+**Available Commands** (via Makefile):
+
+```bash
+# Run all CI checks at once
+make ci
+
+# Individual checks
+make test          # Run test suite
+make test-cov      # Run tests with coverage report
+make typecheck     # Type checking with mypy
+make lint          # Linting with ruff
+make lint-fix      # Auto-fix linting issues
+make format        # Format code
+make format-check  # Check formatting without changes
+make security      # Security scanning with bandit
+make clean         # Clean cache files
+make help          # Show all available commands
 ```
+
+**Quality Tools**:
+- **mypy**: Strict type checking (Python 3.13)
+- **ruff**: Fast linting and formatting (replaces black, flake8, isort)
+- **pytest**: Test framework with coverage reporting
+- **bandit**: Security vulnerability scanning
+
+**Pre-commit Hooks** (Optional):
+
+```bash
+# Install pre-commit hooks to run checks before each commit
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+**CI/CD Pipeline**:
+- Automated checks run on all PRs via GitHub Actions
+- Type checking, linting, formatting, security, and tests
+- All checks must pass before merging
 
 ### Commit Convention
 

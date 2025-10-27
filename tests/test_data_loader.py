@@ -1,11 +1,9 @@
 """Tests for ARC data loading functionality."""
 
 import json
-import pytest
+
 import numpy as np
-from pathlib import Path
-import tempfile
-from io import StringIO
+import pytest
 
 from arc_prometheus.crucible.data_loader import load_task, print_grid
 
@@ -18,15 +16,13 @@ class TestLoadTask:
         task_data = {
             "train": [
                 {"input": [[1, 2], [3, 4]], "output": [[5, 6], [7, 8]]},
-                {"input": [[0, 1]], "output": [[2, 3]]}
+                {"input": [[0, 1]], "output": [[2, 3]]},
             ],
-            "test": [
-                {"input": [[9, 9], [8, 8]]}
-            ]
+            "test": [{"input": [[9, 9], [8, 8]]}],
         }
 
         task_file = tmp_path / "test_task.json"
-        with open(task_file, 'w') as f:
+        with open(task_file, "w") as f:
             json.dump(task_data, f)
 
         result = load_task(str(task_file))
@@ -48,7 +44,7 @@ class TestLoadTask:
     def test_load_task_invalid_json(self, tmp_path):
         """Test error handling for invalid JSON format."""
         task_file = tmp_path / "invalid.json"
-        with open(task_file, 'w') as f:
+        with open(task_file, "w") as f:
             f.write("{ invalid json }")
 
         with pytest.raises(ValueError, match="Invalid JSON format"):
@@ -59,7 +55,7 @@ class TestLoadTask:
         task_data = {"train": []}  # Missing 'test' key
 
         task_file = tmp_path / "missing_keys.json"
-        with open(task_file, 'w') as f:
+        with open(task_file, "w") as f:
             json.dump(task_data, f)
 
         with pytest.raises(ValueError, match="must contain 'train' and 'test' keys"):
@@ -67,16 +63,15 @@ class TestLoadTask:
 
     def test_load_task_empty_train(self, tmp_path):
         """Test handling of task with empty train examples."""
-        task_data = {
-            "train": [],
-            "test": [{"input": [[1, 2]]}]
-        }
+        task_data = {"train": [], "test": [{"input": [[1, 2]]}]}
 
         task_file = tmp_path / "empty_train.json"
-        with open(task_file, 'w') as f:
+        with open(task_file, "w") as f:
             json.dump(task_data, f)
 
-        with pytest.raises(ValueError, match="Task must have at least one train example"):
+        with pytest.raises(
+            ValueError, match="Task must have at least one train example"
+        ):
             load_task(str(task_file))
 
     def test_load_task_various_grid_sizes(self, tmp_path):
@@ -85,15 +80,18 @@ class TestLoadTask:
             "train": [
                 {"input": [[1]], "output": [[2]]},  # 1x1
                 {"input": [[1, 2, 3, 4, 5]], "output": [[0, 0, 0, 0, 0]]},  # 1x5
-                {"input": [[1, 2], [3, 4], [5, 6]], "output": [[0, 0], [0, 0], [0, 0]]}  # 3x2
+                {
+                    "input": [[1, 2], [3, 4], [5, 6]],
+                    "output": [[0, 0], [0, 0], [0, 0]],
+                },  # 3x2
             ],
             "test": [
                 {"input": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}  # 3x3
-            ]
+            ],
         }
 
         task_file = tmp_path / "various_sizes.json"
-        with open(task_file, 'w') as f:
+        with open(task_file, "w") as f:
             json.dump(task_data, f)
 
         result = load_task(str(task_file))
@@ -164,5 +162,5 @@ class TestPrintGrid:
 
         assert "30x30 Grid" in output
         # Should contain multiple rows
-        lines = output.strip().split('\n')
+        lines = output.strip().split("\n")
         assert len(lines) > 30  # At least 30 rows plus label/formatting

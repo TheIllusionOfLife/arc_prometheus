@@ -3,6 +3,8 @@
 Provides functions to compare grids for correctness evaluation.
 """
 
+from typing import cast
+
 import numpy as np
 
 
@@ -34,4 +36,4 @@ def evaluate_grids(grid_a: np.ndarray, grid_b: np.ndarray) -> bool:
         return False
 
     # Check if all values match
-    return np.array_equal(grid_a, grid_b)
+    return cast(bool, np.array_equal(grid_a, grid_b))

@@ -18,6 +18,13 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    "mypy>=1.8.0",
+    "ruff>=0.1.0",
+    "types-python-dotenv>=1.0.0",
+    "bandit>=1.7.0",
+    "pre-commit>=3.6.0",
 ]
 
 [build-system]
@@ -44,3 +51,61 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+check_untyped_defs = true
+strict_equality = true
+
+# Allow missing imports for third-party libraries without stubs
+[[tool.mypy.overrides]]
+module = ["dotenv", "google.generativeai", "google.generativeai.*", "numpy", "numpy.*"]
+ignore_missing_imports = true
+
+# Relax type checking for test files
+[[tool.mypy.overrides]]
+module = ["tests.*", "pytest", "demo_phase1_2_manual"]
+ignore_missing_imports = true
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+    "S",     # flake8-bandit (security)
+    "T20",   # flake8-print
+    "PT",    # flake8-pytest-style
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "T201",  # print found (we use print for CLI output)
+    "S101",  # assert used (OK in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T201"]  # Allow assert and print in tests
+"scripts/*" = ["T201"]  # Allow print in scripts
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
