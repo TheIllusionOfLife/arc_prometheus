@@ -11,8 +11,8 @@ Usage:
 If no task_id is provided, uses the first task in the training set.
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add src to path for imports
@@ -21,7 +21,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from arc_prometheus.crucible.data_loader import load_task, print_grid
 from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.utils.config import DATA_DIR
-import numpy as np
 
 
 def main():
@@ -38,13 +37,15 @@ def main():
         # Load the training challenges to get first task
         challenges_file = DATA_DIR / "arc-agi_training_challenges.json"
         if not challenges_file.exists():
-            print(f"\n❌ ERROR: Training challenges file not found at {challenges_file}")
+            print(
+                f"\n❌ ERROR: Training challenges file not found at {challenges_file}"
+            )
             print("Please download the ARC Prize 2025 dataset from:")
             print("https://www.kaggle.com/competitions/arc-prize-2025/data")
             print(f"And place it in: {DATA_DIR}")
             sys.exit(1)
 
-        with open(challenges_file, 'r') as f:
+        with open(challenges_file) as f:
             challenges = json.load(f)
 
         task_id = list(challenges.keys())[0]
@@ -75,14 +76,16 @@ def main():
     print("TRAIN EXAMPLES")
     print("=" * 70)
 
-    for idx, example in enumerate(task_data['train'], 1):
+    for idx, example in enumerate(task_data["train"], 1):
         print(f"\n--- Train Example {idx}/{len(task_data['train'])} ---")
 
-        print_grid(example['input'], label=f"Input (shape: {example['input'].shape})")
-        print_grid(example['output'], label=f"Output (shape: {example['output'].shape})")
+        print_grid(example["input"], label=f"Input (shape: {example['input'].shape})")
+        print_grid(
+            example["output"], label=f"Output (shape: {example['output'].shape})"
+        )
 
         # Test evaluation: input should NOT equal output (typically)
-        is_same = evaluate_grids(example['input'], example['output'])
+        is_same = evaluate_grids(example["input"], example["output"])
         if is_same:
             print("⚠️  Note: Input and output are identical (pass-through task)")
         else:
@@ -93,13 +96,15 @@ def main():
     print("TEST EXAMPLES")
     print("=" * 70)
 
-    for idx, example in enumerate(task_data['test'], 1):
+    for idx, example in enumerate(task_data["test"], 1):
         print(f"\n--- Test Example {idx}/{len(task_data['test'])} ---")
 
-        print_grid(example['input'], label=f"Input (shape: {example['input'].shape})")
+        print_grid(example["input"], label=f"Input (shape: {example['input'].shape})")
 
-        if 'output' in example:
-            print_grid(example['output'], label=f"Output (shape: {example['output'].shape})")
+        if "output" in example:
+            print_grid(
+                example["output"], label=f"Output (shape: {example['output'].shape})"
+            )
             print("✓ Test has ground truth output available")
         else:
             print("(No ground truth output - this is the puzzle to solve!)")
@@ -112,15 +117,23 @@ def main():
     print("\nTesting evaluate_grids() function:")
 
     # Test 1: Identical grids
-    grid1 = task_data['train'][0]['input']
-    grid2 = task_data['train'][0]['input'].copy()
+    grid1 = task_data["train"][0]["input"]
+    grid2 = task_data["train"][0]["input"].copy()
     result = evaluate_grids(grid1, grid2)
-    print(f"  - Identical grids: {result} ✓" if result else f"  - Identical grids: {result} ❌")
+    print(
+        f"  - Identical grids: {result} ✓"
+        if result
+        else f"  - Identical grids: {result} ❌"
+    )
 
     # Test 2: Different grids
-    grid3 = task_data['train'][0]['output']
+    grid3 = task_data["train"][0]["output"]
     result = evaluate_grids(grid1, grid3)
-    print(f"  - Different grids: {not result} ✓" if not result else f"  - Different grids: {not result} ❌")
+    print(
+        f"  - Different grids: {not result} ✓"
+        if not result
+        else f"  - Different grids: {not result} ❌"
+    )
 
     # Summary
     print("\n" + "=" * 70)

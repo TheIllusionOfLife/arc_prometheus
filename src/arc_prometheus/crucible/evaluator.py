@@ -34,4 +34,4 @@ def evaluate_grids(grid_a: np.ndarray, grid_b: np.ndarray) -> bool:
         return False
 
     # Check if all values match
-    return np.array_equal(grid_a, grid_b)
+    return bool(np.array_equal(grid_a, grid_b))

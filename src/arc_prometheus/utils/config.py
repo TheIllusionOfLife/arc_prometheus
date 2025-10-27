@@ -7,6 +7,7 @@ centralized access to configuration values.
 import os
 import warnings
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 
@@ -62,7 +63,7 @@ if not DATA_DIR.exists():
         f"ARC dataset directory not found at {DATA_DIR}\n"
         f"Please download the dataset from: https://www.kaggle.com/competitions/arc-prize-2025/data\n"
         f"And place it in: {DATA_DIR}",
-        stacklevel=2
+        stacklevel=2,
     )
 
 # Execution configuration

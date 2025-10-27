@@ -19,8 +19,10 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import numpy as np
 from collections import OrderedDict
+
+import numpy as np
+
 from arc_prometheus.crucible.data_loader import load_task, print_grid
 from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.utils.config import DATA_DIR
@@ -80,17 +82,22 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     # Step 3: Determine pattern rotation based on diagonal positions
     diag_indices = list(diagonals.keys())
 
-    is_consecutive = all(diag_indices[i+1] - diag_indices[i] == 1
-                        for i in range(len(diag_indices)-1))
+    is_consecutive = all(
+        diag_indices[i + 1] - diag_indices[i] == 1 for i in range(len(diag_indices) - 1)
+    )
 
     if is_consecutive:
         min_diag = min(diag_indices)
         if min_diag < 4:
             base_pattern = diagonal_values  # Top-left: no rotation
         else:
-            base_pattern = diagonal_values[1:] + diagonal_values[:1]  # Bottom-right: rotate left 1
+            base_pattern = (
+                diagonal_values[1:] + diagonal_values[:1]
+            )  # Bottom-right: rotate left 1
     else:
-        base_pattern = diagonal_values[-1:] + diagonal_values[:-1]  # Non-consecutive: last first
+        base_pattern = (
+            diagonal_values[-1:] + diagonal_values[:-1]
+        )  # Non-consecutive: last first
 
     # Step 4: Fill the 7x7 output grid with row-shifted repeating pattern
     output = np.zeros((7, 7), dtype=int)
@@ -140,27 +147,33 @@ def main():
     print("=" * 70)
 
     correct_count = 0
-    total_count = len(task_data['train'])
+    total_count = len(task_data["train"])
 
-    for idx, example in enumerate(task_data['train'], 1):
+    for idx, example in enumerate(task_data["train"], 1):
         print(f"\n{'─' * 70}")
         print(f"Train Example {idx}/{total_count}")
         print(f"{'─' * 70}")
 
         # Show input
-        print_grid(example['input'], label=f"Input (shape: {example['input'].shape})")
+        print_grid(example["input"], label=f"Input (shape: {example['input'].shape})")
 
         # Run solver
-        predicted_output = solve(example['input'])
+        predicted_output = solve(example["input"])
 
         # Show predicted output
-        print_grid(predicted_output, label=f"Predicted Output (shape: {predicted_output.shape})")
+        print_grid(
+            predicted_output,
+            label=f"Predicted Output (shape: {predicted_output.shape})",
+        )
 
         # Show expected output
-        print_grid(example['output'], label=f"Expected Output (shape: {example['output'].shape})")
+        print_grid(
+            example["output"],
+            label=f"Expected Output (shape: {example['output'].shape})",
+        )
 
         # Evaluate
-        is_correct = evaluate_grids(predicted_output, example['output'])
+        is_correct = evaluate_grids(predicted_output, example["output"])
 
         if is_correct:
             print("✅ MATCH: Predicted output matches expected output!")
@@ -169,13 +182,15 @@ def main():
             print("❌ MISMATCH: Predicted output does NOT match expected output")
 
             # Show first difference
-            diff_mask = predicted_output != example['output']
+            diff_mask = predicted_output != example["output"]
             if np.any(diff_mask):
                 diff_positions = np.argwhere(diff_mask)
                 first_diff = diff_positions[0]
                 i, j = first_diff[0], first_diff[1]
                 print(f"   First difference at position ({i}, {j}):")
-                print(f"   Predicted: {predicted_output[i, j]}, Expected: {example['output'][i, j]}")
+                print(
+                    f"   Predicted: {predicted_output[i, j]}, Expected: {example['output'][i, j]}"
+                )
 
     # Summary
     print("\n" + "=" * 70)
@@ -183,7 +198,9 @@ def main():
     print("=" * 70)
 
     success_rate = (correct_count / total_count) * 100
-    print(f"\nSolver Performance: {correct_count}/{total_count} train examples solved correctly ({success_rate:.0f}%)")
+    print(
+        f"\nSolver Performance: {correct_count}/{total_count} train examples solved correctly ({success_rate:.0f}%)"
+    )
 
     if correct_count == total_count:
         print("\n🎉 SUCCESS: Manual solver works perfectly!")
@@ -192,7 +209,9 @@ def main():
         print("  - All train examples solved correctly")
         print("  - Infrastructure validated for Phase 1.3")
     else:
-        print(f"\n⚠️  WARNING: Solver failed on {total_count - correct_count} example(s)")
+        print(
+            f"\n⚠️  WARNING: Solver failed on {total_count - correct_count} example(s)"
+        )
         print("   Manual solver needs refinement before proceeding to Phase 1.3")
 
     # Next steps

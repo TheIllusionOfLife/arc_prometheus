@@ -1,6 +1,5 @@
 """Tests for ARC grid evaluation functionality."""
 
-import pytest
 import numpy as np
 
 from arc_prometheus.crucible.evaluator import evaluate_grids

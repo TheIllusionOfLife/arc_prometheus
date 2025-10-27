@@ -4,11 +4,12 @@ This test suite validates that a manually-written solver can correctly
 solve ARC task 05269061 before we build the LLM pipeline.
 """
 
-import pytest
-import numpy as np
 import inspect
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -90,10 +91,14 @@ class TestManualSolverTask05269061:
 
         # Test that solver produces correct output
         predicted_output = solve(input_grid)
-        assert predicted_output.shape == expected_output.shape, \
+        assert predicted_output.shape == expected_output.shape, (
             "Solver output shape should match expected shape"
-        np.testing.assert_array_equal(predicted_output, expected_output,
-                                     "Solver output should match expected output for example 1")
+        )
+        np.testing.assert_array_equal(
+            predicted_output,
+            expected_output,
+            "Solver output should match expected output for example 1",
+        )
 
     def test_task_example2_pattern(self, task_data):
         """Test the pattern extraction for example 2.
@@ -111,10 +116,14 @@ class TestManualSolverTask05269061:
 
         # Test that solver produces correct output
         predicted_output = solve(input_grid)
-        assert predicted_output.shape == expected_output.shape, \
+        assert predicted_output.shape == expected_output.shape, (
             "Solver output shape should match expected shape"
-        np.testing.assert_array_equal(predicted_output, expected_output,
-                                     "Solver output should match expected output for example 2")
+        )
+        np.testing.assert_array_equal(
+            predicted_output,
+            expected_output,
+            "Solver output should match expected output for example 2",
+        )
 
     def test_task_example3_pattern(self, task_data):
         """Test the pattern extraction for example 3.
@@ -132,10 +141,14 @@ class TestManualSolverTask05269061:
 
         # Test that solver produces correct output
         predicted_output = solve(input_grid)
-        assert predicted_output.shape == expected_output.shape, \
+        assert predicted_output.shape == expected_output.shape, (
             "Solver output shape should match expected shape"
-        np.testing.assert_array_equal(predicted_output, expected_output,
-                                     "Solver output should match expected output for example 3")
+        )
+        np.testing.assert_array_equal(
+            predicted_output,
+            expected_output,
+            "Solver output should match expected output for example 3",
+        )
 
     def test_solver_integration_all_train_examples(self, task_data):
         """Integration test: solver should solve all train examples correctly."""
@@ -167,10 +180,12 @@ class TestSolverReturnType:
         test_grid = np.zeros((7, 7), dtype=int)
         test_grid[0, 0] = 1
         result = solve(test_grid)
-        assert result.dtype in [np.int32, np.int64, int], \
+        assert result.dtype in [np.int32, np.int64, int], (
             "solve() should return integer array"
-        assert np.all((result >= 0) & (result <= 9)), \
+        )
+        assert np.all((result >= 0) & (result <= 9)), (
             "All values should be in range 0-9"
+        )
 
 
 class TestSolverEdgeCases:
@@ -181,13 +196,10 @@ class TestSolverEdgeCases:
         empty_grid = np.zeros((7, 7), dtype=int)
         result = solve(empty_grid)
 
-        assert isinstance(result, np.ndarray), \
-            "Should return array for empty input"
-        assert result.shape == (7, 7), \
-            "Should return 7x7 grid"
+        assert isinstance(result, np.ndarray), "Should return array for empty input"
+        assert result.shape == (7, 7), "Should return 7x7 grid"
         # With no pattern, should return zeros
-        assert np.all(result == 0), \
-            "Empty input should produce zero-filled output"
+        assert np.all(result == 0), "Empty input should produce zero-filled output"
 
     def test_single_value_grid(self):
         """Test behavior with grid containing single non-zero value."""
@@ -195,23 +207,21 @@ class TestSolverEdgeCases:
         grid[3, 3] = 5
         result = solve(grid)
 
-        assert isinstance(result, np.ndarray), \
+        assert isinstance(result, np.ndarray), (
             "Should return array for single-value input"
-        assert result.shape == (7, 7), \
-            "Should return 7x7 grid"
+        )
+        assert result.shape == (7, 7), "Should return 7x7 grid"
         # With single value, pattern length is 1, so entire grid should be that value
-        assert np.all(result == 5), \
-            "Single-value pattern should fill entire grid"
+        assert np.all(result == 5), "Single-value pattern should fill entire grid"
 
     def test_full_grid(self):
         """Test behavior with grid that's already filled (no zeros)."""
         full_grid = np.ones((7, 7), dtype=int)
         result = solve(full_grid)
 
-        assert isinstance(result, np.ndarray), \
-            "Should return array for full input"
-        assert result.shape == (7, 7), \
-            "Should return 7x7 grid"
+        assert isinstance(result, np.ndarray), "Should return array for full input"
+        assert result.shape == (7, 7), "Should return 7x7 grid"
         # With all same values, should fill grid with that value
-        assert np.all(result == 1), \
+        assert np.all(result == 1), (
             "Full grid with single unique value should produce uniform output"
+        )
