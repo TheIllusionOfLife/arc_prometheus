@@ -6,6 +6,7 @@ solve ARC task 05269061 before we build the LLM pipeline.
 
 import pytest
 import numpy as np
+import inspect
 from pathlib import Path
 import sys
 
@@ -16,24 +17,32 @@ from arc_prometheus.crucible.data_loader import load_task
 from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.utils.config import DATA_DIR
 
+# Import the solver to test
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+from demo_phase1_2_manual import solve
+
 
 class TestManualSolverSignature:
     """Test that solver function follows the required signature."""
 
     def test_solver_exists(self):
-        """Test that solve function is importable."""
-        # Import will be from demo script - test after implementation
-        # This test documents the requirement
-        pass
+        """Test that solve function is importable and callable."""
+        assert callable(solve), "solve function should be callable"
 
     def test_solver_signature(self):
         """Test that solve function has correct signature.
 
         Required: def solve(task_grid: np.ndarray) -> np.ndarray
         """
-        # This test documents the required function signature
-        # Implementation will be validated by integration tests
-        pass
+        sig = inspect.signature(solve)
+        params = list(sig.parameters.keys())
+
+        assert len(params) == 1, "solve should take exactly one parameter"
+        assert params[0] == "task_grid", "Parameter should be named 'task_grid'"
+
+        # Verify return type annotation exists (if present)
+        if sig.return_annotation != inspect.Parameter.empty:
+            assert "ndarray" in str(sig.return_annotation), "Should return np.ndarray"
 
 
 class TestManualSolverTask05269061:
@@ -79,6 +88,13 @@ class TestManualSolverTask05269061:
         expected_first_row = np.array([2, 4, 1, 2, 4, 1, 2])
         np.testing.assert_array_equal(expected_output[0], expected_first_row)
 
+        # Test that solver produces correct output
+        predicted_output = solve(input_grid)
+        assert predicted_output.shape == expected_output.shape, \
+            "Solver output shape should match expected shape"
+        np.testing.assert_array_equal(predicted_output, expected_output,
+                                     "Solver output should match expected output for example 1")
+
     def test_task_example2_pattern(self, task_data):
         """Test the pattern extraction for example 2.
 
@@ -86,11 +102,19 @@ class TestManualSolverTask05269061:
         Output should be filled grid with repeating pattern.
         """
         example = task_data["train"][1]
+        input_grid = example["input"]
         expected_output = example["output"]
 
         # Expected output first row should be [2, 8, 3, 2, 8, 3, 2]
         expected_first_row = np.array([2, 8, 3, 2, 8, 3, 2])
         np.testing.assert_array_equal(expected_output[0], expected_first_row)
+
+        # Test that solver produces correct output
+        predicted_output = solve(input_grid)
+        assert predicted_output.shape == expected_output.shape, \
+            "Solver output shape should match expected shape"
+        np.testing.assert_array_equal(predicted_output, expected_output,
+                                     "Solver output should match expected output for example 2")
 
     def test_task_example3_pattern(self, task_data):
         """Test the pattern extraction for example 3.
@@ -99,11 +123,26 @@ class TestManualSolverTask05269061:
         Output should be filled grid with repeating pattern.
         """
         example = task_data["train"][2]
+        input_grid = example["input"]
         expected_output = example["output"]
 
         # Expected output first row should be [4, 8, 3, 4, 8, 3, 4]
         expected_first_row = np.array([4, 8, 3, 4, 8, 3, 4])
         np.testing.assert_array_equal(expected_output[0], expected_first_row)
+
+        # Test that solver produces correct output
+        predicted_output = solve(input_grid)
+        assert predicted_output.shape == expected_output.shape, \
+            "Solver output shape should match expected shape"
+        np.testing.assert_array_equal(predicted_output, expected_output,
+                                     "Solver output should match expected output for example 3")
+
+    def test_solver_integration_all_train_examples(self, task_data):
+        """Integration test: solver should solve all train examples correctly."""
+        for idx, example in enumerate(task_data["train"], 1):
+            predicted = solve(example["input"])
+            is_correct = evaluate_grids(predicted, example["output"])
+            assert is_correct, f"Solver failed on train example {idx}"
 
 
 class TestSolverReturnType:
@@ -111,21 +150,27 @@ class TestSolverReturnType:
 
     def test_returns_numpy_array(self):
         """Test that solver returns np.ndarray type."""
-        # Will be validated by integration test
-        # This documents the requirement
-        pass
+        test_grid = np.zeros((7, 7), dtype=int)
+        test_grid[0, 0] = 1
+        result = solve(test_grid)
+        assert isinstance(result, np.ndarray), "solve() should return np.ndarray"
 
     def test_returns_correct_shape(self):
         """Test that solver returns 7x7 grid for task 05269061."""
-        # Will be validated by integration test
-        # This documents the requirement: must return same shape as expected output
-        pass
+        test_grid = np.zeros((7, 7), dtype=int)
+        test_grid[3, 3] = 5
+        result = solve(test_grid)
+        assert result.shape == (7, 7), "solve() should return 7x7 grid for this task"
 
     def test_returns_integer_values(self):
         """Test that solver returns integer values (0-9)."""
-        # Will be validated by integration test
-        # ARC grids must have integer values 0-9
-        pass
+        test_grid = np.zeros((7, 7), dtype=int)
+        test_grid[0, 0] = 1
+        result = solve(test_grid)
+        assert result.dtype in [np.int32, np.int64, int], \
+            "solve() should return integer array"
+        assert np.all((result >= 0) & (result <= 9)), \
+            "All values should be in range 0-9"
 
 
 class TestSolverEdgeCases:
@@ -134,19 +179,39 @@ class TestSolverEdgeCases:
     def test_empty_grid(self):
         """Test behavior with empty grid (all zeros)."""
         empty_grid = np.zeros((7, 7), dtype=int)
-        # Should handle gracefully - exact behavior TBD
-        # This documents that edge case should be considered
-        pass
+        result = solve(empty_grid)
+
+        assert isinstance(result, np.ndarray), \
+            "Should return array for empty input"
+        assert result.shape == (7, 7), \
+            "Should return 7x7 grid"
+        # With no pattern, should return zeros
+        assert np.all(result == 0), \
+            "Empty input should produce zero-filled output"
 
     def test_single_value_grid(self):
         """Test behavior with grid containing single non-zero value."""
         grid = np.zeros((7, 7), dtype=int)
         grid[3, 3] = 5
-        # Should handle gracefully
-        pass
+        result = solve(grid)
+
+        assert isinstance(result, np.ndarray), \
+            "Should return array for single-value input"
+        assert result.shape == (7, 7), \
+            "Should return 7x7 grid"
+        # With single value, pattern length is 1, so entire grid should be that value
+        assert np.all(result == 5), \
+            "Single-value pattern should fill entire grid"
 
     def test_full_grid(self):
         """Test behavior with grid that's already filled (no zeros)."""
         full_grid = np.ones((7, 7), dtype=int)
-        # Should handle gracefully
-        pass
+        result = solve(full_grid)
+
+        assert isinstance(result, np.ndarray), \
+            "Should return array for full input"
+        assert result.shape == (7, 7), \
+            "Should return 7x7 grid"
+        # With all same values, should fill grid with that value
+        assert np.all(result == 1), \
+            "Full grid with single unique value should produce uniform output"

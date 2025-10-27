@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import numpy as np
+from collections import OrderedDict
 from arc_prometheus.crucible.data_loader import load_task, print_grid
 from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.utils.config import DATA_DIR
@@ -35,13 +36,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
        - Consecutive diagonals in top-left (indices <4): no rotation
        - Consecutive diagonals in bottom-right (indices >=4): rotate left by 1
        - Non-consecutive diagonals: move last value to first position
-    4. Fill 7×7 grid with row-shifted repeating pattern
+    4. Fill 7x7 grid with row-shifted repeating pattern
 
     Args:
-        task_grid: Input grid (7×7 numpy array)
+        task_grid: Input grid (7x7 numpy array)
 
     Returns:
-        Output grid (7×7 numpy array) with repeating pattern
+        Output grid (7x7 numpy array) with repeating pattern
 
     Examples:
         >>> # Example 1: diagonals [8,9,10] with values [1,2,4]
@@ -55,7 +56,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     """
     # Step 1: Group non-zero values by diagonal
     # Diagonal index = row + col (constant for / diagonals)
-    from collections import OrderedDict
     diagonals = OrderedDict()
 
     for i in range(7):
@@ -87,7 +87,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     else:
         base_pattern = diagonal_values[-1:] + diagonal_values[:-1]  # Non-consecutive: last first
 
-    # Step 4: Fill the 7×7 output grid with row-shifted repeating pattern
+    # Step 4: Fill the 7x7 output grid with row-shifted repeating pattern
     output = np.zeros((7, 7), dtype=int)
     pattern_len = len(base_pattern)
 
