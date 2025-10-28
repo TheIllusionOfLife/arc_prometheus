@@ -302,7 +302,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert isinstance(result["test_accuracy"], float)
         assert isinstance(result["execution_errors"], list)
 
-
     def test_task_with_missing_output_keys(self, tmp_path):
         """Test handling of examples without 'output' key (ARC evaluation tasks)."""
         # Simulate ARC evaluation task format where test examples lack outputs
