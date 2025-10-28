@@ -208,6 +208,28 @@ The pattern shows a 90-degree rotation applied to the input."""
         with pytest.raises(ValueError, match="solve.*function.*not found"):
             extract_code_from_response(response)
 
+    def test_extract_malformed_markdown_unclosed_block(self):
+        """Test handling of unclosed code blocks (malformed markdown).
+
+        Strategy 1 (regex for ``` blocks) will fail, but Strategy 2
+        (raw code extraction) should still succeed.
+        """
+        response = """Here is the solution:
+```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid + 1
+
+Note: Missing closing backticks"""
+        # Strategy 2 should handle this gracefully
+        code = extract_code_from_response(response)
+        assert "import numpy as np" in code
+        assert "def solve(" in code
+        assert "return task_grid + 1" in code
+        # Should not include the explanation text
+        assert "Note: Missing closing backticks" not in code
+
 
 class TestGenerateSolver:
     """Tests for Gemini API integration."""

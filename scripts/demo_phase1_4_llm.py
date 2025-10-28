@@ -81,6 +81,11 @@ def main():
     print("\n" + "=" * 70)
     print("TESTING GENERATED SOLVER")
     print("=" * 70)
+    print("\n⚠️  SECURITY WARNING:")
+    print("    Multiprocessing sandbox does NOT prevent filesystem/network access.")
+    print("    LLM-generated code could potentially access system resources.")
+    print("    For production: Use Docker with read-only filesystem and no network.")
+    print("    See CLAUDE.md for Phase 3 security roadmap.")
 
     correct_count = 0
     total_count = len(task_data["train"])

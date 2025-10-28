@@ -53,8 +53,8 @@ def extract_code_from_response(response_text: str) -> str:
         # Find block containing solve() function
         for block in code_blocks:
             if "def solve(" in block:
-                code_str: str = block.strip()
-                return code_str
+                result: str = block.strip()
+                return result
 
     # Strategy 2: Try to extract raw code without delimiters
     # Look for lines starting with 'import' or 'def solve('
@@ -95,11 +95,11 @@ def extract_code_from_response(response_text: str) -> str:
                 if line.startswith(" ") or line.startswith("\t"):
                     continue
 
-                # Check if this is a top-level Python statement (another function/import)
+                # Check if this is a top-level Python statement (another function/import/decorator)
                 # Use lstrip() to handle any leading whitespace
                 if any(
                     line.lstrip().startswith(kw)
-                    for kw in ["import ", "from ", "def ", "class "]
+                    for kw in ["import ", "from ", "def ", "class ", "@"]
                 ):
                     continue
 
@@ -165,7 +165,7 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
         response = model.generate_content(
             prompt,
             generation_config={
-                "temperature": 0.7,  # Some creativity but not too random
+                "temperature": 0.3,  # Lower temp for consistent code generation
                 "max_output_tokens": 2048,  # Enough for complex solvers
             },
             request_options={"timeout": timeout},
@@ -181,8 +181,11 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
         code = extract_code_from_response(response_text)
         return code
     except ValueError as e:
-        # Include response text in error for debugging
+        # Include response text in error for debugging (start and end)
+        if len(response_text) > 500:
+            preview = f"{response_text[:300]}\n\n... [truncated] ...\n\n{response_text[-200:]}"
+        else:
+            preview = response_text
         raise ValueError(
-            f"Failed to parse LLM response: {e}\n"
-            f"Response was:\n{response_text[:500]}..."
+            f"Failed to parse LLM response: {e}\nResponse was:\n{preview}"
         ) from e
