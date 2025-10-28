@@ -7,13 +7,9 @@ Tests with various solvers to show the 10x weight on test accuracy.
 """
 
 import json
-import sys
+import os
 import tempfile
 import time
-from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.evolutionary_engine.fitness import calculate_fitness
 
@@ -198,26 +194,30 @@ def main():
         json.dump(task_data, task_file)
         task_path = task_file.name
 
-    print(f"\nUsing task: {task_id} (synthetic demo task)")
-    print("Rule: Output = Input × 2")
-    print(f"Train examples: {len(task_data['train'])}")
-    print(f"Test examples: {len(task_data['test'])}")
+    try:
+        print(f"\nUsing task: {task_id} (synthetic demo task)")
+        print("Rule: Output = Input × 2")
+        print(f"Train examples: {len(task_data['train'])}")
+        print(f"Test examples: {len(task_data['test'])}")
 
-    # Run demos
-    demo_with_perfect_solver(task_path, task_id)
-    demo_with_overfitting_solver(task_path, task_id)
-    demo_with_timeout_solver(task_path, task_id)
+        # Run demos
+        demo_with_perfect_solver(task_path, task_id)
+        demo_with_overfitting_solver(task_path, task_id)
+        demo_with_timeout_solver(task_path, task_id)
 
-    # Final summary
-    print_section_header("Demo Complete")
-    print("✅ Fitness function successfully demonstrated!")
-    print("\nKey Takeaways:")
-    print("1. Test accuracy is weighted 10x higher than train accuracy")
-    print("2. This encourages solvers that generalize, not memorize")
-    print("3. Timeout enforcement prevents infinite loops")
-    print("4. Clear error reporting helps identify failure modes")
-    print("\n🎯 Next: Phase 2.2 - Refiner Agent for solver debugging")
-    print("=" * 60 + "\n")
+        # Final summary
+        print_section_header("Demo Complete")
+        print("✅ Fitness function successfully demonstrated!")
+        print("\nKey Takeaways:")
+        print("1. Test accuracy is weighted 10x higher than train accuracy")
+        print("2. This encourages solvers that generalize, not memorize")
+        print("3. Timeout enforcement prevents infinite loops")
+        print("4. Clear error reporting helps identify failure modes")
+        print("\n🎯 Next: Phase 2.2 - Refiner Agent for solver debugging")
+        print("=" * 60 + "\n")
+    finally:
+        # Clean up temporary file
+        os.remove(task_path)
 
 
 if __name__ == "__main__":

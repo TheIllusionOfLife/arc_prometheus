@@ -1,5 +1,7 @@
 """Tests for fitness evaluation system (Phase 2.1)."""
 
+import json
+
 import pytest
 
 from arc_prometheus.evolutionary_engine.fitness import calculate_fitness
@@ -21,7 +23,6 @@ class TestFitnessCalculation:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -56,7 +57,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -101,7 +101,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -133,7 +132,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -165,7 +163,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -192,7 +189,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -215,7 +211,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         task_data = {"train": [], "test": []}
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -244,7 +239,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -273,7 +267,6 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         }
 
         task_file = tmp_path / "task.json"
-        import json
 
         task_file.write_text(json.dumps(task_data))
 
@@ -320,7 +313,6 @@ class TestFitnessWithRealDataset:
 
     def test_fitness_with_real_task(self, arc_dataset_path, tmp_path):
         """Test fitness calculation with a real ARC task."""
-        import json
         from pathlib import Path
 
         # Skip if dataset not available
