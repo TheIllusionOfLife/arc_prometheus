@@ -33,6 +33,11 @@ from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.crucible.sandbox import safe_execute
 from arc_prometheus.utils.config import DATA_DIR
 
+# Constants
+SANDBOX_TIMEOUT = 5  # Timeout in seconds for sandbox execution
+PREVIEW_START_LINES = 20  # Number of lines to show at start of code preview
+PREVIEW_END_LINES = 10  # Number of lines to show at end of code preview
+
 
 def print_header(title: str, char: str = "=") -> None:
     """Print formatted section header."""
@@ -45,11 +50,14 @@ def print_code_section(code: str, max_lines: int = 30) -> None:
     """Print generated code with line numbers."""
     lines = code.split("\n")
     if len(lines) > max_lines:
-        # Show first 20 and last 10 lines
-        for i, line in enumerate(lines[:20], 1):
+        # Show first PREVIEW_START_LINES and last PREVIEW_END_LINES
+        for i, line in enumerate(lines[:PREVIEW_START_LINES], 1):
             print(f"{i:3d} | {line}")
-        print(f"... ({len(lines) - 30} lines omitted) ...")
-        for i, line in enumerate(lines[-10:], len(lines) - 9):
+        omitted = len(lines) - (PREVIEW_START_LINES + PREVIEW_END_LINES)
+        print(f"... ({omitted} lines omitted) ...")
+        for i, line in enumerate(
+            lines[-PREVIEW_END_LINES:], len(lines) - PREVIEW_END_LINES + 1
+        ):
             print(f"{i:3d} | {line}")
     else:
         for i, line in enumerate(lines, 1):
@@ -75,7 +83,7 @@ import numpy as np
 
 '''
 
-    with open(solver_file, "w") as f:
+    with open(solver_file, "w", encoding="utf-8") as f:
         f.write(header + solver_code)
 
     return solver_file
@@ -156,9 +164,11 @@ def run_e2e_pipeline(task_id: str) -> dict:
         print_grid(example["input"], label="")
 
         # Execute in sandbox
-        print("\nExecuting solver in sandbox (timeout: 5s)...")
+        print(f"\nExecuting solver in sandbox (timeout: {SANDBOX_TIMEOUT}s)...")
         start_time = time.time()
-        success, result_grid = safe_execute(solver_code, example["input"], timeout=5)
+        success, result_grid = safe_execute(
+            solver_code, example["input"], timeout=SANDBOX_TIMEOUT
+        )
         execution_time = time.time() - start_time
 
         if not success:
@@ -182,16 +192,17 @@ def run_e2e_pipeline(task_id: str) -> dict:
             print_grid(example["output"], label="")
 
             # Show first difference
-            if result_grid.shape == example["output"].shape:
+            if result_grid.shape == example["output"].shape and result_grid.size > 0:
                 diff_mask = result_grid != example["output"]
                 if np.any(diff_mask):
                     diff_positions = np.argwhere(diff_mask)
-                    first_diff = diff_positions[0]
-                    i, j = first_diff[0], first_diff[1]
-                    print(f"\n   First difference at position ({i}, {j}):")
-                    print(
-                        f"   Predicted: {result_grid[i, j]}, Expected: {example['output'][i, j]}"
-                    )
+                    if len(diff_positions) > 0:  # Extra safety check
+                        first_diff = diff_positions[0]
+                        i, j = int(first_diff[0]), int(first_diff[1])
+                        print(f"\n   First difference at position ({i}, {j}):")
+                        print(
+                            f"   Predicted: {result_grid[i, j]}, Expected: {example['output'][i, j]}"
+                        )
             else:
                 print(
                     f"\n   Shape mismatch: Predicted {result_grid.shape} vs Expected {example['output'].shape}"

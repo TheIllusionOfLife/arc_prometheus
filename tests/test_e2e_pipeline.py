@@ -22,6 +22,18 @@ from arc_prometheus.crucible.evaluator import evaluate_grids
 from arc_prometheus.crucible.sandbox import safe_execute
 
 
+# Fixtures
+@pytest.fixture
+def arc_data_file():
+    """Path to ARC training challenges file."""
+    return (
+        Path(__file__).parent.parent
+        / "data"
+        / "arc-prize-2025"
+        / "arc-agi_training_challenges.json"
+    )
+
+
 class TestE2EPipelineCore:
     """Tests for core E2E pipeline orchestration logic."""
 
@@ -155,21 +167,13 @@ class TestE2EPipelineIntegration:
     """Integration tests with real components (except LLM)."""
 
     @patch("arc_prometheus.cognitive_cells.programmer.generate_solver")
-    def test_real_data_loading_and_execution(self, mock_generate):
+    def test_real_data_loading_and_execution(self, mock_generate, arc_data_file):
         """Test pipeline with real data loading and sandbox execution."""
-        # Use real load_task if data available
-        data_file = (
-            Path(__file__).parent.parent
-            / "data"
-            / "arc-prize-2025"
-            / "arc-agi_training_challenges.json"
-        )
-
-        if not data_file.exists():
+        if not arc_data_file.exists():
             pytest.skip("ARC dataset not available")
 
         # Load real task
-        task_data = load_task(str(data_file), task_id="00576224")
+        task_data = load_task(str(arc_data_file), task_id="00576224")
         assert "train" in task_data
         assert len(task_data["train"]) > 0
 
@@ -237,20 +241,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 class TestE2EPipelineErrorCases:
     """Tests for error handling and edge cases."""
 
-    def test_invalid_task_id(self):
+    def test_invalid_task_id(self, arc_data_file):
         """Test handling of invalid task ID."""
-        data_file = (
-            Path(__file__).parent.parent
-            / "data"
-            / "arc-prize-2025"
-            / "arc-agi_training_challenges.json"
-        )
-
-        if not data_file.exists():
+        if not arc_data_file.exists():
             pytest.skip("ARC dataset not available")
 
         with pytest.raises(ValueError, match="not found"):
-            load_task(str(data_file), task_id="INVALID_TASK_ID_12345")
+            load_task(str(arc_data_file), task_id="INVALID_TASK_ID_12345")
 
     def test_missing_dataset_file(self):
         """Test handling of missing dataset file."""
