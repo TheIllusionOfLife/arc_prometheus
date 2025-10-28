@@ -22,6 +22,18 @@ from typing import Any
 
 import numpy as np
 
+# Dangerous builtins that must be blocked in sandbox
+DANGEROUS_BUILTINS = frozenset(
+    [
+        "eval",
+        "exec",
+        "compile",
+        "open",
+        "__loader__",
+        "__build_class__",
+    ]
+)
+
 
 def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -> None:
     """Worker function that executes solver code in isolated process.
@@ -51,15 +63,7 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
         restricted_builtins = {
             name: getattr(builtins, name)
             for name in dir(builtins)
-            if name
-            not in [
-                "eval",
-                "exec",
-                "compile",
-                "open",
-                "__loader__",
-                "__build_class__",
-            ]
+            if name not in DANGEROUS_BUILTINS
         }
 
         # Set attributes on the restricted module
