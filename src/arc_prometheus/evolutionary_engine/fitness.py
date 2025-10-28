@@ -60,11 +60,16 @@ def calculate_fitness(
 
         # Evaluate on train examples
         train_examples = task_data.get("train", [])
-        train_total = len(train_examples)
 
         for idx, example in enumerate(train_examples):
-            input_grid = np.array(example["input"])
-            expected_output = np.array(example["output"])
+            # Skip examples without output (shouldn't happen for train, but be safe)
+            if "output" not in example:
+                execution_errors.append(f"Train example {idx}: Missing output key")
+                continue
+
+            train_total += 1
+            input_grid = np.array(example["input"], dtype=np.int64)
+            expected_output = np.array(example["output"], dtype=np.int64)
 
             # Execute solver in sandbox
             success, result_grid = safe_execute(solver_code, input_grid, timeout)
@@ -79,11 +84,15 @@ def calculate_fitness(
 
         # Evaluate on test examples
         test_examples = task_data.get("test", [])
-        test_total = len(test_examples)
 
         for idx, example in enumerate(test_examples):
-            input_grid = np.array(example["input"])
-            expected_output = np.array(example["output"])
+            # Skip examples without output (common for ARC evaluation tasks)
+            if "output" not in example:
+                continue
+
+            test_total += 1
+            input_grid = np.array(example["input"], dtype=np.int64)
+            expected_output = np.array(example["output"], dtype=np.int64)
 
             # Execute solver in sandbox
             success, result_grid = safe_execute(solver_code, input_grid, timeout)
@@ -100,6 +109,8 @@ def calculate_fitness(
         execution_errors.append(f"Task file not found: {task_json_path}")
     except json.JSONDecodeError:
         execution_errors.append(f"Invalid JSON in task file: {task_json_path}")
+    except ValueError as e:
+        execution_errors.append(f"Task validation error: {str(e)}")
     except Exception as e:
         execution_errors.append(f"Unexpected error: {str(e)}")
 

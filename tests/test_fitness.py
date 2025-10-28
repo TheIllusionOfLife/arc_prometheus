@@ -303,6 +303,44 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert isinstance(result["execution_errors"], list)
 
 
+    def test_task_with_missing_output_keys(self, tmp_path):
+        """Test handling of examples without 'output' key (ARC evaluation tasks)."""
+        # Simulate ARC evaluation task format where test examples lack outputs
+        task_data = {
+            "train": [
+                {"input": [[1]], "output": [[2]]},
+                {"input": [[2]], "output": [[4]]},
+            ],
+            "test": [
+                {"input": [[3]]},  # No output key
+                {"input": [[4]]},  # No output key
+            ],
+        }
+
+        task_file = tmp_path / "task_no_outputs.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        # Should evaluate train examples normally
+        assert result["train_total"] == 2
+        assert result["train_correct"] == 2
+
+        # Should skip test examples without output
+        assert result["test_total"] == 0
+        assert result["test_correct"] == 0
+
+        # Fitness should only count train
+        assert result["fitness"] == 2  # 2*1 + 0*10
+
+
 class TestFitnessWithRealDataset:
     """Test fitness calculation with actual ARC dataset."""
 
@@ -347,7 +385,8 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "train_correct" in result
         assert "test_correct" in result
         assert result["train_total"] == len(all_tasks[task_id]["train"])
-        assert result["test_total"] == len(all_tasks[task_id]["test"])
+        # Test total might be 0 if test examples lack 'output' key (evaluation tasks)
+        assert result["test_total"] <= len(all_tasks[task_id]["test"])
         assert (
             0
             <= result["fitness"]
