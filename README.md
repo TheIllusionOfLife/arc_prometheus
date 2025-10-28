@@ -143,6 +143,41 @@ python scripts/demo_phase1_3_sandbox.py
 - **Limitation**: Cannot prevent filesystem/network access (multiprocessing limitation)
 - **Production**: Use Docker with read-only filesystem and network disabled
 
+### Phase 1.5: End-to-End Pipeline
+
+Run complete AI solver pipeline on any ARC task:
+
+```bash
+python scripts/run_phase1_test.py <task_id>
+
+# Example with known tasks
+python scripts/run_phase1_test.py 00576224
+python scripts/run_phase1_test.py 007bbfb7
+python scripts/run_phase1_test.py 025d127b
+```
+
+**Expected output**:
+- Task loading confirmation with train/test example counts
+- LLM-generated solver code display (with line numbers)
+- Execution results for each train example with colored grid visualization
+- Success rate and performance metrics
+- Saved solver file location (if any examples solved correctly)
+- Clear error diagnostics with diffs when predictions don't match
+
+**What it demonstrates**:
+- Complete orchestration of all Phase 1 components
+- Data loading → LLM generation → Sandbox execution → Evaluation
+- End-to-end AI civilization capability
+- Robust error handling (timeouts, exceptions, mismatches)
+- User-friendly output with visual progress tracking
+
+**Note**: LLM-generated code quality varies (inherent randomness). The pipeline correctly handles all scenarios:
+- ✅ Successful solver execution and evaluation
+- ✅ Code generation failures (missing returns, syntax errors)
+- ✅ Runtime errors (division by zero, module imports)
+- ✅ Timeout enforcement for infinite loops
+- ✅ Grid shape/value mismatches with detailed diffs
+
 ### Running Tests
 
 ```bash
@@ -185,7 +220,7 @@ arc_prometheus/
 - [x] **1.2**: Manual solver validation ✅
 - [x] **1.3**: Safe execution sandbox ✅
 - [x] **1.4**: LLM-based code generation (gemini-2.5-flash-lite) ✅
-- [ ] **1.5**: Complete end-to-end pipeline
+- [x] **1.5**: Complete end-to-end pipeline ✅
 
 **Success Criteria**: AI-generated code solves ≥1 train pair
 
@@ -355,23 +390,24 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 ## 📊 Current Progress
 
 ```
-Phase 1: Core Prototype
+Phase 1: Core Prototype  ✅ COMPLETE
 ├── [✅] 1.1: Environment Setup & Data Loading
 ├── [✅] 1.2: Manual Solver Validation
 ├── [✅] 1.3: Safe Execution Sandbox
 ├── [✅] 1.4: LLM Code Generation (gemini-2.5-flash-lite)
-└── [ ] 1.5: End-to-End Pipeline
+└── [✅] 1.5: End-to-End Pipeline
 
-Tests: 80/80 passing ✅
+Tests: 93/93 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
 Demo Phase 1.3: Sandbox execution (all demos passed) ✅
 Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
+Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
 ```
 
 ---
 
-**Next Steps**: Phase 1.5 - End-to-End Pipeline (orchestrate all components). See [plan_20251024.md](plan_20251024.md) for details.
+**Next Steps**: Phase 2 - Evolutionary Loop (fitness function, refiner agent, mutation). See [plan_20251024.md](plan_20251024.md) for details.
 
 *"私たちがこれから目の当たりにするのは、AIが「思考」を学ぶ瞬間です。この歴史的な挑戦を、一緒に楽しみましょう！"*
 
@@ -379,9 +415,20 @@ Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
 
 ## Session Handover
 
-### Last Updated: October 28, 2025 03:33 PM JST
+### Last Updated: October 28, 2025 07:45 PM JST
 
 #### Recently Completed
+- ✅ **Phase 1.5**: End-to-End Pipeline (PR #13 - READY FOR REVIEW!)
+  - Implemented complete E2E orchestration script `run_phase1_test.py`
+  - Command-line interface for testing any ARC task
+  - Comprehensive error handling and user-friendly output
+  - Automatic solver saving for successful generations
+  - 13 new integration tests (93/93 total, 100% pass rate)
+  - **Phase 1 Milestone Complete!** 🎉
+  - Manual testing: Tested with tasks 00576224, 007bbfb7, 025d127b
+  - Robust handling of all failure modes (timeouts, exceptions, mismatches)
+  - **Time**: ~3 hours from TDD to completion with real user testing
+
 - ✅ **Phase 1.4**: LLM Code Generation (PR #11 - MERGED!)
   - Implemented Gemini API integration with gemini-2.5-flash-lite (latest, fastest model)
   - Created robust multi-strategy code parser (markdown → raw code → fallback)
@@ -417,20 +464,27 @@ Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
   - 14 new tests added, TDD approach
 
 #### Next Priority Tasks
-1. **Phase 1.5: End-to-End Pipeline** ⭐ NEXT
-   - Source: plan_20251024.md (lines 393-434)
-   - Context: Complete Phase 1 milestone - orchestrate all components
-   - Approach: Create run_phase1_test.py, test on multiple tasks, calculate success rate
-   - Goal: AI-generated code solves ≥1 train pair (ACHIEVED!)
+1. **Phase 2.1: Fitness Function Implementation** ⭐ NEXT
+   - Source: README Phase 2 section, plan_20251024.md Phase 2.1
+   - Context: Begin evolutionary loop with fitness evaluation
+   - Approach: Implement `calculate_fitness(solver_code, task_json_path) -> dict`
+   - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
+   - Goal: Prioritize generalization over memorization
 
-2. **Phase 2 Planning & Design**
-   - Combine all components into single pipeline script
-   - Success criteria: AI-generated code solves ≥1 train pair
+2. **Phase 2.2: Refiner Agent (Mutation)**
+   - Source: kickoff.md (line 46), plan_20251024.md Phase 2.2
+   - Context: Debug and improve failed solver code
+   - Approach: Create Refiner prompt, integrate error context, test with buggy solvers
+   - Goal: Automated solver improvement through mutation
 
 #### Known Issues / Blockers
-- None - All Phase 1.1-1.4 infrastructure complete, ready for Phase 1.5
+- None - Phase 1 complete! All infrastructure ready for Phase 2 evolutionary loop
 
 #### Session Learnings
+- **E2E Pipeline Orchestration** (Phase 1.5): Chain components with comprehensive error handling at each stage. Show progressive feedback (load → generate → execute → evaluate). Never let early failures prevent reporting partial results.
+- **User-Friendly CLI Output** (Phase 1.5): Use consistent visual formatting (═ ─ ✅ ❌ ⚠️) and progressive disclosure. Show what's happening at each step with timing info for transparency.
+- **Solver Persistence Strategy** (Phase 1.5): Save generated code even with partial success (≥1 correct) - valuable for Phase 2 mutation and debugging. Include metadata (task_id, success_rate, timestamp) in saved files.
+- **LLM Variability Acceptance** (Phase 1.5): LLM code generation is inherently variable. Build robust pipelines that handle all scenarios: success, syntax errors, runtime exceptions, incomplete code, constraint violations (e.g., scipy import). The pipeline's robustness matters more than individual LLM success.
 - **Mock Patch at Import Level** (Phase 1.4): When mocking functions in tests, patch where they're imported, not where defined. `@patch("programmer.get_api_key")` not `@patch("utils.config.get_api_key")`. Mock must be active before function execution.
 - **Temperature for Code Generation** (Phase 1.4): Research shows lower temps (0.2-0.3) produce more consistent, deterministic code than default 0.7. LLMs with high temperature generate creative but unreliable code.
 - **Multi-Strategy Code Parsing** (Phase 1.4): Chain extraction strategies with fallbacks: Strategy 1 (markdown ``` blocks) → Strategy 2 (indentation-based raw code) → Strategy 3 (error). Indentation-based detection more robust than keyword matching.
