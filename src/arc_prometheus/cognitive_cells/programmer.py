@@ -53,16 +53,8 @@ def extract_code_from_response(response_text: str) -> str:
         # Find block containing solve() function
         for block in code_blocks:
             if "def solve(" in block:
-                # Type assertion: block is str from regex findall
                 code_str: str = block.strip()
                 return code_str
-        # If no block has solve() but we have blocks, check first block
-        if code_blocks:
-            code = code_blocks[0].strip()
-            if "def solve(" in code:
-                # Type assertion: code is str from regex findall
-                code_str_checked: str = code
-                return code_str_checked
 
     # Strategy 2: Try to extract raw code without delimiters
     # Look for lines starting with 'import' or 'def solve('
@@ -77,7 +69,8 @@ def extract_code_from_response(response_text: str) -> str:
 
     if start_idx is not None:
         # Find end: last line that looks like code
-        # Look for where code ends and explanation begins
+        # Strategy: Stop at first unindented line after function that doesn't start with
+        # Python keywords (import/from/def/class) or blank line
         end_idx = len(lines)
 
         # Scan forward from start to find where code ends
@@ -93,6 +86,7 @@ def extract_code_from_response(response_text: str) -> str:
             # If we're in function, look for dedented non-code line
             if in_function:
                 stripped = line.strip()
+
                 # Empty lines are OK
                 if not stripped:
                     continue
@@ -101,30 +95,18 @@ def extract_code_from_response(response_text: str) -> str:
                 if line.startswith(" ") or line.startswith("\t"):
                     continue
 
-                # Check if this is a code keyword at top level (another function/import)
+                # Check if this is a top-level Python statement (another function/import)
+                # Use lstrip() to handle any leading whitespace
                 if any(
                     line.lstrip().startswith(kw)
                     for kw in ["import ", "from ", "def ", "class "]
                 ):
                     continue
 
-                # Otherwise, this looks like explanation text - stop here
-                if not any(
-                    keyword in line.lower()
-                    for keyword in [
-                        "import",
-                        "def",
-                        "class",
-                        "return",
-                        "if",
-                        "for",
-                        "while",
-                        "#",
-                        "=",
-                    ]
-                ):
-                    end_idx = i
-                    break
+                # We found an unindented line that's not a Python statement
+                # This is likely explanation text - stop here
+                end_idx = i
+                break
 
         code = "\n".join(lines[start_idx:end_idx]).strip()
         if "def solve(" in code:

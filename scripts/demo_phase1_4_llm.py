@@ -13,11 +13,6 @@ Usage:
 """
 
 import sys
-from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 
 from arc_prometheus.cognitive_cells.programmer import generate_solver
 from arc_prometheus.crucible.data_loader import load_task, print_grid
