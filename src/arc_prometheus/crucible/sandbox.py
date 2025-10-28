@@ -3,7 +3,8 @@
 Provides isolated execution environment using multiprocessing with:
 - Process isolation (separate memory space)
 - Timeout enforcement
-- Restricted builtins (no eval, exec, compile, __import__)
+- Restricted builtins (no eval, exec, compile, open)
+- Prevention of builtins bypass via "import builtins"
 - Exception handling
 
 IMPORTANT SECURITY LIMITATIONS:
@@ -31,60 +32,78 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
     Args:
         code_str: Python code containing solve() function
         task_grid: Input grid to pass to solve()
-        result_queue: Queue for returning (success, result) tuple
+        result_queue: Queue for returning (success, result, error_msg) tuple
 
     Returns:
         None (results sent through queue)
     """
     try:
         # Create restricted execution environment
-        # We need to allow __import__ for "import numpy" but restrict eval/exec/compile
+        # Block dangerous builtins AND prevent bypassing via "import builtins"
         # Note: We cannot fully sandbox file I/O or network access with multiprocessing alone
 
         import builtins
+        import sys
+        from types import ModuleType
 
-        # Copy safe builtins, excluding dangerous ones
-        restricted_builtins = {}
-        for name in dir(builtins):
-            if name not in [
+        # Create restricted builtins module to prevent bypass via "import builtins"
+        restricted_builtins_module = ModuleType("builtins")
+        restricted_builtins = {
+            name: getattr(builtins, name)
+            for name in dir(builtins)
+            if name
+            not in [
                 "eval",
                 "exec",
                 "compile",
                 "open",
                 "__loader__",
                 "__build_class__",
-            ]:
-                restricted_builtins[name] = getattr(builtins, name)
-
-        # Create execution namespace with restricted builtins
-        exec_globals = {
-            "__builtins__": restricted_builtins,
+            ]
         }
 
-        # Execute the solver code to define solve() function
-        exec(code_str, exec_globals)  # nosec B102 # noqa: S102
+        # Set attributes on the restricted module
+        for name, value in restricted_builtins.items():
+            setattr(restricted_builtins_module, name, value)
 
-        # Check if solve() function exists
-        if "solve" not in exec_globals:
-            result_queue.put((False, None, "solve() function not found"))
-            return
+        # Replace builtins in sys.modules to prevent "import builtins" bypass
+        original_builtins = sys.modules["builtins"]
+        sys.modules["builtins"] = restricted_builtins_module
 
-        # Get the solve function
-        # Use Any type because exec_globals dict contains dynamic content
-        solve_func: Any = exec_globals["solve"]
+        try:
+            # Create execution namespace with restricted builtins
+            exec_globals = {
+                "__builtins__": restricted_builtins,
+            }
 
-        # Execute solve() with the input grid
-        result: Any = solve_func(task_grid)
+            # Execute the solver code to define solve() function
+            exec(code_str, exec_globals)  # nosec B102 # noqa: S102
 
-        # Validate result type
-        if not isinstance(result, np.ndarray):
-            result_queue.put(
-                (False, None, f"Invalid return type: {type(result).__name__}")
-            )
-            return
+            # Check if solve() function exists
+            if "solve" not in exec_globals:
+                result_queue.put((False, None, "solve() function not found"))
+                return
 
-        # Success - send result back
-        result_queue.put((True, result, None))
+            # Get the solve function
+            # Use Any type because exec_globals dict contains dynamic content
+            solve_func: Any = exec_globals["solve"]
+
+            # Execute solve() with the input grid
+            result: Any = solve_func(task_grid)
+
+            # Validate result type
+            if not isinstance(result, np.ndarray):
+                result_queue.put(
+                    (False, None, f"Invalid return type: {type(result).__name__}")
+                )
+                return
+
+            # Success - send result back
+            result_queue.put((True, result, None))
+
+        finally:
+            # Restore original builtins module
+            sys.modules["builtins"] = original_builtins
 
     except SyntaxError as e:
         result_queue.put((False, None, f"SyntaxError: {str(e)}"))
@@ -103,7 +122,8 @@ def safe_execute(
 
     Runs untrusted code in a separate process with:
     - Timeout enforcement
-    - Restricted builtins (no eval, exec, compile, __import__)
+    - Restricted builtins (no eval, exec, compile, open)
+    - Prevention of builtins bypass via "import builtins"
     - Exception handling
     - Return type validation
 
@@ -118,8 +138,10 @@ def safe_execute(
 
     Security Notes:
         - Runs in isolated multiprocessing.Process (separate memory space)
-        - Restricted builtins prevent eval, exec, compile, __import__
+        - Restricted builtins prevent eval, exec, compile, open
+        - sys.modules["builtins"] replaced to prevent "import builtins" bypass
         - Timeout enforcement with process termination
+        - Error messages logged to stderr for debugging
         - LIMITATION: Does not prevent filesystem/network access
           (multiprocessing isolation is not a security sandbox)
         - For production: Use Docker with read-only filesystem and network disabled
@@ -176,14 +198,19 @@ def safe_execute(
 
         return (False, None)
 
-    # Process completed - check for results
-    if not result_queue.empty():
-        success, result, error_msg = result_queue.get()
+    # Process completed - check for results using get_nowait() instead of empty()
+    # empty() is unreliable due to multiprocessing race conditions
+    try:
+        success, result, error_msg = result_queue.get_nowait()
         if success:
             return (True, result)
         else:
-            # Error occurred during execution
-            return (False, None)
+            # Error occurred during execution - log to stderr for debugging
+            import sys
 
-    # No result in queue (unexpected)
-    return (False, None)
+            if error_msg:
+                print(f"Sandbox execution error: {error_msg}", file=sys.stderr)
+            return (False, None)
+    except Exception:
+        # No result in queue (unexpected) - process may have crashed
+        return (False, None)

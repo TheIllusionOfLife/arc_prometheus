@@ -376,6 +376,25 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert success is False
         assert result is None
 
+    def test_builtins_bypass_prevented(self):
+        """Test that 'import builtins' bypass is prevented."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Try to bypass restrictions via "import builtins"
+    import builtins
+    builtins.eval("1 + 1")  # Should fail
+    return task_grid
+"""
+        input_grid = np.array([[1]])
+
+        success, result = safe_execute(solver_code, input_grid)
+
+        # Should fail - the imported builtins module should also be restricted
+        assert success is False
+        assert result is None
+
     def test_filesystem_access_limitation_documented(self):
         """Document that multiprocessing doesn't prevent filesystem access.
 
