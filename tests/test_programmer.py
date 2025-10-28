@@ -212,9 +212,9 @@ The pattern shows a 90-degree rotation applied to the input."""
 class TestGenerateSolver:
     """Tests for Gemini API integration."""
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
-    def test_generate_solver_success(self, mock_model_class, mock_get_api_key):
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_success(self, mock_get_api_key, mock_model_class):
         """Test successful code generation with mocked API."""
         # Mock API key
         mock_get_api_key.return_value = "test-api-key"
@@ -239,9 +239,9 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "import numpy as np" in code
         assert "return task_grid + 1" in code
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
-    def test_generate_solver_api_timeout(self, mock_model_class, mock_get_api_key):
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_api_timeout(self, mock_get_api_key, mock_model_class):
         """Test handling of API timeout."""
         # Mock API key
         mock_get_api_key.return_value = "test-api-key"
@@ -256,10 +256,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         with pytest.raises(Exception, match="Gemini API call failed"):
             generate_solver(train_pairs)
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     def test_generate_solver_unparseable_response(
-        self, mock_model_class, mock_get_api_key
+        self, mock_get_api_key, mock_model_class
     ):
         """Test handling of unparseable LLM response."""
         # Mock API key
@@ -278,10 +278,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         with pytest.raises(ValueError, match="Failed to parse LLM response"):
             generate_solver(train_pairs)
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     def test_generate_solver_with_markdown_code_block(
-        self, mock_model_class, mock_get_api_key
+        self, mock_get_api_key, mock_model_class
     ):
         """Test parsing response with markdown code blocks."""
         # Mock API key
@@ -311,10 +311,10 @@ This transposes the grid."""
         assert "return task_grid.T" in code
         assert "Here's the solution" not in code
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     def test_generate_solver_with_raw_code_response(
-        self, mock_model_class, mock_get_api_key
+        self, mock_get_api_key, mock_model_class
     ):
         """Test parsing raw code without markdown delimiters."""
         # Mock API key
@@ -337,10 +337,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "def solve(" in code
         assert "return task_grid * 2" in code
 
-    @patch("arc_prometheus.utils.config.get_gemini_api_key")
     @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     def test_generate_solver_timeout_parameter(
-        self, mock_model_class, mock_get_api_key
+        self, mock_get_api_key, mock_model_class
     ):
         """Test that timeout parameter is passed to API call."""
         # Mock API key
