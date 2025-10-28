@@ -118,6 +118,11 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
   - `(True, result_grid)` on successful execution
   - `(False, None)` on failure/timeout/exception
 - Handle: timeouts, runtime exceptions, invalid return types
+- Restricted builtins: eval, exec, compile, open removed from execution environment
+- **Security Limitations**:
+  - Multiprocessing does NOT prevent filesystem access
+  - Multiprocessing does NOT prevent network access
+  - For production: Use Docker with read-only filesystem and network disabled
 
 ### LLM Integration (Gemini)
 - Primary model: Google Gemini API
