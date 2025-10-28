@@ -362,7 +362,7 @@ Phase 1: Core Prototype
 ├── [✅] 1.4: LLM Code Generation (gemini-2.5-flash-lite)
 └── [ ] 1.5: End-to-End Pipeline
 
-Tests: 73/73 passing ✅
+Tests: 80/80 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
 Demo Phase 1.3: Sandbox execution (all demos passed) ✅
@@ -379,18 +379,20 @@ Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
 
 ## Session Handover
 
-### Last Updated: October 28, 2025 11:50 AM JST
+### Last Updated: October 28, 2025 03:33 PM JST
 
 #### Recently Completed
-- ✅ **Phase 1.4**: LLM Code Generation (PR #XX - in review)
+- ✅ **Phase 1.4**: LLM Code Generation (PR #11 - MERGED!)
   - Implemented Gemini API integration with gemini-2.5-flash-lite (latest, fastest model)
-  - Created robust code parser handling multiple response formats
+  - Created robust multi-strategy code parser (markdown → raw code → fallback)
+  - Temperature optimization: 0.3 for consistent code generation (research-backed)
   - Unified Analyst+Programmer prompt design
-  - Demo script validates end-to-end LLM pipeline
-  - 13 new tests added (73/73 tests passing, 100% success rate)
+  - Security warnings added to demo script (sandbox limitations)
+  - 14 parser tests + 6 integration tests = 20 new tests (80/80 total, 100% pass rate)
   - **First Victory**: AI-generated code solves ARC train pairs!
-  - Testing results: 100% on task 007bbfb7 (5/5), 50% on task 00576224 (1/2), 0% on task 05269061 (incomplete code generation)
-  - **Time**: 2.5 hours from Oct 28 with strict TDD approach
+  - Testing results: 100% on task 00576224 (2/2), graceful failure handling on task 007bbfb7
+  - **Review Process**: 3 rounds of improvements, all critical/high/medium priority issues addressed
+  - **Time**: ~6 hours from Oct 28 (implementation + comprehensive review resolution)
 
 - ✅ **Phase 1.3**: Safe Execution Sandbox (PR #9 merged)
   - Implemented multiprocessing-based sandbox with timeout enforcement (5s default)
@@ -426,9 +428,15 @@ Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
    - Success criteria: AI-generated code solves ≥1 train pair
 
 #### Known Issues / Blockers
-- None - All Phase 1.1-1.3 infrastructure complete, ready for Phase 1.4
+- None - All Phase 1.1-1.4 infrastructure complete, ready for Phase 1.5
 
 #### Session Learnings
+- **Mock Patch at Import Level** (Phase 1.4): When mocking functions in tests, patch where they're imported, not where defined. `@patch("programmer.get_api_key")` not `@patch("utils.config.get_api_key")`. Mock must be active before function execution.
+- **Temperature for Code Generation** (Phase 1.4): Research shows lower temps (0.2-0.3) produce more consistent, deterministic code than default 0.7. LLMs with high temperature generate creative but unreliable code.
+- **Multi-Strategy Code Parsing** (Phase 1.4): Chain extraction strategies with fallbacks: Strategy 1 (markdown ``` blocks) → Strategy 2 (indentation-based raw code) → Strategy 3 (error). Indentation-based detection more robust than keyword matching.
+- **Security Warnings in User Tools** (Phase 1.4): Always warn users about limitations in user-facing tools. Demo script now includes clear warning that multiprocessing sandbox doesn't prevent filesystem/network access (Docker needed for production).
+- **Enhanced Error Messages** (Phase 1.4): Show first 300 + last 200 chars of response (not just first 500) for better debugging when parsing fails. Helps identify if issue is at start or end of response.
+- **Decorator Detection in Code Parser** (Phase 1.4): Add "@" to Python statement detection to prevent premature termination when decorators present before function definitions.
 - **Builtins Bypass Security** (Phase 1.3): Restricting `__builtins__` dict insufficient - code can bypass via `import builtins; builtins.eval(...)`. Must replace `sys.modules["builtins"]` with restricted module. Added test to verify bypass prevention.
 - **Queue.empty() Unreliability** (Phase 1.3): `multiprocessing.Queue.empty()` has race conditions - feeder thread may not have transferred data when checked. Always use `get_nowait()` with try/except instead.
 - **Security as Module Constants** (Phase 1.3): Extract security restrictions (dangerous functions, blocked keywords) as module-level frozenset constants for maintainability and clarity.
