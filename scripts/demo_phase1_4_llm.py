@@ -18,7 +18,6 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import numpy as np
 
 from arc_prometheus.cognitive_cells.programmer import generate_solver
 from arc_prometheus.crucible.data_loader import load_task, print_grid
@@ -121,9 +120,7 @@ def main():
     print("=" * 70)
 
     success_rate = (correct_count / total_count) * 100
-    print(
-        f"\nSolver Performance: {correct_count}/{total_count} ({success_rate:.0f}%)"
-    )
+    print(f"\nSolver Performance: {correct_count}/{total_count} ({success_rate:.0f}%)")
 
     if correct_count > 0:
         print("\n🎉 FIRST VICTORY: AI-generated code solved ARC train pair(s)!")

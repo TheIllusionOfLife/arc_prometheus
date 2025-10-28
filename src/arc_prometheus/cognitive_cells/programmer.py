@@ -6,7 +6,6 @@ This module provides functions to:
 """
 
 import re
-from typing import Any
 
 import google.generativeai as genai
 import numpy as np
@@ -54,12 +53,16 @@ def extract_code_from_response(response_text: str) -> str:
         # Find block containing solve() function
         for block in code_blocks:
             if "def solve(" in block:
-                return block.strip()
+                # Type assertion: block is str from regex findall
+                code_str: str = block.strip()
+                return code_str
         # If no block has solve() but we have blocks, check first block
         if code_blocks:
             code = code_blocks[0].strip()
             if "def solve(" in code:
-                return code
+                # Type assertion: code is str from regex findall
+                code_str_checked: str = code
+                return code_str_checked
 
     # Strategy 2: Try to extract raw code without delimiters
     # Look for lines starting with 'import' or 'def solve('
@@ -134,9 +137,7 @@ def extract_code_from_response(response_text: str) -> str:
     )
 
 
-def generate_solver(
-    train_pairs: list[dict[str, np.ndarray]], timeout: int = 60
-) -> str:
+def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60) -> str:
     """Generate solver code using Gemini API.
 
     Uses gemini-2.5-flash-lite, Google's fastest and latest flash model.

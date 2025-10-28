@@ -7,7 +7,6 @@ This test suite validates:
 4. Error cases (no solve function, invalid format)
 """
 
-import numpy as np
 import pytest
 
 from arc_prometheus.cognitive_cells.programmer import extract_code_from_response
