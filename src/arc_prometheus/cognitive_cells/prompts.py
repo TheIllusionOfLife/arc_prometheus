@@ -112,8 +112,9 @@ def create_solver_prompt(train_pairs: list[dict[str, np.ndarray]]) -> str:
             "",
             "## Output Format",
             "Return ONLY the Python code, starting with 'import numpy as np'.",
-            "Do NOT include explanations, markdown formatting, or code blocks.",
-            "Just raw Python code that can be executed directly.",
+            "Do NOT include explanations or debugging commentary.",
+            "You may optionally wrap code in ```python blocks, but raw code is preferred.",
+            "Just the code that can be executed directly.",
         ]
     )
 
@@ -250,7 +251,8 @@ def create_refiner_prompt(
             "",
             "## Output Format",
             "Return ONLY the corrected Python code, starting with 'import numpy as np'.",
-            "Do NOT include explanations, markdown formatting, or debugging notes.",
+            "Do NOT include explanations or debugging commentary.",
+            "You may optionally wrap code in ```python blocks, but raw code is preferred.",
             "Just the fixed code that can be executed directly.",
         ]
     )
