@@ -262,10 +262,15 @@ class LLMCache:
             CacheStatistics with performance metrics and cost estimates.
 
         Note:
-            miss_count is approximated as entries with no hits. This underestimates
-            true API calls because one entry accessed multiple times shows as
-            1 miss + N hits, not N+1 total API calls. For exact tracking, use
-            separate API call instrumentation.
+            miss_count is approximated as entries with no hits. This significantly
+            underestimates true API calls and inflates hit_rate.
+
+            Example: 1 entry accessed 10 times = 1 miss + 10 hits
+            - Reported: 10 hits / 10 accesses = 100% hit rate (inflated)
+            - Actual: 10 hits / 11 accesses = 90.9% hit rate
+
+            For exact API call tracking, use separate instrumentation.
+            Future: Add proper miss counter to track actual cache misses.
         """
         with sqlite3.connect(self.db_path, timeout=10.0) as conn:
             cursor = conn.execute("""
