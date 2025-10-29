@@ -66,9 +66,7 @@ def _validate_positive_int(value: str) -> int:
     try:
         val = int(value)
     except ValueError as e:
-        raise argparse.ArgumentTypeError(
-            f"Must be an integer, got: {value}"
-        ) from e
+        raise argparse.ArgumentTypeError(f"Must be an integer, got: {value}") from e
 
     if val <= 0:
         raise argparse.ArgumentTypeError(f"Must be positive, got: {val}")

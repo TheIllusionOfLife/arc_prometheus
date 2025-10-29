@@ -45,9 +45,7 @@ class TestCLIArgumentParsing:
 
     def test_custom_timeouts(self) -> None:
         """Test custom timeout settings."""
-        args = parse_evolution_args(
-            ["--timeout-llm", "120", "--timeout-eval", "10"]
-        )
+        args = parse_evolution_args(["--timeout-llm", "120", "--timeout-eval", "10"])
 
         assert args.timeout_llm == 120
         assert args.timeout_eval == 10
