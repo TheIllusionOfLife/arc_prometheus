@@ -30,6 +30,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 from arc_prometheus.utils.config import get_gemini_api_key
 
+# Display configuration constants
+MAX_CODE_DISPLAY_LINES = 40  # Maximum lines to show in code preview
+
 
 def print_header(title: str) -> None:
     """Print formatted section header."""
@@ -49,11 +52,10 @@ def print_code_with_line_numbers(code: str, title: str = "Code") -> None:
     """Print code with line numbers."""
     print(f"\n{title}:")
     lines = code.strip().split("\n")
-    max_lines = 40  # Limit display for readability
-    for i, line in enumerate(lines[:max_lines], 1):
+    for i, line in enumerate(lines[:MAX_CODE_DISPLAY_LINES], 1):
         print(f"  {i:3d} | {line}")
-    if len(lines) > max_lines:
-        print(f"  ... ({len(lines) - max_lines} more lines)")
+    if len(lines) > MAX_CODE_DISPLAY_LINES:
+        print(f"  ... ({len(lines) - MAX_CODE_DISPLAY_LINES} more lines)")
 
 
 def print_generation_summary(results: list) -> None:

@@ -202,7 +202,7 @@ def run_evolution_loop(
                 print("Evolution complete!")
             break
 
-    if verbose:
+    if verbose and results:
         print(f"\n{'=' * 70}")
         print(" Evolution Summary")
         print(f"{'=' * 70}")

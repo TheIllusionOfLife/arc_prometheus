@@ -422,6 +422,30 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
                 str(tmp_path / "nonexistent.json"), max_generations=2, verbose=False
             )
 
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
+    def test_handles_max_generations_zero(self, mock_generate, mock_refine, tmp_path):
+        """Test that max_generations=0 returns empty results without crashing."""
+        from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        # Run with max_generations=0 (edge case)
+        results = run_evolution_loop(str(task_file), max_generations=0, verbose=False)
+
+        # Should return empty list without crashing
+        assert results == []
+
+        # Generator and refiner should never be called
+        assert not mock_generate.called
+        assert not mock_refine.called
+
 
 class TestEvolutionLoopIntegration:
     """Integration tests with real dataset."""
