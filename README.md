@@ -405,6 +405,11 @@ arc_prometheus/
 - [x] **2.2**: Refiner agent for debugging ✅
 - [x] **2.3**: Multi-generation evolution loop ✅
 
+**Recent Enhancements** (Task 1.3 - October 30, 2025):
+- [x] **Error Classification**: Structured error detection (syntax, runtime, timeout, logic, validation)
+- [x] **Targeted Debugging**: Error-type-specific refiner prompts for smarter mutation
+- [x] **Error Analytics**: Aggregate error patterns across generations
+
 ### Phase 3: Scaling and Crossover (Planned)
 **Goal**: Full ARC dataset with genetic operations
 
