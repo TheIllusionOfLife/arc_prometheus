@@ -541,9 +541,44 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 06:23 PM JST
+### Last Updated: October 29, 2025 11:17 PM JST
 
 #### Recently Completed
+- ✅ **Task 1.1**: CLI Configuration Externalization (PR #22 - MERGED!)
+  - Implemented comprehensive CLI argument parser with argparse (185 lines)
+  - Added optional model_name and temperature parameters to Programmer and Refiner
+  - Separate --programmer-temperature and --refiner-temperature flags (user choice)
+  - Demo script fully integrated with CLI arguments and configuration display
+  - Updated README with comprehensive CLI usage examples
+  - **Test Coverage**: 22 new tests (151 total: 129 existing + 22 new), all passing ✅
+    - 17 tests for CLI config parser (defaults, validation, edge cases)
+    - 5 tests for Programmer optional parameters
+    - Integration tests for Evolution Loop parameter threading
+  - **Real API Testing**: 3 scenarios tested successfully
+    - Default configuration (gemini-2.5-flash-lite, temp 0.3/0.4) ✅
+    - Custom model (gemini-2.0-flash-thinking-exp) ✅
+    - Custom temperatures (0.5/0.6) and generations (3) ✅
+  - **User Experience Review**: All criteria met
+    - No timeouts (2-15s execution times)
+    - No format issues (clean output with headers)
+    - No truncation (complete code display)
+    - No errors (all API calls successful)
+  - **Code Quality**: All CI checks passing
+    - mypy: Success (15 source files)
+    - ruff: All checks passed (after formatting fix)
+    - bandit: No security issues
+  - **Backward Compatibility**: Perfect - all existing code works without changes
+  - **Pattern**: Optional parameters with config.py fallback using `| None` type hints
+  - **Time**: ~4 hours total (TDD implementation, real API testing, PR creation)
+  - **Impact**: Users can now customize evolution experiments via CLI without code changes
+
+- ✅ **Planning Session**: Comprehensive Development Plan (PR #21 - MERGED!)
+  - Created plan_20251029.md (543 lines) synthesizing original roadmap + 5 external reviews
+  - Structured as Short-term (1-2 weeks), Medium-term (1-2 months), Long-term (3-6 months)
+  - Identified Week 1 quick wins: Config externalization, LLM caching, error classification
+  - Resource estimates, risk management, success metrics included
+  - Addressed gemini-code-assist feedback (Docker pinning, CPU clarification, migration docs)
+
 - ✅ **Phase 2.3**: Evolution Loop - Multi-generation Evolution (PR #19 - MERGED!)
   - Implemented complete evolutionary cycle: Generate → Evaluate → Refine → Repeat
   - Created run_evolution_loop() with GenerationResult tracking
@@ -645,15 +680,34 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
   - 14 new tests added, TDD approach
 
 #### Next Priority Tasks
-1. **Phase 3.1: Solver Library (SQLite)** ⭐ NEXT
-   - Source: plan_20251024.md Phase 3.1, README line 295-299
+
+**Week 1 Quick Wins** (from plan_20251029.md):
+
+1. **Task 1.2: LLM Caching Implementation** ⭐ NEXT
+   - Source: plan_20251029.md Short-term priorities, External reviews
+   - Context: Reduce API costs and latency for repeated LLM calls
+   - Approach: SQLite cache with prompt hashing → Cache hit/miss tracking → TTL support
+   - Implementation: Create cache.py with hash-based lookup, decorator pattern for easy integration
+   - Goal: 50-80% API call reduction through caching
+
+2. **Task 1.3: Error Pattern Classification**
+   - Source: plan_20251029.md Short-term priorities
+   - Context: Structured error analysis for better debugging
+   - Approach: Classify errors (syntax/runtime/timeout/logic) → Enhanced Refiner prompts
+   - Implementation: Error classification in fitness.py, specialized debugging strategies
+   - Goal: Improved mutation success rate through better error context
+
+**Medium-term (Week 2-4)**:
+
+3. **Task 3.2: Solver Library Implementation**
+   - Source: plan_20251029.md Medium-term priorities (Task 3.2)
    - Context: Persist successful solvers for reuse and analysis
    - Approach: Create SQLite database schema → CRUD operations → Query by fitness/tags
    - Schema: solver_id, task_id, generation, code, fitness, train_correct, test_correct, parent_id
    - Goal: Enable cross-task solver reuse and historical analysis
 
-2. **Phase 3.2: Tagger Agent** (after 3.1)
-   - Source: plan_20251024.md Phase 3.2, README line 296
+4. **Task 3.3: Tagger Agent Implementation**
+   - Source: plan_20251029.md Medium-term priorities (Task 3.3)
    - Context: Classify solver techniques for crossover selection
    - Approach: LLM analyzes code → Identifies techniques → Tags (rotation, fill, symmetry, etc.)
    - Integration: Store tags in solver library
@@ -663,6 +717,19 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 - None - Phase 2 complete! Ready for Phase 3 (Solver Library + Crossover)
 
 #### Session Learnings
+
+**From Task 1.1 (CLI Configuration) - October 29, 2025**:
+- **CLI Config Backward Compatibility Pattern**: Use optional parameters with `| None` type hints and fallback to config.py. Pattern: `model_to_use = model_name if model_name is not None else MODEL_NAME`. Enables CLI override while maintaining existing code compatibility.
+- **Separate Temperature Controls**: For systems with multiple LLM agents (Programmer vs Refiner), provide separate temperature flags (--programmer-temperature, --refiner-temperature) rather than single shared temperature. Users need fine-grained control over creativity vs consistency per agent type.
+- **Type Annotations for Dynamic Configs**: When passing dict configs to APIs with strict typing (e.g., Gemini's GenerationConfig), use explicit `Any` type annotation: `generation_config: Any = dict(CONFIG)`. Satisfies mypy while maintaining runtime correctness across environments.
+- **Real API Testing Discipline**: Always test CLI changes with actual API in multiple scenarios (default, custom model, custom params). Mock tests can't catch format issues, timeouts, or truncation. Verify: no timeouts, clean formatting, complete output, no errors.
+- **Ruff Formatting in CI**: Run `ruff format --check` in CI to catch formatting inconsistencies. Fix with `ruff format <files>` before pushing. Auto-fixing prevents CI failures and maintains consistent code style.
+- **PR Review Context Verification**: When AI reviewers provide feedback, verify they reviewed the CORRECT PR. Check if mentioned files/functions exist in PR diff. Reviewers can cache wrong context or receive misconfigured inputs.
+
+**From Planning Session (October 29, 2025)**:
+- **Synthesizing Multiple Reviews**: When receiving 5+ external reviews, categorize feedback by theme (security, config, caching, algorithms) and priority. Common patterns across reviewers indicate high-value improvements.
+- **Resource Estimation Reality**: Break estimates into 3 categories: Best case (everything works), Expected (normal debugging), Worst case (major refactoring). Always add buffer for review cycles and real API testing.
+
 - **Code Quality Constants Extraction** (Phase 1.5 PR Review): Extract magic numbers to named constants at module level (`SANDBOX_TIMEOUT = 5`, `PREVIEW_START_LINES = 20`). Improves maintainability and makes configuration explicit. Applied to timeout values and display parameters.
 - **Empty Grid Safety Checks** (Phase 1.5 PR Review): Always validate `result_grid.size > 0` before array operations like `np.argwhere()`. Empty grids can cause IndexError. Add explicit `len(diff_positions) > 0` checks and use `int()` conversions for safety.
 - **Pytest Fixture for Path Deduplication** (Phase 1.5 PR Review): When multiple tests construct same path, extract to `@pytest.fixture`. Eliminates 6-line duplication across tests and provides single source of truth.
