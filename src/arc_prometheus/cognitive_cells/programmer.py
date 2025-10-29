@@ -6,6 +6,7 @@ This module provides functions to:
 """
 
 import re
+from typing import Any
 
 import google.generativeai as genai
 import numpy as np
@@ -123,14 +124,21 @@ def extract_code_from_response(response_text: str) -> str:
     )
 
 
-def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60) -> str:
+def generate_solver(
+    train_pairs: list[dict[str, np.ndarray]],
+    model_name: str | None = None,
+    temperature: float | None = None,
+    timeout: int = 60,
+) -> str:
     """Generate solver code using Gemini API.
 
-    Uses gemini-2.5-flash-lite, Google's fastest and latest flash model.
+    Uses gemini-2.5-flash-lite by default, Google's fastest and latest flash model.
     Optimized for cost-efficiency and high throughput with thinking capabilities.
 
     Args:
         train_pairs: List of {"input": np.ndarray, "output": np.ndarray}
+        model_name: LLM model name (default: from config.py)
+        temperature: LLM temperature 0.0-2.0 (default: from config.py)
         timeout: API request timeout in seconds (default: 60)
 
     Returns:
@@ -156,10 +164,15 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
     # Configure Gemini
     genai.configure(api_key=api_key)
 
-    # Use shared model configuration
-    # gemini-2.5-flash-lite - latest, fastest model
-    # Optimized for cost-efficiency and high throughput
-    model = genai.GenerativeModel(MODEL_NAME)
+    # Use provided model or fall back to config
+    model_to_use = model_name if model_name is not None else MODEL_NAME
+    model = genai.GenerativeModel(model_to_use)
+
+    # Build generation config (merge custom temperature if provided)
+    # Type as Any to satisfy mypy while maintaining runtime correctness
+    generation_config: Any = dict(PROGRAMMER_GENERATION_CONFIG)
+    if temperature is not None:
+        generation_config["temperature"] = temperature
 
     # Create prompt
     prompt = create_solver_prompt(train_pairs)
@@ -168,7 +181,7 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
     try:
         response = model.generate_content(
             prompt,
-            generation_config=PROGRAMMER_GENERATION_CONFIG,
+            generation_config=generation_config,
             request_options={"timeout": timeout},
         )
 

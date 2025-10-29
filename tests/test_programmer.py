@@ -387,3 +387,156 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         # Verify timeout was passed
         call_kwargs = mock_model.generate_content.call_args[1]
         assert call_kwargs["request_options"]["timeout"] == 30
+
+    @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_custom_model(self, mock_get_api_key, mock_model_class):
+        """Test that custom model_name parameter is used."""
+        # Mock API key
+        mock_get_api_key.return_value = "test-api-key"
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.text = """```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid
+```"""
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value = mock_response
+        mock_model_class.return_value = mock_model
+
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
+        generate_solver(train_pairs, model_name="gemini-2.0-flash-thinking-exp")
+
+        # Verify custom model was used
+        mock_model_class.assert_called_once_with("gemini-2.0-flash-thinking-exp")
+
+    @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_default_model(self, mock_get_api_key, mock_model_class):
+        """Test that default model is used when model_name not specified."""
+        # Mock API key
+        mock_get_api_key.return_value = "test-api-key"
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.text = """```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid
+```"""
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value = mock_response
+        mock_model_class.return_value = mock_model
+
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
+        generate_solver(train_pairs)
+
+        # Verify default model from config was used
+        from arc_prometheus.utils.config import MODEL_NAME
+
+        mock_model_class.assert_called_once_with(MODEL_NAME)
+
+    @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_custom_temperature(
+        self, mock_get_api_key, mock_model_class
+    ):
+        """Test that custom temperature parameter is used."""
+        # Mock API key
+        mock_get_api_key.return_value = "test-api-key"
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.text = """```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid
+```"""
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value = mock_response
+        mock_model_class.return_value = mock_model
+
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
+        generate_solver(train_pairs, temperature=0.7)
+
+        # Verify temperature was passed in generation_config
+        call_kwargs = mock_model.generate_content.call_args[1]
+        assert call_kwargs["generation_config"]["temperature"] == 0.7
+
+    @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_default_temperature(
+        self, mock_get_api_key, mock_model_class
+    ):
+        """Test that default temperature is used when not specified."""
+        # Mock API key
+        mock_get_api_key.return_value = "test-api-key"
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.text = """```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid
+```"""
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value = mock_response
+        mock_model_class.return_value = mock_model
+
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
+        generate_solver(train_pairs)
+
+        # Verify default temperature from config was used
+        from arc_prometheus.utils.config import PROGRAMMER_GENERATION_CONFIG
+
+        call_kwargs = mock_model.generate_content.call_args[1]
+        assert (
+            call_kwargs["generation_config"]["temperature"]
+            == PROGRAMMER_GENERATION_CONFIG["temperature"]
+        )
+
+    @patch("google.generativeai.GenerativeModel")
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    def test_generate_solver_all_custom_params(
+        self, mock_get_api_key, mock_model_class
+    ):
+        """Test using all custom parameters together."""
+        # Mock API key
+        mock_get_api_key.return_value = "test-api-key"
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.text = """```python
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid
+```"""
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value = mock_response
+        mock_model_class.return_value = mock_model
+
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
+        generate_solver(
+            train_pairs,
+            model_name="gemini-2.0-flash-thinking-exp",
+            temperature=0.9,
+            timeout=120,
+        )
+
+        # Verify all custom params were used
+        mock_model_class.assert_called_once_with("gemini-2.0-flash-thinking-exp")
+        call_kwargs = mock_model.generate_content.call_args[1]
+        assert call_kwargs["generation_config"]["temperature"] == 0.9
+        assert call_kwargs["request_options"]["timeout"] == 120

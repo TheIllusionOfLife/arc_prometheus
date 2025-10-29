@@ -4,6 +4,8 @@ This module provides the Refiner agent - the first evolutionary mechanism
 (Mutation) that improves failed solver code through automated debugging.
 """
 
+from typing import Any
+
 import google.generativeai as genai
 
 from ..crucible.data_loader import load_task
@@ -21,6 +23,8 @@ def refine_solver(
     failed_code: str,
     task_json_path: str,
     fitness_result: FitnessResult,
+    model_name: str | None = None,
+    temperature: float | None = None,
     timeout: int = 60,
 ) -> str:
     """Debug and improve failed solver code using Gemini API.
@@ -35,6 +39,8 @@ def refine_solver(
             - train_correct, train_total: Train performance
             - test_correct, test_total: Test performance
             - execution_errors: List of error messages
+        model_name: LLM model name (default: from config.py)
+        temperature: LLM temperature 0.0-2.0 (default: from config.py)
         timeout: API request timeout in seconds (default: 60)
 
     Returns:
@@ -76,8 +82,15 @@ def refine_solver(
     # Configure Gemini
     genai.configure(api_key=api_key)
 
-    # Use shared model configuration
-    model = genai.GenerativeModel(MODEL_NAME)
+    # Use provided model or fall back to config
+    model_to_use = model_name if model_name is not None else MODEL_NAME
+    model = genai.GenerativeModel(model_to_use)
+
+    # Build generation config (merge custom temperature if provided)
+    # Type as Any to satisfy mypy while maintaining runtime correctness
+    generation_config: Any = dict(REFINER_GENERATION_CONFIG)
+    if temperature is not None:
+        generation_config["temperature"] = temperature
 
     # Create refiner prompt with failure analysis
     prompt = create_refiner_prompt(failed_code, task_data, fitness_result)
@@ -86,7 +99,7 @@ def refine_solver(
     try:
         response = model.generate_content(
             prompt,
-            generation_config=REFINER_GENERATION_CONFIG,
+            generation_config=generation_config,
             request_options={"timeout": timeout},
         )
 

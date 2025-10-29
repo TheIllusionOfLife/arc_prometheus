@@ -8,7 +8,20 @@ This demonstrates the complete evolutionary cycle:
 5. Terminate when target reached or max generations hit
 
 Usage:
+    # Run with default configuration
     python scripts/demo_phase2_3_evolution.py
+
+    # Use custom model
+    python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp
+
+    # Adjust temperatures for more/less creativity
+    python scripts/demo_phase2_3_evolution.py --programmer-temperature 0.5 --refiner-temperature 0.6
+
+    # Run more generations
+    python scripts/demo_phase2_3_evolution.py --max-generations 10
+
+    # Combine options
+    python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp --max-generations 10 --programmer-temperature 0.5
 
 Requirements:
     - GEMINI_API_KEY environment variable must be set
@@ -28,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+from arc_prometheus.utils.cli_config import parse_evolution_args
 from arc_prometheus.utils.config import get_gemini_api_key
 
 # Display configuration constants
@@ -93,11 +107,14 @@ def print_generation_summary(results: list) -> None:
         )
 
 
-def demo_1_simple_evolution():
+def demo_1_simple_evolution(config):
     """Demo 1: Simple task with clear evolution pattern.
 
     Task: Multiply all values by 2
     Expected: Initial solver may overfit, refinement fixes generalization
+
+    Args:
+        config: Parsed CLI configuration from parse_evolution_args
     """
     print_subheader("Demo 1: Simple Task Evolution")
     print("\nTask: Multiply all grid values by 2")
@@ -128,9 +145,14 @@ def demo_1_simple_evolution():
         # Run evolution with target fitness of 13 (3 train + 1 test * 10)
         results = run_evolution_loop(
             task_file,
-            max_generations=5,
+            max_generations=config.max_generations,
             target_fitness=13.0,
+            timeout_per_eval=config.timeout_eval,
+            timeout_per_llm=config.timeout_llm,
             verbose=False,  # Use custom output format
+            model_name=config.model,
+            programmer_temperature=config.programmer_temperature,
+            refiner_temperature=config.refiner_temperature,
         )
 
         # Display results
@@ -156,11 +178,14 @@ def demo_1_simple_evolution():
         Path(tmp_file.name).unlink(missing_ok=True)
 
 
-def demo_2_early_convergence():
+def demo_2_early_convergence(config):
     """Demo 2: Trivial task where initial solver is perfect.
 
     Task: Copy input to output
     Expected: 1 generation (initial is perfect, no refinement needed)
+
+    Args:
+        config: Parsed CLI configuration from parse_evolution_args
     """
     print_subheader("Demo 2: Early Convergence")
     print("\nTask: Copy input to output (identity function)")
@@ -189,9 +214,14 @@ def demo_2_early_convergence():
         # Run evolution with target fitness
         results = run_evolution_loop(
             task_file,
-            max_generations=5,
+            max_generations=config.max_generations,
             target_fitness=12.0,  # 2 train + 1 test * 10
+            timeout_per_eval=config.timeout_eval,
+            timeout_per_llm=config.timeout_llm,
             verbose=False,
+            model_name=config.model,
+            programmer_temperature=config.programmer_temperature,
+            refiner_temperature=config.refiner_temperature,
         )
 
         print("\n✅ Evolution complete!")
@@ -207,11 +237,14 @@ def demo_2_early_convergence():
         Path(tmp_file.name).unlink(missing_ok=True)
 
 
-def demo_3_gradual_improvement():
+def demo_3_gradual_improvement(config):
     """Demo 3: More complex task showing gradual improvement.
 
     Task: Add 5 to each value
     Expected: May take multiple generations to converge
+
+    Args:
+        config: Parsed CLI configuration from parse_evolution_args
     """
     print_subheader("Demo 3: Gradual Improvement")
     print("\nTask: Add 5 to each grid value")
@@ -244,9 +277,14 @@ def demo_3_gradual_improvement():
         # Run evolution without target (run all generations)
         results = run_evolution_loop(
             task_file,
-            max_generations=5,
-            target_fitness=None,  # No early termination
+            max_generations=config.max_generations,
+            target_fitness=config.target_fitness,  # Use CLI config (default None)
+            timeout_per_eval=config.timeout_eval,
+            timeout_per_llm=config.timeout_llm,
             verbose=False,
+            model_name=config.model,
+            programmer_temperature=config.programmer_temperature,
+            refiner_temperature=config.refiner_temperature,
         )
 
         print("\n✅ Evolution complete!")
@@ -267,9 +305,21 @@ def demo_3_gradual_improvement():
 
 def main():
     """Run all evolution loop demos."""
+    # Parse CLI arguments
+    config = parse_evolution_args()
+
     print_header("PHASE 2.3: EVOLUTION LOOP DEMO")
     print("\nDemonstrating multi-generation solver evolution")
     print("Combines: Programmer → Fitness → Refiner → Repeat")
+
+    # Display configuration
+    print("\nConfiguration:")
+    print(f"  Model: {config.model}")
+    print(f"  Programmer Temperature: {config.programmer_temperature}")
+    print(f"  Refiner Temperature: {config.refiner_temperature}")
+    print(f"  Max Generations: {config.max_generations}")
+    print(f"  LLM Timeout: {config.timeout_llm}s")
+    print(f"  Eval Timeout: {config.timeout_eval}s")
 
     # Check API key
     try:
@@ -289,15 +339,15 @@ def main():
 
     try:
         # Demo 1: Simple evolution
-        result1 = demo_1_simple_evolution()
+        result1 = demo_1_simple_evolution(config)
         demo_results.append(("Simple Task Evolution", result1))
 
         # Demo 2: Early convergence
-        result2 = demo_2_early_convergence()
+        result2 = demo_2_early_convergence(config)
         demo_results.append(("Early Convergence", result2))
 
         # Demo 3: Gradual improvement
-        result3 = demo_3_gradual_improvement()
+        result3 = demo_3_gradual_improvement(config)
         demo_results.append(("Gradual Improvement", result3))
 
     except Exception as e:
