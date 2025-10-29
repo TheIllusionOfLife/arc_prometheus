@@ -10,7 +10,11 @@ import re
 import google.generativeai as genai
 import numpy as np
 
-from ..utils.config import get_gemini_api_key
+from ..utils.config import (
+    MODEL_NAME,
+    PROGRAMMER_GENERATION_CONFIG,
+    get_gemini_api_key,
+)
 from .prompts import create_solver_prompt
 
 
@@ -152,10 +156,10 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
     # Configure Gemini
     genai.configure(api_key=api_key)
 
-    # Use gemini-2.5-flash-lite - latest, fastest model
+    # Use shared model configuration
+    # gemini-2.5-flash-lite - latest, fastest model
     # Optimized for cost-efficiency and high throughput
-    # Supports thinking mode and agentic use cases
-    model = genai.GenerativeModel("gemini-2.5-flash-lite")
+    model = genai.GenerativeModel(MODEL_NAME)
 
     # Create prompt
     prompt = create_solver_prompt(train_pairs)
@@ -164,10 +168,7 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
     try:
         response = model.generate_content(
             prompt,
-            generation_config={
-                "temperature": 0.3,  # Lower temp for consistent code generation
-                "max_output_tokens": 2048,  # Enough for complex solvers
-            },
+            generation_config=PROGRAMMER_GENERATION_CONFIG,
             request_options={"timeout": timeout},
         )
 
@@ -181,9 +182,16 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
         code = extract_code_from_response(response_text)
         return code
     except ValueError as e:
-        # Include response text in error for debugging (start and end)
-        if len(response_text) > 500:
-            preview = f"{response_text[:300]}\n\n... [truncated] ...\n\n{response_text[-200:]}"
+        # Include response text in error for debugging with improved preview
+        max_preview_length = 1000
+        if len(response_text) > max_preview_length:
+            half = max_preview_length // 2
+            chars_truncated = len(response_text) - max_preview_length
+            preview = (
+                f"{response_text[:half]}\n\n"
+                f"... [{chars_truncated} chars truncated] ...\n\n"
+                f"{response_text[-half:]}"
+            )
         else:
             preview = response_text
         raise ValueError(
