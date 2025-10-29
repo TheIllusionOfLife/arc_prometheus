@@ -276,7 +276,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[2]])}]
 
         with pytest.raises(Exception, match="Gemini API call failed"):
-            generate_solver(train_pairs)
+            generate_solver(train_pairs, use_cache=False)
 
     @patch("google.generativeai.GenerativeModel")
     @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
@@ -298,7 +298,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[2]])}]
 
         with pytest.raises(ValueError, match="Failed to parse LLM response"):
-            generate_solver(train_pairs)
+            generate_solver(train_pairs, use_cache=False)
 
     @patch("google.generativeai.GenerativeModel")
     @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
@@ -354,7 +354,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_model_class.return_value = mock_model
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[2]])}]
-        code = generate_solver(train_pairs)
+        code = generate_solver(train_pairs, use_cache=False)
 
         assert "def solve(" in code
         assert "return task_grid * 2" in code
@@ -382,7 +382,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_model_class.return_value = mock_model
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
-        generate_solver(train_pairs, timeout=30)
+        generate_solver(train_pairs, timeout=30, use_cache=False)
 
         # Verify timeout was passed
         call_kwargs = mock_model.generate_content.call_args[1]
@@ -435,7 +435,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_model_class.return_value = mock_model
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
-        generate_solver(train_pairs)
+        generate_solver(train_pairs, use_cache=False)
 
         # Verify default model from config was used
         from arc_prometheus.utils.config import MODEL_NAME
@@ -465,7 +465,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_model_class.return_value = mock_model
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
-        generate_solver(train_pairs, temperature=0.7)
+        generate_solver(train_pairs, temperature=0.7, use_cache=False)
 
         # Verify temperature was passed in generation_config
         call_kwargs = mock_model.generate_content.call_args[1]
@@ -494,7 +494,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_model_class.return_value = mock_model
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
-        generate_solver(train_pairs)
+        generate_solver(train_pairs, use_cache=False)
 
         # Verify default temperature from config was used
         from arc_prometheus.utils.config import PROGRAMMER_GENERATION_CONFIG
@@ -533,6 +533,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             model_name="gemini-2.0-flash-thinking-exp",
             temperature=0.9,
             timeout=120,
+            use_cache=False,
         )
 
         # Verify all custom params were used
