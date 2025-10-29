@@ -7,18 +7,14 @@ Following TDD approach: tests written BEFORE implementation.
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Thread
-from typing import Optional
-import tempfile
-import time
 
 import pytest
 
 from arc_prometheus.utils.llm_cache import (
-    LLMCache,
     CacheStatistics,
+    LLMCache,
     get_cache,
 )
-
 
 # ============================================================================
 # Fixtures
@@ -46,7 +42,7 @@ def test_cache_creates_directory_if_not_exists(temp_cache_dir: Path) -> None:
     """Cache should create directory if it doesn't exist."""
     assert not temp_cache_dir.exists()
 
-    cache = LLMCache(cache_dir=temp_cache_dir)
+    _cache = LLMCache(cache_dir=temp_cache_dir)
 
     assert temp_cache_dir.exists()
     assert (temp_cache_dir / "llm_cache.db").exists()
@@ -225,9 +221,9 @@ def test_default_ttl_is_7_days(cache: LLMCache, temp_cache_dir: Path) -> None:
     """Default TTL should be 7 days."""
     import sqlite3
 
-    before = datetime.now(UTC)
+    _before = datetime.now(UTC)
     cache.set("prompt", "response", "model", 0.3)
-    after = datetime.now(UTC)
+    _after = datetime.now(UTC)
 
     # Check database
     with sqlite3.connect(temp_cache_dir / "llm_cache.db") as conn:
@@ -362,7 +358,9 @@ def test_clear_cache_removes_all_entries(cache: LLMCache) -> None:
     assert stats_after.total_entries == 0
 
 
-def test_clear_expired_removes_only_expired(cache: LLMCache, temp_cache_dir: Path) -> None:
+def test_clear_expired_removes_only_expired(
+    cache: LLMCache, temp_cache_dir: Path
+) -> None:
     """clear_expired() should remove only expired entries."""
     import sqlite3
 

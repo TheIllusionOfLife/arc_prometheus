@@ -21,13 +21,12 @@ Usage:
     print(f"Cost saved: ${stats.estimated_cost_saved_usd:.2f}")
 """
 
+import sqlite3
+import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
-from typing import Optional
-import sqlite3
-import threading
 
 
 @dataclass
@@ -40,8 +39,8 @@ class CacheStatistics:
     hit_rate: float
     cache_size_mb: float
     estimated_cost_saved_usd: float
-    oldest_entry: Optional[datetime]
-    newest_entry: Optional[datetime]
+    oldest_entry: datetime | None
+    newest_entry: datetime | None
 
 
 class LLMCache:
@@ -57,7 +56,7 @@ class LLMCache:
 
     def __init__(
         self,
-        cache_dir: Optional[Path] = None,
+        cache_dir: Path | None = None,
         ttl_days: int = DEFAULT_TTL_DAYS,
     ) -> None:
         """
@@ -125,7 +124,7 @@ class LLMCache:
         prompt: str,
         model_name: str,
         temperature: float,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Retrieve cached response if available and not expired.
 
@@ -140,39 +139,39 @@ class LLMCache:
         """
         cache_key = self._generate_cache_key(prompt, model_name, temperature)
 
-        with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute(
-                    """
+        with self._lock, sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
                     SELECT response, expires_at
                     FROM llm_cache
                     WHERE prompt_hash = ?
                     """,
-                    (cache_key,),
-                )
-                row = cursor.fetchone()
+                (cache_key,),
+            )
+            row = cursor.fetchone()
 
-                if row is None:
-                    return None  # Cache miss
+            if row is None:
+                return None  # Cache miss
 
-                response, expires_at_str = row
-                expires_at = datetime.fromisoformat(expires_at_str)
+            response: str
+            response, expires_at_str = row
+            expires_at = datetime.fromisoformat(expires_at_str)
 
-                # Check if expired
-                if datetime.now(UTC) >= expires_at:
-                    return None  # Expired
+            # Check if expired
+            if datetime.now(UTC) >= expires_at:
+                return None  # Expired
 
-                # Increment hit count
-                conn.execute(
-                    """
+            # Increment hit count
+            conn.execute(
+                """
                     UPDATE llm_cache
                     SET hit_count = hit_count + 1
                     WHERE prompt_hash = ?
                     """,
-                    (cache_key,),
-                )
+                (cache_key,),
+            )
 
-                return response
+            return response
 
     def set(
         self,
@@ -180,7 +179,7 @@ class LLMCache:
         response: str,
         model_name: str,
         temperature: float,
-        ttl_days: Optional[int] = None,
+        ttl_days: int | None = None,
     ) -> None:
         """
         Store response in cache with TTL.
@@ -201,25 +200,24 @@ class LLMCache:
         created_at = datetime.now(UTC)
         expires_at = created_at + timedelta(days=ttl)
 
-        with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute(
-                    """
+        with self._lock, sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
                     INSERT OR REPLACE INTO llm_cache
                     (prompt_hash, prompt_preview, response, model_name,
                      temperature, created_at, expires_at, hit_count)
                     VALUES (?, ?, ?, ?, ?, ?, ?, 0)
                     """,
-                    (
-                        cache_key,
-                        prompt_preview,
-                        response,
-                        model_name,
-                        temperature,
-                        created_at.isoformat(),
-                        expires_at.isoformat(),
-                    ),
-                )
+                (
+                    cache_key,
+                    prompt_preview,
+                    response,
+                    model_name,
+                    temperature,
+                    created_at.isoformat(),
+                    expires_at.isoformat(),
+                ),
+            )
 
     def get_statistics(self) -> CacheStatistics:
         """
@@ -246,7 +244,9 @@ class LLMCache:
 
             # Calculate miss count (entries with 0 hits that were created)
             # This is an approximation - true miss count would need separate tracking
-            miss_count = max(0, total_entries - total_hits) if total_hits > 0 else total_entries
+            miss_count = (
+                max(0, total_entries - total_hits) if total_hits > 0 else total_entries
+            )
 
             # Calculate hit rate
             total_accesses = total_hits + miss_count
@@ -278,9 +278,8 @@ class LLMCache:
 
     def clear(self) -> None:
         """Remove all cache entries."""
-        with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute("DELETE FROM llm_cache")
+        with self._lock, sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM llm_cache")
 
     def clear_expired(self) -> int:
         """
@@ -289,20 +288,19 @@ class LLMCache:
         Returns:
             Number of entries deleted.
         """
-        with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute(
-                    """
+        with self._lock, sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
                     DELETE FROM llm_cache
                     WHERE expires_at < ?
                     """,
-                    (datetime.now(UTC).isoformat(),),
-                )
-                return cursor.rowcount
+                (datetime.now(UTC).isoformat(),),
+            )
+            return cursor.rowcount
 
 
 # Module-level singleton instance
-_cache_instance: Optional[LLMCache] = None
+_cache_instance: LLMCache | None = None
 
 
 def get_cache() -> LLMCache:
