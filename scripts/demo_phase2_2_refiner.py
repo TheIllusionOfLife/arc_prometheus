@@ -238,6 +238,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     return task_grid
 """
 
+    timeout_seconds = 2
     return _run_demo_scenario(
         name="Demo 3: Fixing Timeout (Infinite Loop)",
         task_description="Copy input to output",
@@ -250,8 +251,8 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             "Generating optimized code with Gemini API",
         ],
         success_notes=["Timeout eliminated - code now executes in <1 second"],
-        timeout=2,
-        pre_eval_message="Evaluating original code (this will timeout after 5 seconds)...",
+        timeout=timeout_seconds,
+        pre_eval_message=f"Evaluating original code (this will timeout after {timeout_seconds} seconds)...",
     )
 
 
