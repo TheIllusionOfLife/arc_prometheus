@@ -837,7 +837,8 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
    - **Source**: plan_20251029.md Phase 3 core feature
 
 #### Known Issues / Blockers
-- ⚠️ **Security**: Multiprocessing sandbox insufficient for production (filesystem/network access possible)
+- 🔴 **CRITICAL - Security**: Multiprocessing sandbox insufficient for production (filesystem/network access possible)
+  - **Severity**: CRITICAL - Generated code can access sensitive data or external services
   - **Mitigation**: Task 2.1 (Docker Sandbox) addresses this
   - **Timeline**: Must complete before external code sharing or production deployment
 
@@ -852,7 +853,7 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 - **PR Review Context Verification**: When AI reviewers provide feedback, verify they reviewed the CORRECT PR. Check if mentioned files/functions exist in PR diff. Reviewers can cache wrong context or receive misconfigured inputs.
 
 **From Task 1.2 (LLM Response Caching) - October 30, 2025**:
-- **SQLite ON CONFLICT Pattern**: Use `ON CONFLICT DO UPDATE` instead of `INSERT OR REPLACE` to preserve columns. `INSERT OR REPLACE` deletes old row entirely (resetting ALL columns including hit_count), while `ON CONFLICT DO UPDATE` only updates specified columns.
+- **SQLite ON CONFLICT Pattern**: Use `ON CONFLICT DO UPDATE` instead of `INSERT OR REPLACE` to preserve columns. `INSERT OR REPLACE` is actually `DELETE` + `INSERT`, which removes the old row entirely (resetting ALL columns including hit_count to their new default values), while `ON CONFLICT DO UPDATE` only updates specified columns and preserves others.
 - **Lazy Imports for Circular Dependency**: When integrating new modules with existing code, use lazy imports inside functions (`from ..utils.llm_cache import get_cache`) instead of module-level imports to avoid circular dependency errors.
 - **Test Cache Isolation**: When testing cached functions, always pass `use_cache=False` to prevent tests from hitting actual cache and causing flaky test failures. Cache state should not affect test outcomes.
 - **Input Validation at Boundaries**: Validate all inputs at function boundaries (empty strings, negative values, out-of-range parameters) with clear error messages. Prevents invalid data from entering the system.
