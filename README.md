@@ -202,6 +202,36 @@ python scripts/demo_phase2_1_fitness.py
 
 **Key insight**: A solver with 100% train accuracy but 0% test accuracy (pure overfitting) receives fitness = 3, while a solver with lower train but some test accuracy can score higher. This prioritizes solvers that learn underlying rules rather than memorizing examples.
 
+### Phase 2.2: Refiner Agent (Code Debugging)
+
+Automatically debug and improve failed solver code through LLM-based refinement:
+
+```bash
+python scripts/demo_phase2_2_refiner.py
+```
+
+**Expected output**:
+- Demo 1: Syntax error fixed (fitness 0 → 13, +13 improvement)
+- Demo 2: Logic error corrected (fitness 0 → 13, +13 improvement)
+- Demo 3: Infinite loop optimized (fitness 0 → 13, +13 improvement)
+- Clear before/after fitness comparison with line-numbered code
+- Progress indicators during Gemini API calls
+- Summary showing total fitness gain across all scenarios
+
+**What it demonstrates**:
+- LLM-based code debugging with error analysis
+- First evolutionary mechanism (Mutation) - automated code refinement
+- Fitness improvement through iterative debugging
+- Handles syntax errors, logic errors, and performance issues
+- Foundation for evolution loop (Phase 2.3)
+
+**Key features**:
+- Uses Gemini API with temperature 0.4 (debugging creativity)
+- Analyzes fitness results to identify failure patterns
+- Generates corrected code with proper numpy-only constraints
+- Re-evaluates refined code to verify improvement
+- Tested with real API: 3/3 scenarios successful (100%)
+
 ### Running Tests
 
 ```bash
@@ -226,12 +256,13 @@ arc_prometheus/
 │   │   └── sandbox.py      # Safe code execution with multiprocessing ✅
 │   ├── cognitive_cells/    # LLM agents
 │   │   ├── prompts.py      # Prompt templates
-│   │   └── programmer.py   # Code generation
-│   ├── evolutionary_engine/ # Evolution mechanisms ✨NEW
+│   │   ├── programmer.py   # Code generation
+│   │   └── refiner.py      # (Phase 2.2) Code debugging ✅
+│   ├── evolutionary_engine/ # Evolution mechanisms
 │   │   └── fitness.py      # (Phase 2.1) Fitness evaluation ✅
 │   └── utils/
 │       └── config.py       # Configuration management
-├── tests/                  # Test suite (104 tests passing)
+├── tests/                  # Test suite (116 tests passing)
 ├── scripts/                # Demo and utility scripts
 ├── data/                   # ARC dataset (gitignored)
 └── plan_20251024.md       # Detailed implementation plan
@@ -254,7 +285,7 @@ arc_prometheus/
 **Goal**: Implement mutation and selection pressure
 
 - [x] **2.1**: Fitness function evaluation ✅
-- [ ] **2.2**: Refiner agent for debugging
+- [x] **2.2**: Refiner agent for debugging ✅
 - [ ] **2.3**: Multi-generation evolution loop
 - [ ] Test accuracy tracking across generations
 
@@ -425,21 +456,22 @@ Phase 1: Core Prototype  ✅ COMPLETE
 
 Phase 2: Evolutionary Loop  🔥 IN PROGRESS
 ├── [✅] 2.1: Fitness Function Evaluation
-├── [⏳] 2.2: Refiner Agent (Mutation)
+├── [✅] 2.2: Refiner Agent (Mutation)
 └── [⏳] 2.3: Evolution Loop
 
-Tests: 104/104 passing ✅
+Tests: 116/116 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
 Demo Phase 1.3: Sandbox execution (all demos passed) ✅
 Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
 Demo Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
 Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
+Demo Phase 2.2: Refiner agent (3/3 scenarios improved, +39 total fitness) ✅
 ```
 
 ---
 
-**Next Steps**: Phase 2.2 - Refiner Agent for automated solver debugging. See [plan_20251024.md](plan_20251024.md) for details.
+**Next Steps**: Phase 2.3 - Evolution Loop. Combine fitness evaluation + refinement into multi-generation cycle. See [plan_20251024.md](plan_20251024.md) for details.
 
 *"私たちがこれから目の当たりにするのは、AIが「思考」を学ぶ瞬間です。この歴史的な挑戦を、一緒に楽しみましょう！"*
 
@@ -447,9 +479,24 @@ Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 09:07 AM JST
+### Last Updated: October 29, 2025 11:30 AM JST
 
 #### Recently Completed
+- ✅ **Phase 2.2**: Refiner Agent - Code Debugging (PR #XX - IN REVIEW)
+  - Implemented LLM-based code debugging with Gemini API (temperature 0.4)
+  - Created refiner prompt template with failure analysis context
+  - 12 comprehensive tests (116 total passing: 104 existing + 12 new)
+  - Demo script with 3 scenarios: syntax, logic, timeout fixes
+  - **Real API Testing**: 3/3 scenarios successful (100% success rate)
+    - Syntax error fix: 0 → 13 fitness (+13, missing colon corrected)
+    - Logic error fix: 0 → 13 fitness (+13, add→multiply algorithm fixed)
+    - Timeout fix: 0 → 13 fitness (+13, infinite loop removed)
+  - Total fitness gain: +39 points across all scenarios
+  - All quality checks passing (mypy, ruff, bandit)
+  - **First Evolutionary Mechanism (Mutation)**: Automated solver improvement working!
+  - **Time**: ~5 hours from TDD to complete implementation with manual testing
+  - **Key Achievement**: Foundation for evolution loop (Phase 2.3) established!
+
 - ✅ **Phase 2.1**: Fitness Function Evaluation (PR #15 - MERGED!)
   - Implemented fitness calculation with 10x weight on test accuracy
   - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
@@ -510,17 +557,7 @@ Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
   - 14 new tests added, TDD approach
 
 #### Next Priority Tasks
-1. **Phase 2.2: Refiner Agent (Mutation)** ⭐ NEXT
-   - Source: kickoff.md (line 46), plan_20251024.md Phase 2.2
-   - Context: Debug and improve failed solver code
-   - Approach: Create Refiner prompt template in prompts.py
-   - Implement: `refine_solver(failed_code, task_data, error_context) -> str`
-   - Input: Failed solver + fitness results + execution errors
-   - Output: Improved solver code via Gemini API
-   - Test: Integration tests with intentionally buggy solvers
-   - Goal: Automated solver improvement through mutation
-
-2. **Phase 2.3: Evolution Loop**
+1. **Phase 2.3: Evolution Loop** ⭐ NEXT
    - Source: plan_20251024.md Phase 2.3
    - Context: Complete evolutionary cycle with multi-generation tracking
    - Approach: Generate 10 initial solvers → Evaluate → Refine → Repeat for 5 generations
