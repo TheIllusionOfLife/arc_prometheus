@@ -44,6 +44,9 @@ def run_evolution_loop(
     timeout_per_eval: int = 5,
     timeout_per_llm: int = 60,
     verbose: bool = True,
+    model_name: str | None = None,
+    programmer_temperature: float | None = None,
+    refiner_temperature: float | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -61,6 +64,9 @@ def run_evolution_loop(
         timeout_per_eval: Timeout for sandbox execution per example in seconds (default: 5)
         timeout_per_llm: Timeout for LLM API calls in seconds (default: 60)
         verbose: Print progress information (default: True)
+        model_name: LLM model name (default: from config.py)
+        programmer_temperature: Temperature for code generation (default: from config.py)
+        refiner_temperature: Temperature for debugging (default: from config.py)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -110,7 +116,12 @@ def run_evolution_loop(
             if verbose:
                 print("\n📝 Generating initial solver from train examples...")
 
-            current_code = generate_solver(train_pairs, timeout=timeout_per_llm)
+            current_code = generate_solver(
+                train_pairs,
+                model_name=model_name,
+                temperature=programmer_temperature,
+                timeout=timeout_per_llm,
+            )
 
             if verbose:
                 print(f"✅ Initial solver generated ({len(current_code)} characters)")
@@ -138,7 +149,12 @@ def run_evolution_loop(
             # Get previous fitness result for refiner context
             prev_result = results[-1]["fitness_result"]
             current_code = refine_solver(
-                current_code, task_json_path, prev_result, timeout=timeout_per_llm
+                current_code,
+                task_json_path,
+                prev_result,
+                model_name=model_name,
+                temperature=refiner_temperature,
+                timeout=timeout_per_llm,
             )
 
             if verbose:
