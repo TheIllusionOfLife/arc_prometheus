@@ -4,6 +4,8 @@ This module provides the Refiner agent - the first evolutionary mechanism
 (Mutation) that improves failed solver code through automated debugging.
 """
 
+from typing import Any
+
 import google.generativeai as genai
 
 from ..crucible.data_loader import load_task
@@ -85,7 +87,8 @@ def refine_solver(
     model = genai.GenerativeModel(model_to_use)
 
     # Build generation config (merge custom temperature if provided)
-    generation_config = dict(REFINER_GENERATION_CONFIG)
+    # Type as Any to satisfy mypy while maintaining runtime correctness
+    generation_config: Any = dict(REFINER_GENERATION_CONFIG)
     if temperature is not None:
         generation_config["temperature"] = temperature
 

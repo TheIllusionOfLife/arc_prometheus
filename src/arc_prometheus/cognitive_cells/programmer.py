@@ -6,6 +6,7 @@ This module provides functions to:
 """
 
 import re
+from typing import Any
 
 import google.generativeai as genai
 import numpy as np
@@ -168,7 +169,8 @@ def generate_solver(
     model = genai.GenerativeModel(model_to_use)
 
     # Build generation config (merge custom temperature if provided)
-    generation_config = dict(PROGRAMMER_GENERATION_CONFIG)
+    # Type as Any to satisfy mypy while maintaining runtime correctness
+    generation_config: Any = dict(PROGRAMMER_GENERATION_CONFIG)
     if temperature is not None:
         generation_config["temperature"] = temperature
 

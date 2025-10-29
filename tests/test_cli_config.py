@@ -4,7 +4,6 @@ This module tests the CLI argument parser for evolution experiments,
 ensuring proper validation and default value handling.
 """
 
-import argparse
 import pytest
 
 from arc_prometheus.utils.cli_config import parse_evolution_args
