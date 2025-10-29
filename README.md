@@ -178,6 +178,30 @@ python scripts/run_phase1_test.py 025d127b
 - ✅ Timeout enforcement for infinite loops
 - ✅ Grid shape/value mismatches with detailed diffs
 
+### Phase 2.1: Fitness Function Evaluation
+
+Evaluate solver quality with emphasis on generalization over memorization:
+
+```bash
+python scripts/demo_phase2_1_fitness.py
+```
+
+**Expected output**:
+- Demo 1: Perfect solver achieving 100% accuracy (fitness = 13)
+- Demo 2: Overfitting solver failing on test data (fitness = 3)
+- Demo 3: Timeout enforcement with infinite loop (fitness = 0)
+- Clear breakdown of train vs test performance
+- Analysis of generalization capability
+
+**What it demonstrates**:
+- Fitness calculation: `(train_correct × 1) + (test_correct × 10)`
+- 10x weight on test accuracy encourages generalization
+- Timeout enforcement prevents infinite loops
+- Clear error reporting for failure modes
+- Foundation for evolutionary loop (Phase 2.2+)
+
+**Key insight**: A solver with 100% train accuracy but 0% test accuracy (pure overfitting) receives fitness = 3, while a solver with lower train but some test accuracy can score higher. This prioritizes solvers that learn underlying rules rather than memorizing examples.
+
 ### Running Tests
 
 ```bash
@@ -201,11 +225,13 @@ arc_prometheus/
 │   │   ├── evaluator.py    # Compare grids for correctness
 │   │   └── sandbox.py      # Safe code execution with multiprocessing ✅
 │   ├── cognitive_cells/    # LLM agents
-│   │   ├── prompts.py      # (Phase 1.4) Prompt templates
-│   │   └── programmer.py   # (Phase 1.4) Code generation
+│   │   ├── prompts.py      # Prompt templates
+│   │   └── programmer.py   # Code generation
+│   ├── evolutionary_engine/ # Evolution mechanisms ✨NEW
+│   │   └── fitness.py      # (Phase 2.1) Fitness evaluation ✅
 │   └── utils/
 │       └── config.py       # Configuration management
-├── tests/                  # Test suite (59 tests passing)
+├── tests/                  # Test suite (103 tests passing)
 ├── scripts/                # Demo and utility scripts
 ├── data/                   # ARC dataset (gitignored)
 └── plan_20251024.md       # Detailed implementation plan
@@ -224,13 +250,13 @@ arc_prometheus/
 
 **Success Criteria**: AI-generated code solves ≥1 train pair
 
-### Phase 2: Evolutionary Loop (Planned)
+### Phase 2: Evolutionary Loop (Current)
 **Goal**: Implement mutation and selection pressure
 
-- Fitness function: `(train_correct * 1) + (test_correct * 10)`
-- Refiner agent for debugging
-- Multi-generation evolution
-- Test accuracy tracking
+- [x] **2.1**: Fitness function evaluation ✅
+- [ ] **2.2**: Refiner agent for debugging
+- [ ] **2.3**: Multi-generation evolution loop
+- [ ] Test accuracy tracking across generations
 
 ### Phase 3: Scaling and Crossover (Planned)
 **Goal**: Full ARC dataset with genetic operations
@@ -397,17 +423,23 @@ Phase 1: Core Prototype  ✅ COMPLETE
 ├── [✅] 1.4: LLM Code Generation (gemini-2.5-flash-lite)
 └── [✅] 1.5: End-to-End Pipeline
 
-Tests: 93/93 passing ✅
+Phase 2: Evolutionary Loop  🔥 IN PROGRESS
+├── [✅] 2.1: Fitness Function Evaluation
+├── [⏳] 2.2: Refiner Agent (Mutation)
+└── [⏳] 2.3: Evolution Loop
+
+Tests: 103/103 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
 Demo Phase 1.3: Sandbox execution (all demos passed) ✅
 Demo Phase 1.4: LLM generation (First Victory achieved!) ✅
-Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
+Demo Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
+Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
 ```
 
 ---
 
-**Next Steps**: Phase 2 - Evolutionary Loop (fitness function, refiner agent, mutation). See [plan_20251024.md](plan_20251024.md) for details.
+**Next Steps**: Phase 2.2 - Refiner Agent for automated solver debugging. See [plan_20251024.md](plan_20251024.md) for details.
 
 *"私たちがこれから目の当たりにするのは、AIが「思考」を学ぶ瞬間です。この歴史的な挑戦を、一緒に楽しみましょう！"*
 
@@ -415,9 +447,20 @@ Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 01:34 AM JST
+### Last Updated: October 29, 2025 05:10 PM JST
 
 #### Recently Completed
+- ✅ **Phase 2.1**: Fitness Function Evaluation (CURRENT SESSION)
+  - Implemented fitness calculation with 10x weight on test accuracy
+  - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
+  - Created new evolutionary_engine package
+  - 10 comprehensive tests covering perfect solvers, overfitting, timeouts, errors
+  - Demo script demonstrates generalization vs memorization with 3 scenarios
+  - All 103 tests passing (93 existing + 10 new)
+  - All quality checks passing (mypy, ruff, bandit)
+  - **Time**: ~3.5 hours from branch creation to documentation completion
+  - **Key Achievement**: Foundation for evolutionary loop established!
+
 - ✅ **Phase 1.5**: End-to-End Pipeline (PR #13 - MERGED!)
   - Implemented complete E2E orchestration script `run_phase1_test.py`
   - Command-line interface for testing any ARC task
@@ -465,18 +508,22 @@ Phase 1.5: Complete E2E pipeline (orchestration working!) ✅
   - 14 new tests added, TDD approach
 
 #### Next Priority Tasks
-1. **Phase 2.1: Fitness Function Implementation** ⭐ NEXT
-   - Source: README Phase 2 section, plan_20251024.md Phase 2.1
-   - Context: Begin evolutionary loop with fitness evaluation
-   - Approach: Implement `calculate_fitness(solver_code, task_json_path) -> dict`
-   - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
-   - Goal: Prioritize generalization over memorization
-
-2. **Phase 2.2: Refiner Agent (Mutation)**
+1. **Phase 2.2: Refiner Agent (Mutation)** ⭐ NEXT
    - Source: kickoff.md (line 46), plan_20251024.md Phase 2.2
    - Context: Debug and improve failed solver code
-   - Approach: Create Refiner prompt, integrate error context, test with buggy solvers
+   - Approach: Create Refiner prompt template in prompts.py
+   - Implement: `refine_solver(failed_code, task_data, error_context) -> str`
+   - Input: Failed solver + fitness results + execution errors
+   - Output: Improved solver code via Gemini API
+   - Test: Integration tests with intentionally buggy solvers
    - Goal: Automated solver improvement through mutation
+
+2. **Phase 2.3: Evolution Loop**
+   - Source: plan_20251024.md Phase 2.3
+   - Context: Complete evolutionary cycle with multi-generation tracking
+   - Approach: Generate 10 initial solvers → Evaluate → Refine → Repeat for 5 generations
+   - Track: Best fitness per generation, improvement over time
+   - Goal: Demonstrate fitness improvement across generations
 
 #### Known Issues / Blockers
 - None - Phase 1 complete! All infrastructure ready for Phase 2 evolutionary loop
