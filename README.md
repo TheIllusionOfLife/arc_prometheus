@@ -237,10 +237,41 @@ python scripts/demo_phase2_2_refiner.py
 Run multi-generation solver evolution combining all Phase 2 components:
 
 ```bash
+# Run with default configuration
 python scripts/demo_phase2_3_evolution.py
+
+# Use custom model (e.g., thinking model for complex tasks)
+python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp
+
+# Adjust creativity with custom temperatures
+python scripts/demo_phase2_3_evolution.py --programmer-temperature 0.5 --refiner-temperature 0.6
+
+# Run more generations for difficult tasks
+python scripts/demo_phase2_3_evolution.py --max-generations 10
+
+# Combine multiple options
+python scripts/demo_phase2_3_evolution.py \
+  --model gemini-2.0-flash-thinking-exp \
+  --max-generations 10 \
+  --programmer-temperature 0.5 \
+  --refiner-temperature 0.6
+
+# See all available options
+python scripts/demo_phase2_3_evolution.py --help
 ```
 
+**Configuration Options**:
+- `--model MODEL`: LLM model name (default: gemini-2.5-flash-lite)
+- `--programmer-temperature TEMP`: Code generation creativity, 0.0-2.0 (default: 0.3)
+- `--refiner-temperature TEMP`: Debugging creativity, 0.0-2.0 (default: 0.4)
+- `--max-generations N`: Maximum evolution generations (default: 5)
+- `--target-fitness N`: Stop when fitness reaches this value (optional)
+- `--timeout-llm SECONDS`: LLM API call timeout (default: 60)
+- `--timeout-eval SECONDS`: Code execution timeout (default: 5)
+- `--no-verbose`: Disable verbose output
+
 **Expected output**:
+- Configuration display showing all parameters
 - Demo 1: Simple task evolution (2-3 generations typical)
 - Demo 2: Early convergence (perfect solver from start)
 - Demo 3: Gradual improvement (up to 5 generations)
