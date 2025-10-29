@@ -3,7 +3,6 @@
 import json
 from unittest.mock import Mock, patch
 
-import numpy as np
 import pytest
 
 from arc_prometheus.cognitive_cells.prompts import create_refiner_prompt

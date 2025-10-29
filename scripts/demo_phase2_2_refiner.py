@@ -190,7 +190,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         improvement = fitness_after["fitness"] - fitness_before["fitness"]
         if improvement > 0:
             print(f"\n✅ Success! Fitness improved by +{improvement} points")
-            print(f"   Algorithm corrected: add → multiply")
+            print("   Algorithm corrected: add → multiply")
         else:
             print(f"\n⚠️  Fitness unchanged (still {fitness_after['fitness']})")
 
@@ -262,7 +262,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         improvement = fitness_after["fitness"] - fitness_before["fitness"]
         if improvement > 0:
             print(f"\n✅ Success! Fitness improved by +{improvement} points")
-            print(f"   Timeout eliminated - code now executes in <1 second")
+            print("   Timeout eliminated - code now executes in <1 second")
         else:
             print(f"\n⚠️  Fitness unchanged (still {fitness_after['fitness']})")
 
