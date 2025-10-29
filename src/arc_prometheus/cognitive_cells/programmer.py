@@ -129,6 +129,7 @@ def generate_solver(
     model_name: str | None = None,
     temperature: float | None = None,
     timeout: int = 60,
+    use_cache: bool = True,
 ) -> str:
     """Generate solver code using Gemini API.
 
@@ -140,6 +141,7 @@ def generate_solver(
         model_name: LLM model name (default: from config.py)
         temperature: LLM temperature 0.0-2.0 (default: from config.py)
         timeout: API request timeout in seconds (default: 60)
+        use_cache: If True, use LLM response cache (default: True)
 
     Returns:
         Python code string containing solve() function
@@ -174,10 +176,27 @@ def generate_solver(
     if temperature is not None:
         generation_config["temperature"] = temperature
 
+    # Determine actual temperature for cache key
+    temp_to_use = (
+        temperature
+        if temperature is not None
+        else PROGRAMMER_GENERATION_CONFIG["temperature"]
+    )
+
     # Create prompt
     prompt = create_solver_prompt(train_pairs)
 
-    # Generate response with timeout
+    # Check cache if enabled
+    if use_cache:
+        from ..utils.llm_cache import get_cache
+
+        cache = get_cache()
+        cached_response = cache.get(prompt, model_to_use, temp_to_use)
+        if cached_response is not None:
+            # Parse and return cached response
+            return extract_code_from_response(cached_response)
+
+    # Generate response with timeout (cache miss or cache disabled)
     try:
         response = model.generate_content(
             prompt,
@@ -189,6 +208,13 @@ def generate_solver(
 
     except Exception as e:
         raise Exception(f"Gemini API call failed: {e}") from e
+
+    # Store in cache if enabled
+    if use_cache:
+        from ..utils.llm_cache import get_cache
+
+        cache = get_cache()
+        cache.set(prompt, response_text, model_to_use, temp_to_use)
 
     # Extract code from response
     try:

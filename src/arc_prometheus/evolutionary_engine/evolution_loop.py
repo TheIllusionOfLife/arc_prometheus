@@ -47,6 +47,7 @@ def run_evolution_loop(
     model_name: str | None = None,
     programmer_temperature: float | None = None,
     refiner_temperature: float | None = None,
+    use_cache: bool = True,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -67,6 +68,7 @@ def run_evolution_loop(
         model_name: LLM model name (default: from config.py)
         programmer_temperature: Temperature for code generation (default: from config.py)
         refiner_temperature: Temperature for debugging (default: from config.py)
+        use_cache: If True, use LLM response cache (default: True)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -121,6 +123,7 @@ def run_evolution_loop(
                 model_name=model_name,
                 temperature=programmer_temperature,
                 timeout=timeout_per_llm,
+                use_cache=use_cache,
             )
 
             if verbose:
@@ -155,6 +158,7 @@ def run_evolution_loop(
                 model_name=model_name,
                 temperature=refiner_temperature,
                 timeout=timeout_per_llm,
+                use_cache=use_cache,
             )
 
             if verbose:

@@ -158,6 +158,22 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
 **Note**: LLMs often include markdown formatting despite instructions. Implement robust parsing.
 
+### LLM Response Caching
+- **Cache location**: `~/.arc_prometheus/llm_cache.db` (SQLite)
+- **Enabled by default** in all cognitive cells (Programmer, Refiner)
+- **TTL**: 7 days (configurable)
+- **Thread-safe**: Uses SQLite WAL mode for concurrent access
+- **CLI control**:
+  - `--no-cache`: Disable for specific run
+  - `--cache-stats`: View hit rate and cost savings
+  - `--clear-cache`: Remove all entries
+- **Programmatic control**: Use `use_cache=False` parameter in `generate_solver()` and `refine_solver()`
+- **Benefits**: 70-80% API cost reduction during development, instant responses for repeated prompts
+- **Limitations**:
+  - Cache NOT shared across processes
+  - Statistics approximate (hit rate slightly inflated)
+  - See docstring in `llm_cache.py` for details
+
 ### Fitness Evaluation: Prioritize Generalization Over Memorization
 **Why Test Accuracy Matters 10x More**: Solvers that only work on training examples fail the core ARC challenge—abstract reasoning with unseen problems. Overfitting to training data means the AI has memorized patterns instead of learning the underlying transformation rule.
 

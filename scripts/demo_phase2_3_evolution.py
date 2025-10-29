@@ -20,6 +20,11 @@ Usage:
     # Run more generations
     python scripts/demo_phase2_3_evolution.py --max-generations 10
 
+    # Cache management
+    python scripts/demo_phase2_3_evolution.py --cache-stats           # View cache statistics
+    python scripts/demo_phase2_3_evolution.py --clear-cache           # Clear all cache
+    python scripts/demo_phase2_3_evolution.py --no-cache              # Disable cache
+
     # Combine options
     python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp --max-generations 10 --programmer-temperature 0.5
 
@@ -43,6 +48,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 from arc_prometheus.utils.cli_config import parse_evolution_args
 from arc_prometheus.utils.config import get_gemini_api_key
+from arc_prometheus.utils.llm_cache import get_cache
 
 # Display configuration constants
 MAX_CODE_DISPLAY_LINES = 40  # Maximum lines to show in code preview
@@ -153,6 +159,7 @@ def demo_1_simple_evolution(config):
             model_name=config.model,
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
+            use_cache=config.use_cache,
         )
 
         # Display results
@@ -222,6 +229,7 @@ def demo_2_early_convergence(config):
             model_name=config.model,
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
+            use_cache=config.use_cache,
         )
 
         print("\n✅ Evolution complete!")
@@ -285,6 +293,7 @@ def demo_3_gradual_improvement(config):
             model_name=config.model,
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
+            use_cache=config.use_cache,
         )
 
         print("\n✅ Evolution complete!")
@@ -312,6 +321,38 @@ def main():
     print("\nDemonstrating multi-generation solver evolution")
     print("Combines: Programmer → Fitness → Refiner → Repeat")
 
+    # Handle cache management commands
+    cache = get_cache()
+
+    if config.cache_stats:
+        print_header("LLM CACHE STATISTICS")
+        stats = cache.get_statistics()
+        print(f"\nTotal entries: {stats.total_entries}")
+        print(f"Cache hits: {stats.hit_count}")
+        print(f"Cache misses: {stats.miss_count}")
+        print(f"Hit rate: {stats.hit_rate:.1%}")
+        print(f"Cache size: {stats.cache_size_mb:.2f} MB")
+        print(f"Estimated cost saved: ${stats.estimated_cost_saved_usd:.2f}")
+        if stats.oldest_entry:
+            print(f"Oldest entry: {stats.oldest_entry.isoformat()}")
+        if stats.newest_entry:
+            print(f"Newest entry: {stats.newest_entry.isoformat()}")
+        return 0
+
+    if config.clear_cache:
+        print_header("CLEAR CACHE")
+        stats_before = cache.get_statistics()
+        cache.clear()
+        print(f"\n✅ Cleared {stats_before.total_entries} cache entries")
+        print(f"   Freed {stats_before.cache_size_mb:.2f} MB")
+        return 0
+
+    if config.clear_expired_cache:
+        print_header("CLEAR EXPIRED CACHE")
+        deleted = cache.clear_expired()
+        print(f"\n✅ Cleared {deleted} expired cache entries")
+        return 0
+
     # Display configuration
     print("\nConfiguration:")
     print(f"  Model: {config.model}")
@@ -320,6 +361,7 @@ def main():
     print(f"  Max Generations: {config.max_generations}")
     print(f"  LLM Timeout: {config.timeout_llm}s")
     print(f"  Eval Timeout: {config.timeout_eval}s")
+    print(f"  Cache Enabled: {'Yes' if config.use_cache else 'No'}")
 
     # Check API key
     try:
