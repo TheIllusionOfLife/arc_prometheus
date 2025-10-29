@@ -9,6 +9,7 @@ from typing import Any
 import google.generativeai as genai
 
 from ..crucible.data_loader import load_task
+from ..evolutionary_engine.error_classifier import classify_error
 from ..evolutionary_engine.fitness import FitnessResult
 from ..utils.config import (
     MODEL_NAME,
@@ -101,8 +102,11 @@ def refine_solver(
         else REFINER_GENERATION_CONFIG["temperature"]
     )
 
-    # Create refiner prompt with failure analysis
-    prompt = create_refiner_prompt(failed_code, task_data, fitness_result)
+    # Classify error type for targeted debugging
+    error_type = classify_error(fitness_result)
+
+    # Create refiner prompt with failure analysis and error classification
+    prompt = create_refiner_prompt(failed_code, task_data, fitness_result, error_type=error_type)
 
     # Check cache if enabled
     if use_cache:
