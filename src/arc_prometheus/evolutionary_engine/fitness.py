@@ -1,7 +1,7 @@
 """Fitness evaluation for solver quality assessment (Phase 2.1)."""
 
 import json
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import numpy as np
 
@@ -21,7 +21,9 @@ class FitnessResult(TypedDict):
         test_total: Total number of test examples
         train_accuracy: Train correctness ratio (0.0 to 1.0)
         test_accuracy: Test correctness ratio (0.0 to 1.0)
-        execution_errors: Error messages from failed executions
+        execution_errors: Error messages from failed executions (legacy)
+        error_details: Structured error information for each failed example
+        error_summary: Count of each error type
     """
 
     fitness: float
@@ -32,6 +34,8 @@ class FitnessResult(TypedDict):
     train_accuracy: float
     test_accuracy: float
     execution_errors: list[str]
+    error_details: list[dict[str, Any]]
+    error_summary: dict[str, int]
 
 
 def calculate_fitness(
@@ -78,6 +82,7 @@ def calculate_fitness(
     test_correct = 0
     test_total = 0
     execution_errors: list[str] = []
+    error_details: list[dict[str, Any]] = []
 
     try:
         # Load task data
@@ -97,15 +102,32 @@ def calculate_fitness(
             expected_output = np.array(example["output"], dtype=np.int64)
 
             # Execute solver in sandbox
-            success, result_grid = safe_execute(solver_code, input_grid, timeout)
+            success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
 
             if not success:
-                execution_errors.append(f"Train example {idx}: Execution failed")
+                # Store structured error detail
+                if error_detail:
+                    error_detail["example_id"] = f"train_{idx}"
+                    error_details.append(error_detail)
+                    execution_errors.append(
+                        f"Train example {idx}: {error_detail.get('error_type', 'unknown')}"
+                    )
+                else:
+                    execution_errors.append(f"Train example {idx}: Execution failed")
                 continue
 
             # Compare result with expected output
             if result_grid is not None and evaluate_grids(result_grid, expected_output):
                 train_correct += 1
+            else:
+                # Logic error: execution succeeded but output is wrong
+                logic_error = {
+                    "example_id": f"train_{idx}",
+                    "error_type": "logic",
+                    "error_message": "Output does not match expected result",
+                    "exception_class": None,
+                }
+                error_details.append(logic_error)
 
         # Evaluate on test examples
         test_examples = task_data.get("test", [])
@@ -120,15 +142,32 @@ def calculate_fitness(
             expected_output = np.array(example["output"], dtype=np.int64)
 
             # Execute solver in sandbox
-            success, result_grid = safe_execute(solver_code, input_grid, timeout)
+            success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
 
             if not success:
-                execution_errors.append(f"Test example {idx}: Execution failed")
+                # Store structured error detail
+                if error_detail:
+                    error_detail["example_id"] = f"test_{idx}"
+                    error_details.append(error_detail)
+                    execution_errors.append(
+                        f"Test example {idx}: {error_detail.get('error_type', 'unknown')}"
+                    )
+                else:
+                    execution_errors.append(f"Test example {idx}: Execution failed")
                 continue
 
             # Compare result with expected output
             if result_grid is not None and evaluate_grids(result_grid, expected_output):
                 test_correct += 1
+            else:
+                # Logic error: execution succeeded but output is wrong
+                logic_error = {
+                    "example_id": f"test_{idx}",
+                    "error_type": "logic",
+                    "error_message": "Output does not match expected result",
+                    "exception_class": None,
+                }
+                error_details.append(logic_error)
 
     except FileNotFoundError:
         execution_errors.append(f"Task file not found: {task_json_path}")
@@ -146,6 +185,12 @@ def calculate_fitness(
     train_accuracy = train_correct / train_total if train_total > 0 else 0.0
     test_accuracy = test_correct / test_total if test_total > 0 else 0.0
 
+    # Aggregate error types
+    error_summary: dict[str, int] = {}
+    for detail in error_details:
+        error_type = detail.get("error_type", "unknown")
+        error_summary[error_type] = error_summary.get(error_type, 0) + 1
+
     return {
         "fitness": fitness,
         "train_correct": train_correct,
@@ -155,4 +200,6 @@ def calculate_fitness(
         "train_accuracy": train_accuracy,
         "test_accuracy": test_accuracy,
         "execution_errors": execution_errors,
+        "error_details": error_details,
+        "error_summary": error_summary,
     }
