@@ -90,6 +90,11 @@ def parse_evolution_args(args: list[str] | None = None) -> argparse.Namespace:
         - max_generations: Maximum evolution generations
         - target_fitness: Target fitness for early stopping (optional)
         - verbose: Enable verbose output
+        - use_cache: Enable LLM response caching
+        - cache_stats: Show cache statistics and exit
+        - clear_cache: Clear all cache entries and exit
+        - clear_expired_cache: Clear expired cache entries and exit
+        - cache_ttl: Cache TTL in days
 
     Example:
         >>> args = parse_evolution_args(['--model', 'gemini-2.0-flash-thinking-exp'])
@@ -112,6 +117,12 @@ Examples:
 
   # Early stopping when fitness reaches 15
   %(prog)s --target-fitness 15 --max-generations 20
+
+  # Cache management
+  %(prog)s --cache-stats              # View cache performance
+  %(prog)s --clear-cache              # Clear all cache entries
+  %(prog)s --clear-expired-cache      # Clear only expired entries
+  %(prog)s --no-cache                 # Disable cache for this run
 
   # Quiet mode
   %(prog)s --no-verbose
@@ -177,6 +188,39 @@ Examples:
         dest="verbose",
         action="store_false",
         help="Disable verbose output (default: enabled)",
+    )
+
+    # Cache controls
+    parser.add_argument(
+        "--no-cache",
+        dest="use_cache",
+        action="store_false",
+        help="Disable LLM response caching (default: cache enabled)",
+    )
+
+    parser.add_argument(
+        "--cache-stats",
+        action="store_true",
+        help="Show cache statistics and exit",
+    )
+
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear all cache entries and exit",
+    )
+
+    parser.add_argument(
+        "--clear-expired-cache",
+        action="store_true",
+        help="Clear expired cache entries and exit",
+    )
+
+    parser.add_argument(
+        "--cache-ttl",
+        type=_validate_positive_int,
+        default=7,
+        help="Cache TTL in days (default: 7)",
     )
 
     return parser.parse_args(args)
