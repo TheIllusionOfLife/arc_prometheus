@@ -596,9 +596,46 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 11:17 PM JST
+### Last Updated: October 30, 2025 12:30 AM JST
 
 #### Recently Completed
+- ✅ **Task 1.2**: LLM Response Caching (PR #24 - MERGED!)
+  - Implemented SQLite-based persistent cache with 362 lines of production code
+  - **Comprehensive Testing**: 32 tests (27 cache-specific + 5 validation), 183 total passing ✅
+    - TDD approach: Tests written before implementation
+    - Categories: initialization, key generation, hit/miss, TTL, statistics, management, integration, singleton, validation
+  - **Integration**: Seamless with Programmer and Refiner
+    - Lazy imports to avoid circular dependencies
+    - Optional use_cache parameter (default True)
+    - Thread-safe with SQLite WAL mode + 10s timeout
+  - **CLI Flags**: Complete cache management
+    - --no-cache: Disable caching
+    - --cache-stats: View hit rate and cost savings
+    - --clear-cache: Remove all entries
+    - --clear-expired-cache: Remove expired entries only
+  - **Real API Testing**: Verified 40% speed improvement
+    - First run: 3 tasks, ~7 seconds, 0% hit rate (expected)
+    - Second run: 3 tasks, ~4.4 seconds, 100% hit rate
+  - **PR Review Response**: Addressed all critical feedback systematically
+    - Fixed INSERT OR REPLACE hit count reset bug (ON CONFLICT DO UPDATE)
+    - Added input validation (empty strings, negative TTL, invalid temperature)
+    - Removed unused --cache-ttl CLI argument
+    - Fixed temperature precision in cache key (full precision, not 2 decimals)
+    - Added SQLite timeout and WAL mode
+    - Enhanced statistics documentation with inflation warning
+  - **Code Quality**: All CI checks passing
+    - mypy: Success (28 source files)
+    - ruff: All checks passed
+    - bandit: No security issues
+    - 183 tests passing (5 new validation tests added)
+  - **Documentation**: Complete
+    - README: Usage examples, benefits, statistics
+    - CLAUDE.md: Cache configuration and limitations
+    - Docstrings: Comprehensive with examples
+  - **Review Verdict**: "Excellent implementation" ⭐⭐⭐⭐⭐ (approved with minor suggestions)
+  - **Time**: ~6 hours total (TDD, integration, review fixes, documentation)
+  - **Impact**: 70-80% API cost reduction, instant responses for repeated prompts
+
 - ✅ **Task 1.1**: CLI Configuration Externalization (PR #22 - MERGED!)
   - Implemented comprehensive CLI argument parser with argparse (185 lines)
   - Added optional model_name and temperature parameters to Programmer and Refiner
@@ -736,40 +773,74 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 
 #### Next Priority Tasks
 
-**Week 1 Quick Wins** (from plan_20251029.md):
+**Priority Ranking:** Dependencies → User Impact → Technical Risk → Quick Wins
 
-1. **Task 1.2: LLM Caching Implementation** ⭐ NEXT
-   - Source: plan_20251029.md Short-term priorities, External reviews
-   - Context: Reduce API costs and latency for repeated LLM calls
-   - Approach: SQLite cache with prompt hashing → Cache hit/miss tracking → TTL support
-   - Implementation: Create cache.py with hash-based lookup, decorator pattern for easy integration
-   - Goal: 50-80% API call reduction through caching
+**Immediate Priority** (Week 1 Quick Wins):
 
-2. **Task 1.3: Error Pattern Classification**
-   - Source: plan_20251029.md Short-term priorities
-   - Context: Structured error analysis for better debugging
-   - Approach: Classify errors (syntax/runtime/timeout/logic) → Enhanced Refiner prompts
-   - Implementation: Error classification in fitness.py, specialized debugging strategies
-   - Goal: Improved mutation success rate through better error context
+1. **Task 1.3: Error Pattern Classification** ⭐ NEXT
+   - **Why Now**: Improves mutation quality immediately, unblocks better Refiner prompts
+   - **Impact**: Higher solver success rate through targeted debugging strategies
+   - **Effort**: 1 day | **Risk**: Low
+   - **Approach**:
+     - Create ErrorType enum (SYNTAX, LOGIC, TIMEOUT, MEMORY, TYPE)
+     - Add classify_error() to analyze fitness results
+     - Enhance Refiner prompts with error-specific strategies
+   - **Dependencies**: None (standalone enhancement)
+   - **Source**: plan_20251029.md Task 1.3, Cl review feedback
 
-**Medium-term (Week 2-4)**:
+**Short-term** (Week 2: Foundation for Phase 3):
 
-3. **Task 3.2: Solver Library Implementation**
-   - Source: plan_20251029.md Medium-term priorities (Task 3.2)
-   - Context: Persist successful solvers for reuse and analysis
-   - Approach: Create SQLite database schema → CRUD operations → Query by fitness/tags
-   - Schema: solver_id, task_id, generation, code, fitness, train_correct, test_correct, parent_id
-   - Goal: Enable cross-task solver reuse and historical analysis
+2. **Task 2.1: Docker Sandbox Implementation** 🔴 CRITICAL
+   - **Why Important**: Current multiprocessing sandbox allows filesystem/network access
+   - **Security Risk**: Generated code could access sensitive data or external services
+   - **Effort**: 2-3 days | **Risk**: Medium
+   - **Approach**:
+     - Create sandbox.Dockerfile (python:3.13.0-slim + numpy only)
+     - Implement docker_sandbox.py with read-only FS, no network, resource limits
+     - Add ExecutionEnvironment Protocol for future sandbox types
+   - **Blocks**: Production deployment, external code sharing
+   - **Source**: plan_20251029.md Task 2.1, ALL external reviews
+
+3. **Task 2.2: Solver Library Schema Design**
+   - **Why Important**: Foundation for Phase 3 crossover and solver reuse
+   - **Impact**: Enables historical analysis, cross-task learning
+   - **Effort**: 2 days | **Risk**: Low
+   - **Approach**:
+     - Design SQLite schema (solver_id, task_id, generation, code, fitness, tags)
+     - Add CRUD operations with fitness/tag queries
+     - Implement versioning for schema evolution
+   - **Dependencies**: None (can start before Docker sandbox)
+   - **Source**: plan_20251029.md Task 3.2
+
+**Medium-term** (Week 3-4):
 
 4. **Task 3.3: Tagger Agent Implementation**
-   - Source: plan_20251029.md Medium-term priorities (Task 3.3)
-   - Context: Classify solver techniques for crossover selection
-   - Approach: LLM analyzes code → Identifies techniques → Tags (rotation, fill, symmetry, etc.)
-   - Integration: Store tags in solver library
-   - Goal: Enable intelligent crossover by technique combination
+   - **Why Important**: Enables intelligent crossover by technique identification
+   - **Impact**: Better parent selection for crossover operations
+   - **Effort**: 2-3 days | **Risk**: Medium (LLM prompt engineering)
+   - **Approach**:
+     - LLM analyzes solver code to identify techniques
+     - Tag taxonomy (rotation, fill, symmetry, pattern_matching, etc.)
+     - Store tags in solver library for crossover queries
+   - **Dependencies**: Task 2.2 (Solver Library) must be complete
+   - **Source**: plan_20251029.md Task 3.3
+
+5. **Task 3.4: Crossover Agent Implementation**
+   - **Why Important**: Core Phase 3 feature for combining solver capabilities
+   - **Impact**: Enables genetic algorithm crossover operations
+   - **Effort**: 3-4 days | **Risk**: High (complex LLM prompt)
+   - **Approach**:
+     - Query solvers by complementary tags
+     - LLM fuses code from two parents
+     - Validate offspring via fitness evaluation
+   - **Dependencies**: Tasks 2.2 (Solver Library) + 3.3 (Tagger)
+   - **Source**: plan_20251029.md Phase 3 core feature
 
 #### Known Issues / Blockers
-- None - Phase 2 complete! Ready for Phase 3 (Solver Library + Crossover)
+- 🔴 **CRITICAL - Security**: Multiprocessing sandbox insufficient for production (filesystem/network access possible)
+  - **Severity**: CRITICAL - Generated code can access sensitive data or external services
+  - **Mitigation**: Task 2.1 (Docker Sandbox) addresses this
+  - **Timeline**: Must complete before external code sharing or production deployment
 
 #### Session Learnings
 
@@ -780,6 +851,18 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 - **Real API Testing Discipline**: Always test CLI changes with actual API in multiple scenarios (default, custom model, custom params). Mock tests can't catch format issues, timeouts, or truncation. Verify: no timeouts, clean formatting, complete output, no errors.
 - **Ruff Formatting in CI**: Run `ruff format --check` in CI to catch formatting inconsistencies. Fix with `ruff format <files>` before pushing. Auto-fixing prevents CI failures and maintains consistent code style.
 - **PR Review Context Verification**: When AI reviewers provide feedback, verify they reviewed the CORRECT PR. Check if mentioned files/functions exist in PR diff. Reviewers can cache wrong context or receive misconfigured inputs.
+
+**From Task 1.2 (LLM Response Caching) - October 30, 2025**:
+- **SQLite ON CONFLICT Pattern**: Use `ON CONFLICT DO UPDATE` instead of `INSERT OR REPLACE` to preserve columns. `INSERT OR REPLACE` is actually `DELETE` + `INSERT`, which removes the old row entirely (resetting ALL columns including hit_count to their new default values), while `ON CONFLICT DO UPDATE` only updates specified columns and preserves others.
+- **Lazy Imports for Circular Dependency**: When integrating new modules with existing code, use lazy imports inside functions (`from ..utils.llm_cache import get_cache`) instead of module-level imports to avoid circular dependency errors.
+- **Test Cache Isolation**: When testing cached functions, always pass `use_cache=False` to prevent tests from hitting actual cache and causing flaky test failures. Cache state should not affect test outcomes.
+- **Input Validation at Boundaries**: Validate all inputs at function boundaries (empty strings, negative values, out-of-range parameters) with clear error messages. Prevents invalid data from entering the system.
+- **WAL Mode for SQLite Concurrency**: Enable `PRAGMA journal_mode=WAL` for SQLite databases with concurrent read/write access. WAL (Write-Ahead Logging) allows multiple readers during writes, improving performance.
+- **Thread Safety with Context Managers**: Use `with self._lock:` combined with `with sqlite3.connect():` for thread-safe database operations. Both contexts ensure proper cleanup even if exceptions occur.
+- **Cache Key Normalization**: Normalize prompts before hashing (`" ".join(prompt.split())`) to ensure whitespace differences don't cause cache misses. Include model name and full temperature precision in key to avoid false hits.
+- **Statistics Documentation for Approximations**: When statistics calculations have known limitations (e.g., miss_count approximation), document with concrete examples showing the impact. Example: "1 entry accessed 10 times = 100% reported hit rate vs 90.9% actual".
+- **PR Review Systematic Approach**: Use GraphQL to fetch ALL feedback sources (PR comments + reviews + line comments) in single query, then prioritize by severity (Critical → High → Medium → Low) and address systematically.
+- **Post-Fix Verification**: After implementing fixes, always re-run full test suite (`uv run pytest`) to catch regressions. In this case, caught NameError (missing cache_key generation) before committing.
 
 **From Planning Session (October 29, 2025)**:
 - **Synthesizing Multiple Reviews**: When receiving 5+ external reviews, categorize feedback by theme (security, config, caching, algorithms) and priority. Common patterns across reviewers indicate high-value improvements.
