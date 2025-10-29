@@ -102,14 +102,18 @@ def _run_demo_scenario(
     print(f"\nTask: {task_description}")
     print_code_with_line_numbers(failed_code, original_code_title)
 
-    # Create temp task file
-    with tempfile.NamedTemporaryFile(
+    # Create temp task file - use delete=False to allow multiple reads
+    # but ensure cleanup with try/finally
+    tmp_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
         mode="w", suffix=".json", delete=False
-    ) as tmp_file:
-        json.dump(task_data, tmp_file)
-        task_file = tmp_file.name
+    )
+    task_file = None
 
     try:
+        json.dump(task_data, tmp_file)
+        tmp_file.close()  # Close before reading in other functions
+        task_file = tmp_file.name
+
         # Evaluate original code
         if pre_eval_message:
             print(f"\n{pre_eval_message}")
@@ -151,7 +155,12 @@ def _run_demo_scenario(
         }
 
     finally:
-        Path(task_file).unlink()
+        # Ensure temp file is always cleaned up
+        if task_file and Path(task_file).exists():
+            Path(task_file).unlink()
+        elif tmp_file and Path(tmp_file.name).exists():
+            # Fallback: clean up even if task_file wasn't set
+            Path(tmp_file.name).unlink()
 
 
 def demo_syntax_error_fix() -> dict[str, float]:

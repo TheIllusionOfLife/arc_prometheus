@@ -1,6 +1,7 @@
 """Fitness evaluation for solver quality assessment (Phase 2.1)."""
 
 import json
+from typing import TypedDict
 
 import numpy as np
 
@@ -9,9 +10,33 @@ from ..crucible.evaluator import evaluate_grids
 from ..crucible.sandbox import safe_execute
 
 
+class FitnessResult(TypedDict):
+    """Type definition for fitness evaluation result.
+
+    Attributes:
+        fitness: Overall score = (train_correct * 1) + (test_correct * 10)
+        train_correct: Number of train examples solved correctly
+        train_total: Total number of train examples
+        test_correct: Number of test examples solved correctly
+        test_total: Total number of test examples
+        train_accuracy: Train correctness ratio (0.0 to 1.0)
+        test_accuracy: Test correctness ratio (0.0 to 1.0)
+        execution_errors: Error messages from failed executions
+    """
+
+    fitness: float
+    train_correct: int
+    train_total: int
+    test_correct: int
+    test_total: int
+    train_accuracy: float
+    test_accuracy: float
+    execution_errors: list[str]
+
+
 def calculate_fitness(
     task_json_path: str, solver_code: str, timeout: int = 5
-) -> dict[str, int | float | list[str]]:
+) -> FitnessResult:
     """
     Evaluate solver performance on ARC task.
 

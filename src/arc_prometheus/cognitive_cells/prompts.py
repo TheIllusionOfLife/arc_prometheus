@@ -6,6 +6,11 @@ unified pipeline that analyzes ARC tasks and generates solver code.
 
 import numpy as np
 
+from ..evolutionary_engine.fitness import FitnessResult
+
+# Constants for prompt formatting
+MAX_ERRORS_TO_SHOW = 5  # Limit execution errors shown to prevent token overflow
+
 
 def _format_grid_as_ascii(grid: np.ndarray) -> str:
     """Format grid as ASCII art for LLM prompt.
@@ -116,7 +121,10 @@ def create_solver_prompt(train_pairs: list[dict[str, np.ndarray]]) -> str:
 
 
 def create_refiner_prompt(
-    failed_code: str, task_data: dict, fitness_result: dict
+    failed_code: str,
+    task_data: dict,
+    fitness_result: FitnessResult,
+    max_examples: int = 3,
 ) -> str:
     """Create prompt for Refiner to debug failed solver code.
 
@@ -129,13 +137,15 @@ def create_refiner_prompt(
             - train_correct, train_total: Train performance
             - test_correct, test_total: Test performance
             - execution_errors: List of error messages
+        max_examples: Maximum number of train examples to include (default: 3)
+            Lower values save API tokens, higher values provide more context
 
     Returns:
         Formatted prompt string for debugging
 
     Prompt Structure:
         - Role and debugging goal
-        - Original task examples (2-3 train pairs for context)
+        - Original task examples (up to max_examples train pairs for context)
         - Failed code with analysis
         - Failure details (which examples failed, errors)
         - Debugging instructions
@@ -161,9 +171,9 @@ def create_refiner_prompt(
         "Here are some examples from the task (for context):",
     ]
 
-    # Show 2-3 train examples (not all, to save tokens)
+    # Show up to max_examples train examples (not all, to save tokens)
     train_examples = task_data.get("train", [])
-    examples_to_show = min(3, len(train_examples))
+    examples_to_show = min(max_examples, len(train_examples))
 
     for idx in range(examples_to_show):
         example = train_examples[idx]
@@ -207,13 +217,16 @@ def create_refiner_prompt(
         f"{test_correct}/{test_total} test correct"
     )
 
-    # Add execution errors
+    # Add execution errors (limit to prevent token overflow)
     execution_errors = fitness_result.get("execution_errors", [])
     if execution_errors:
         prompt_parts.append("")
         prompt_parts.append("Execution errors:")
-        for error in execution_errors[:5]:  # Show first 5 errors
+        for error in execution_errors[:MAX_ERRORS_TO_SHOW]:
             prompt_parts.append(f"- {error}")
+        if len(execution_errors) > MAX_ERRORS_TO_SHOW:
+            remaining = len(execution_errors) - MAX_ERRORS_TO_SHOW
+            prompt_parts.append(f"... and {remaining} more error(s)")
 
     # Debugging instructions
     prompt_parts.extend(

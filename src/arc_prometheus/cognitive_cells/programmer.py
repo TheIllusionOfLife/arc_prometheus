@@ -168,7 +168,7 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
     try:
         response = model.generate_content(
             prompt,
-            generation_config=PROGRAMMER_GENERATION_CONFIG,  # type: ignore[arg-type]
+            generation_config=PROGRAMMER_GENERATION_CONFIG,
             request_options={"timeout": timeout},
         )
 
@@ -182,9 +182,16 @@ def generate_solver(train_pairs: list[dict[str, np.ndarray]], timeout: int = 60)
         code = extract_code_from_response(response_text)
         return code
     except ValueError as e:
-        # Include response text in error for debugging (start and end)
-        if len(response_text) > 500:
-            preview = f"{response_text[:300]}\n\n... [truncated] ...\n\n{response_text[-200:]}"
+        # Include response text in error for debugging with improved preview
+        max_preview_length = 1000
+        if len(response_text) > max_preview_length:
+            half = max_preview_length // 2
+            chars_truncated = len(response_text) - max_preview_length
+            preview = (
+                f"{response_text[:half]}\n\n"
+                f"... [{chars_truncated} chars truncated] ...\n\n"
+                f"{response_text[-half:]}"
+            )
         else:
             preview = response_text
         raise ValueError(

@@ -7,6 +7,7 @@ This module provides the Refiner agent - the first evolutionary mechanism
 import google.generativeai as genai
 
 from ..crucible.data_loader import load_task
+from ..evolutionary_engine.fitness import FitnessResult
 from ..utils.config import (
     MODEL_NAME,
     REFINER_GENERATION_CONFIG,
@@ -17,7 +18,10 @@ from .prompts import create_refiner_prompt
 
 
 def refine_solver(
-    failed_code: str, task_json_path: str, fitness_result: dict, timeout: int = 60
+    failed_code: str,
+    task_json_path: str,
+    fitness_result: FitnessResult,
+    timeout: int = 60,
 ) -> str:
     """Debug and improve failed solver code using Gemini API.
 
@@ -82,7 +86,7 @@ def refine_solver(
     try:
         response = model.generate_content(
             prompt,
-            generation_config=REFINER_GENERATION_CONFIG,  # type: ignore[arg-type]
+            generation_config=REFINER_GENERATION_CONFIG,
             request_options={"timeout": timeout},
         )
 
@@ -96,9 +100,16 @@ def refine_solver(
         code = extract_code_from_response(response_text)
         return code
     except ValueError as e:
-        # Include response text in error for debugging
-        if len(response_text) > 500:
-            preview = f"{response_text[:300]}\n\n... [truncated] ...\n\n{response_text[-200:]}"
+        # Include response text in error for debugging with improved preview
+        max_preview_length = 1000
+        if len(response_text) > max_preview_length:
+            half = max_preview_length // 2
+            chars_truncated = len(response_text) - max_preview_length
+            preview = (
+                f"{response_text[:half]}\n\n"
+                f"... [{chars_truncated} chars truncated] ...\n\n"
+                f"{response_text[-half:]}"
+            )
         else:
             preview = response_text
         raise ValueError(
