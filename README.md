@@ -231,7 +231,7 @@ arc_prometheus/
 │   │   └── fitness.py      # (Phase 2.1) Fitness evaluation ✅
 │   └── utils/
 │       └── config.py       # Configuration management
-├── tests/                  # Test suite (103 tests passing)
+├── tests/                  # Test suite (104 tests passing)
 ├── scripts/                # Demo and utility scripts
 ├── data/                   # ARC dataset (gitignored)
 └── plan_20251024.md       # Detailed implementation plan
@@ -428,7 +428,7 @@ Phase 2: Evolutionary Loop  🔥 IN PROGRESS
 ├── [⏳] 2.2: Refiner Agent (Mutation)
 └── [⏳] 2.3: Evolution Loop
 
-Tests: 103/103 passing ✅
+Tests: 104/104 passing ✅
 Demo Phase 1.1: Working with real dataset ✅
 Demo Phase 1.2: Manual solver (100% accuracy) ✅
 Demo Phase 1.3: Sandbox execution (all demos passed) ✅
@@ -447,18 +447,20 @@ Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
 
 ## Session Handover
 
-### Last Updated: October 29, 2025 05:10 PM JST
+### Last Updated: October 29, 2025 09:07 AM JST
 
 #### Recently Completed
-- ✅ **Phase 2.1**: Fitness Function Evaluation (CURRENT SESSION)
+- ✅ **Phase 2.1**: Fitness Function Evaluation (PR #15 - MERGED!)
   - Implemented fitness calculation with 10x weight on test accuracy
   - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
   - Created new evolutionary_engine package
-  - 10 comprehensive tests covering perfect solvers, overfitting, timeouts, errors
+  - 11 comprehensive tests covering perfect solvers, overfitting, timeouts, errors, missing outputs
   - Demo script demonstrates generalization vs memorization with 3 scenarios
-  - All 103 tests passing (93 existing + 10 new)
+  - All 104 tests passing (93 existing + 11 new)
   - All quality checks passing (mypy, ruff, bandit)
-  - **Time**: ~3.5 hours from branch creation to documentation completion
+  - **Review Process**: 2 rounds (gemini-code-assist + CodeRabbit), all issues addressed
+  - **Key Fixes**: Missing output key handling for ARC evaluation tasks, explicit dtype casting
+  - **Time**: ~4 hours from TDD to merge (implementation + testing + review fixes)
   - **Key Achievement**: Foundation for evolutionary loop established!
 
 - ✅ **Phase 1.5**: End-to-End Pipeline (PR #13 - MERGED!)
@@ -561,3 +563,7 @@ Demo Phase 2.1: Fitness evaluation (generalization vs overfitting) ✅
   3. The solver signature (`def solve(np.ndarray) -> np.ndarray`) works as designed
 - **Lazy Validation Pattern** (Phase 1.1): API key validation converted from eager to lazy - enables Phase 1.1-1.2 features to work without Gemini API setup.
 - **Enhanced load_task()** (Phase 1.1): Added optional `task_id` parameter to load from collection files directly.
+- **ARC Evaluation Format Handling** (Phase 2.1): Test examples in ARC evaluation tasks often lack "output" keys. Always check `if "output" not in example:` before accessing. Skip invalid examples gracefully and only count evaluable examples in train_total/test_total.
+- **Explicit NumPy dtype Casting** (Phase 2.1): Always specify `dtype=np.int64` in `np.array()` calls to ensure type consistency across grid operations. Prevents subtle type mismatches in grid comparisons.
+- **Fitness Function 10x Weight Rationale** (Phase 2.1): Test accuracy weighted 10x higher than train (`fitness = train_correct * 1 + test_correct * 10`) ensures evolutionary pressure favors generalization over memorization. A solver with 100% train but 0% test (pure overfitting) scores only 3 points vs solver with partial generalization scoring higher.
+- **Test Count Validation in CI** (Phase 2.1): Update test count assertions in README after adding new tests. Changed from `==` to `<=` for test_total when handling variable test example counts (due to missing outputs).

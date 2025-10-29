@@ -32,23 +32,27 @@ This project follows a strict Test-Driven Development approach and evolutionary 
 
 ## Development Phases
 
-### Phase 1: Core Prototype (Current)
+### Phase 1: Core Prototype ✅ COMPLETE
 Build the minimal ecosystem to run a single ARC task end-to-end:
-- ✅ **Phase 1.1 Complete** (PR #3): Foundation and Data Infrastructure
-  - Data loading from ARC Prize 2025 dataset
-  - Grid evaluation and colorized visualization
-  - Configuration management with lazy API key validation
-  - 23 comprehensive tests (100% passing)
-  - Demo script with real dataset
-- **Phase 1.2-1.3** (Next): Manual solver validation and safe execution sandbox
-- **Phase 1.4-1.5**: LLM-based Analyst + Programmer pipeline (Gemini API)
-- **Success Criteria**: AI-generated code solves ≥1 train pair
+- ✅ **Phase 1.1-1.5**: Foundation through End-to-End Pipeline
+  - Data loading, visualization, grid evaluation
+  - Manual solver validation (task 05269061)
+  - Safe execution sandbox with multiprocessing
+  - LLM code generation (Gemini API)
+  - Complete E2E orchestration
+  - 93 tests passing
+- **Success Criteria**: ✅ AI-generated code solves ≥1 train pair
 
-### Phase 2: Evolutionary Loop
+### Phase 2: Evolutionary Loop 🔥 IN PROGRESS
 Introduce selection pressure and mutation:
-- Implement fitness function: `(train_correct * 1) + (test_correct * 10)`
-- Add Refiner agent for code debugging
-- Generate multiple solver candidates per task (10 initial, 5 generations)
+- ✅ **Phase 2.1 Complete**: Fitness function evaluation
+  - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
+  - 10x weight prioritizes generalization over memorization
+  - Handles ARC evaluation format (missing test outputs)
+  - 11 comprehensive tests (104 total passing)
+  - Demo with 3 scenarios (perfect, overfitting, timeout)
+- **Phase 2.2 Next**: Refiner agent for code debugging
+- **Phase 2.3**: Multi-generation evolution loop
 - Track fitness improvement across generations
 
 ### Phase 3: Scaling and Crossover
@@ -91,11 +95,17 @@ ARC tasks are JSON files with this structure:
     ...
   ],
   "test": [
-    {"input": [[...]], "output": [[...]]}
+    {"input": [[...]], "output": [[...]] (optional)}
   ]
 }
 ```
 Grids are 2D arrays of integers (0-9) representing colors.
+
+**IMPORTANT - ARC Evaluation Format**:
+- Training tasks (`arc-agi_training_challenges.json`) have outputs for both train AND test examples
+- Evaluation tasks (`arc-agi_evaluation_challenges.json`) have outputs for train but NOT for test examples
+- Code must handle missing "output" keys gracefully: `if "output" not in example: continue`
+- Always use explicit dtype casting: `np.array(example["input"], dtype=np.int64)`
 
 ## Code Standards
 
