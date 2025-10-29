@@ -1,11 +1,9 @@
 """Tests for evolution loop - Multi-generation solver evolution (Phase 2.3)."""
 
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-
-from arc_prometheus.evolutionary_engine.fitness import calculate_fitness
 
 
 class TestEvolutionLoopBasics:
@@ -13,9 +11,7 @@ class TestEvolutionLoopBasics:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_single_generation_improvement(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_single_generation_improvement(self, mock_generate, mock_refine, tmp_path):
         """Test that evolution improves fitness in single generation."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
@@ -49,9 +45,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
 
         # Run evolution for 2 generations
-        results = run_evolution_loop(
-            str(task_file), max_generations=2, verbose=False
-        )
+        results = run_evolution_loop(str(task_file), max_generations=2, verbose=False)
 
         # Verify structure
         assert len(results) == 2
@@ -68,9 +62,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_multi_generation_convergence(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_multi_generation_convergence(self, mock_generate, mock_refine, tmp_path):
         """Test fitness improves across multiple generations."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
@@ -102,17 +94,16 @@ import numpy as np
         ]
         mock_refine.side_effect = refine_results
 
-        results = run_evolution_loop(
-            str(task_file), max_generations=3, verbose=False
-        )
+        results = run_evolution_loop(str(task_file), max_generations=3, verbose=False)
 
         assert len(results) == 3
 
         # Verify monotonic improvement (or at least non-decreasing)
         for i in range(1, len(results)):
-            assert results[i]["fitness_result"]["fitness"] >= results[i - 1][
-                "fitness_result"
-            ]["fitness"]
+            assert (
+                results[i]["fitness_result"]["fitness"]
+                >= results[i - 1]["fitness_result"]["fitness"]
+            )
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
@@ -230,9 +221,7 @@ class TestEvolutionLoopMetadata:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_generation_metadata_tracking(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_generation_metadata_tracking(self, mock_generate, mock_refine, tmp_path):
         """Test that all GenerationResult fields are populated correctly."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
@@ -258,9 +247,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
     return task_grid * 2
 """
 
-        results = run_evolution_loop(
-            str(task_file), max_generations=2, verbose=False
-        )
+        results = run_evolution_loop(str(task_file), max_generations=2, verbose=False)
 
         # Verify all required fields present
         required_fields = {
@@ -315,9 +302,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             f"import numpy as np\n\n{codes[2]}",
         ]
 
-        results = run_evolution_loop(
-            str(task_file), max_generations=3, verbose=False
-        )
+        results = run_evolution_loop(str(task_file), max_generations=3, verbose=False)
 
         # Gen 0: improvement = 0 (baseline)
         assert results[0]["improvement"] == 0.0
@@ -330,9 +315,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_refinement_count_tracking(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_refinement_count_tracking(self, mock_generate, mock_refine, tmp_path):
         """Test that refinement_count is tracked correctly."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
@@ -379,9 +362,7 @@ class TestEvolutionLoopErrorHandling:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_error_handling_llm_failure(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_error_handling_llm_failure(self, mock_generate, mock_refine, tmp_path):
         """Test graceful handling when LLM fails."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
@@ -402,9 +383,7 @@ class TestEvolutionLoopErrorHandling:
 
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
     @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
-    def test_error_handling_refiner_failure(
-        self, mock_generate, mock_refine, tmp_path
-    ):
+    def test_error_handling_refiner_failure(self, mock_generate, mock_refine, tmp_path):
         """Test handling when refiner fails but initial generation works."""
         from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 

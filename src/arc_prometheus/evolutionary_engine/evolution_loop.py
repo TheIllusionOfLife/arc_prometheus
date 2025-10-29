@@ -101,9 +101,9 @@ def run_evolution_loop(
         gen_start_time = time.time()
 
         if verbose:
-            print(f"\n{'='*70}")
+            print(f"\n{'=' * 70}")
             print(f" Generation {generation}")
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
 
         # Generation 0: Generate initial solver
         if generation == 0:
@@ -124,7 +124,7 @@ def run_evolution_loop(
                 # Target already reached, stop evolution
                 if verbose:
                     print(
-                        f"\n🎯 Target fitness {target_fitness} reached in generation {generation-1}"
+                        f"\n🎯 Target fitness {target_fitness} reached in generation {generation - 1}"
                     )
                     print("Evolution complete!")
                 break
@@ -173,7 +173,9 @@ def run_evolution_loop(
 
         # Calculate metrics
         gen_total_time = time.time() - gen_start_time
-        improvement = float(current_fitness - previous_fitness) if generation > 0 else 0.0
+        improvement = (
+            float(current_fitness - previous_fitness) if generation > 0 else 0.0
+        )
 
         # Record generation result
         generation_result: GenerationResult = {
@@ -201,17 +203,16 @@ def run_evolution_loop(
             break
 
     if verbose:
-        print(f"\n{'='*70}")
-        print(f" Evolution Summary")
-        print(f"{'='*70}")
+        print(f"\n{'=' * 70}")
+        print(" Evolution Summary")
+        print(f"{'=' * 70}")
         print(f"Generations completed: {len(results)}")
-        print(
-            f"Initial fitness: {results[0]['fitness_result']['fitness']:.1f}"
+        print(f"Initial fitness: {results[0]['fitness_result']['fitness']:.1f}")
+        print(f"Final fitness: {results[-1]['fitness_result']['fitness']:.1f}")
+        total_improvement = (
+            results[-1]["fitness_result"]["fitness"]
+            - results[0]["fitness_result"]["fitness"]
         )
-        print(
-            f"Final fitness: {results[-1]['fitness_result']['fitness']:.1f}"
-        )
-        total_improvement = results[-1]["fitness_result"]["fitness"] - results[0]["fitness_result"]["fitness"]
         print(f"Total improvement: {total_improvement:+.1f}")
         total_time = sum(r["total_time"] for r in results)
         print(f"Total time: {total_time:.2f}s")

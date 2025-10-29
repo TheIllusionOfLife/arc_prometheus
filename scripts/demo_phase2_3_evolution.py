@@ -326,7 +326,7 @@ def main():
 
         status = "✅" if improvement > 0 else "⚠️ "
         print(
-            f"  {status} {name}: Gen 0: {initial:.1f} → Gen {generations-1}: "
+            f"  {status} {name}: Gen 0: {initial:.1f} → Gen {generations - 1}: "
             f"{final:.1f} ({improvement:+.1f}) [{generations} generation(s)]"
         )
 
