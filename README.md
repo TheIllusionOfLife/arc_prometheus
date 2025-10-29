@@ -261,9 +261,6 @@ python scripts/demo_phase2_3_evolution.py --clear-cache
 
 # Clear only expired entries
 python scripts/demo_phase2_3_evolution.py --clear-expired-cache
-
-# Custom TTL (default: 7 days)
-python scripts/demo_phase2_3_evolution.py --cache-ttl 14
 ```
 
 **Cache Behavior:**

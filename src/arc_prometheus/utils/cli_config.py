@@ -216,11 +216,4 @@ Examples:
         help="Clear expired cache entries and exit",
     )
 
-    parser.add_argument(
-        "--cache-ttl",
-        type=_validate_positive_int,
-        default=7,
-        help="Cache TTL in days (default: 7)",
-    )
-
     return parser.parse_args(args)

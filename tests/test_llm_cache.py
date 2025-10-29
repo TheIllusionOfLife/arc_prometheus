@@ -479,3 +479,58 @@ def test_singleton_persists_across_calls() -> None:
     result = cache2.get("test_prompt", "model", 0.3)
 
     assert result == "test_response"
+
+
+# ============================================================================
+# Test Category 9: Input Validation (5 tests)
+# ============================================================================
+
+
+def test_validation_empty_prompt(cache: LLMCache) -> None:
+    """set() should reject empty prompt."""
+    with pytest.raises(ValueError, match="Prompt cannot be empty"):
+        cache.set("", "response", "model", 0.3)
+
+    with pytest.raises(ValueError, match="Prompt cannot be empty"):
+        cache.set("   ", "response", "model", 0.3)
+
+
+def test_validation_empty_response(cache: LLMCache) -> None:
+    """set() should reject empty response."""
+    with pytest.raises(ValueError, match="Response cannot be empty"):
+        cache.set("prompt", "", "model", 0.3)
+
+    with pytest.raises(ValueError, match="Response cannot be empty"):
+        cache.set("prompt", "   ", "model", 0.3)
+
+
+def test_validation_empty_model_name(cache: LLMCache) -> None:
+    """set() should reject empty model name."""
+    with pytest.raises(ValueError, match="Model name cannot be empty"):
+        cache.set("prompt", "response", "", 0.3)
+
+    with pytest.raises(ValueError, match="Model name cannot be empty"):
+        cache.set("prompt", "response", "   ", 0.3)
+
+
+def test_validation_invalid_temperature(cache: LLMCache) -> None:
+    """set() should reject temperature outside valid range."""
+    with pytest.raises(ValueError, match="Temperature must be between"):
+        cache.set("prompt", "response", "model", -0.1)
+
+    with pytest.raises(ValueError, match="Temperature must be between"):
+        cache.set("prompt", "response", "model", 2.1)
+
+
+def test_validation_negative_ttl(temp_cache_dir: Path) -> None:
+    """LLMCache should reject negative or zero TTL."""
+    with pytest.raises(ValueError, match="TTL must be positive"):
+        LLMCache(cache_dir=temp_cache_dir, ttl_days=0)
+
+    with pytest.raises(ValueError, match="TTL must be positive"):
+        LLMCache(cache_dir=temp_cache_dir, ttl_days=-1)
+
+    # Also test custom ttl_days in set()
+    cache = LLMCache(cache_dir=temp_cache_dir, ttl_days=7)
+    with pytest.raises(ValueError, match="TTL must be positive"):
+        cache.set("prompt", "response", "model", 0.3, ttl_days=0)

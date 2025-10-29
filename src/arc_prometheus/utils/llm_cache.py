@@ -65,7 +65,13 @@ class LLMCache:
         Args:
             cache_dir: Directory for cache storage (default: ~/.arc_prometheus)
             ttl_days: Time-to-live in days (default: 7)
+
+        Raises:
+            ValueError: If ttl_days is not positive
         """
+        if ttl_days <= 0:
+            raise ValueError(f"TTL must be positive, got: {ttl_days}")
+
         self.cache_dir = cache_dir or self.DEFAULT_CACHE_DIR
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -77,7 +83,9 @@ class LLMCache:
 
     def _init_database(self) -> None:
         """Create database schema if not exists."""
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
+            # Enable WAL mode for better concurrency
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS llm_cache (
                     prompt_hash TEXT PRIMARY KEY,
@@ -115,8 +123,8 @@ class LLMCache:
         # Normalize whitespace for consistent hashing
         normalized_prompt = " ".join(prompt.split())
 
-        # Include model and temperature in hash
-        key_data = f"{normalized_prompt}|{model_name}|{temperature:.2f}"
+        # Include model and temperature in hash (full precision to avoid collisions)
+        key_data = f"{normalized_prompt}|{model_name}|{temperature}"
         return sha256(key_data.encode("utf-8")).hexdigest()
 
     def get(
@@ -139,7 +147,7 @@ class LLMCache:
         """
         cache_key = self._generate_cache_key(prompt, model_name, temperature)
 
-        with self._lock, sqlite3.connect(self.db_path) as conn:
+        with self._lock, sqlite3.connect(self.db_path, timeout=10.0) as conn:
             cursor = conn.execute(
                 """
                     SELECT response, expires_at
@@ -190,9 +198,28 @@ class LLMCache:
             model_name: Model identifier
             temperature: Generation temperature
             ttl_days: Custom TTL in days (default: use instance TTL)
+
+        Raises:
+            ValueError: If inputs are invalid (empty strings, negative TTL, invalid temperature)
         """
-        cache_key = self._generate_cache_key(prompt, model_name, temperature)
+        # Input validation
+        if not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+        if not response.strip():
+            raise ValueError("Response cannot be empty")
+        if not model_name.strip():
+            raise ValueError("Model name cannot be empty")
+        if not 0.0 <= temperature <= 2.0:
+            raise ValueError(
+                f"Temperature must be between 0.0 and 2.0, got: {temperature}"
+            )
+
         ttl = ttl_days if ttl_days is not None else self.ttl_days
+        if ttl <= 0:
+            raise ValueError(f"TTL must be positive, got: {ttl}")
+
+        # Generate cache key
+        cache_key = self._generate_cache_key(prompt, model_name, temperature)
 
         # Create prompt preview (first 200 chars)
         prompt_preview = prompt[:200] + "..." if len(prompt) > 200 else prompt
@@ -200,13 +227,21 @@ class LLMCache:
         created_at = datetime.now(UTC)
         expires_at = created_at + timedelta(days=ttl)
 
-        with self._lock, sqlite3.connect(self.db_path) as conn:
+        with self._lock, sqlite3.connect(self.db_path, timeout=10.0) as conn:
             conn.execute(
                 """
-                    INSERT OR REPLACE INTO llm_cache
+                    INSERT INTO llm_cache
                     (prompt_hash, prompt_preview, response, model_name,
                      temperature, created_at, expires_at, hit_count)
                     VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+                    ON CONFLICT(prompt_hash) DO UPDATE SET
+                        response = excluded.response,
+                        model_name = excluded.model_name,
+                        temperature = excluded.temperature,
+                        created_at = excluded.created_at,
+                        expires_at = excluded.expires_at,
+                        prompt_preview = excluded.prompt_preview
+                    -- hit_count is NOT updated, preserving historical data
                     """,
                 (
                     cache_key,
@@ -225,8 +260,14 @@ class LLMCache:
 
         Returns:
             CacheStatistics with performance metrics and cost estimates.
+
+        Note:
+            miss_count is approximated as entries with no hits. This underestimates
+            true API calls because one entry accessed multiple times shows as
+            1 miss + N hits, not N+1 total API calls. For exact tracking, use
+            separate API call instrumentation.
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
             cursor = conn.execute("""
                 SELECT
                     COUNT(*) as total_entries,
@@ -278,7 +319,7 @@ class LLMCache:
 
     def clear(self) -> None:
         """Remove all cache entries."""
-        with self._lock, sqlite3.connect(self.db_path) as conn:
+        with self._lock, sqlite3.connect(self.db_path, timeout=10.0) as conn:
             conn.execute("DELETE FROM llm_cache")
 
     def clear_expired(self) -> int:
@@ -288,7 +329,7 @@ class LLMCache:
         Returns:
             Number of entries deleted.
         """
-        with self._lock, sqlite3.connect(self.db_path) as conn:
+        with self._lock, sqlite3.connect(self.db_path, timeout=10.0) as conn:
             cursor = conn.execute(
                 """
                     DELETE FROM llm_cache
