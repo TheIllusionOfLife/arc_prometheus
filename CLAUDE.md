@@ -43,7 +43,7 @@ Build the minimal ecosystem to run a single ARC task end-to-end:
   - 93 tests passing
 - **Success Criteria**: ✅ AI-generated code solves ≥1 train pair
 
-### Phase 2: Evolutionary Loop 🔥 IN PROGRESS
+### Phase 2: Evolutionary Loop ✅ COMPLETE
 Introduce selection pressure and mutation:
 - ✅ **Phase 2.1 Complete**: Fitness function evaluation
   - Formula: `fitness = (train_correct * 1) + (test_correct * 10)`
@@ -51,9 +51,21 @@ Introduce selection pressure and mutation:
   - Handles ARC evaluation format (missing test outputs)
   - 11 comprehensive tests (104 total passing)
   - Demo with 3 scenarios (perfect, overfitting, timeout)
-- **Phase 2.2 Next**: Refiner agent for code debugging
-- **Phase 2.3**: Multi-generation evolution loop
-- Track fitness improvement across generations
+- ✅ **Phase 2.2 Complete**: Refiner agent (code debugging/mutation)
+  - LLM-based debugging with error analysis
+  - 12 comprehensive tests (116 total passing)
+  - Real API: 100% success rate (syntax, logic, timeout fixes)
+- ✅ **Phase 2.3 Complete**: Multi-generation evolution loop
+  - Complete cycle: Generate → Evaluate → Refine → Repeat
+  - Generation tracking with fitness improvement metrics
+  - 13 new tests (129 total passing)
+  - Early termination when target fitness reached
+- ✅ **Task 1.1 Complete**: CLI configuration externalization
+  - Comprehensive argparse-based CLI system
+  - Separate --programmer-temperature and --refiner-temperature
+  - Optional parameters threaded through Programmer/Refiner/Evolution Loop
+  - 22 new tests (151 total passing)
+  - Backward compatible with config.py defaults
 
 ### Phase 3: Scaling and Crossover
 Expand to full ARC dataset with genetic operations:
