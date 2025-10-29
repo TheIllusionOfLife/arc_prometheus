@@ -7,7 +7,11 @@ This module provides the Refiner agent - the first evolutionary mechanism
 import google.generativeai as genai
 
 from ..crucible.data_loader import load_task
-from ..utils.config import get_gemini_api_key
+from ..utils.config import (
+    MODEL_NAME,
+    REFINER_GENERATION_CONFIG,
+    get_gemini_api_key,
+)
 from .programmer import extract_code_from_response
 from .prompts import create_refiner_prompt
 
@@ -68,8 +72,8 @@ def refine_solver(
     # Configure Gemini
     genai.configure(api_key=api_key)
 
-    # Use gemini-2.5-flash-lite - same model as programmer
-    model = genai.GenerativeModel("gemini-2.5-flash-lite")
+    # Use shared model configuration
+    model = genai.GenerativeModel(MODEL_NAME)
 
     # Create refiner prompt with failure analysis
     prompt = create_refiner_prompt(failed_code, task_data, fitness_result)
@@ -78,12 +82,7 @@ def refine_solver(
     try:
         response = model.generate_content(
             prompt,
-            generation_config={
-                "temperature": 0.4,  # Slightly higher than programmer (0.3)
-                # for debugging creativity
-                "max_output_tokens": 3048,  # More than programmer (2048)
-                # to allow detailed fixes
-            },
+            generation_config=REFINER_GENERATION_CONFIG,  # type: ignore[arg-type]
             request_options={"timeout": timeout},
         )
 
