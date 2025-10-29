@@ -699,15 +699,15 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 
 **Medium-term (Week 2-4)**:
 
-3. **Task 2.1: Solver Library (SQLite)**
-   - Source: plan_20251029.md Medium-term priorities
+3. **Task 3.2: Solver Library Implementation**
+   - Source: plan_20251029.md Medium-term priorities (Task 3.2)
    - Context: Persist successful solvers for reuse and analysis
    - Approach: Create SQLite database schema → CRUD operations → Query by fitness/tags
    - Schema: solver_id, task_id, generation, code, fitness, train_correct, test_correct, parent_id
    - Goal: Enable cross-task solver reuse and historical analysis
 
-4. **Task 2.2: Tagger Agent Design**
-   - Source: plan_20251029.md Medium-term priorities
+4. **Task 3.3: Tagger Agent Implementation**
+   - Source: plan_20251029.md Medium-term priorities (Task 3.3)
    - Context: Classify solver techniques for crossover selection
    - Approach: LLM analyzes code → Identifies techniques → Tags (rotation, fill, symmetry, etc.)
    - Integration: Store tags in solver library
