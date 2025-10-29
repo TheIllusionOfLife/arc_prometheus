@@ -7,6 +7,7 @@ centralized access to configuration values.
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -76,13 +77,14 @@ MODEL_NAME: str = "gemini-2.5-flash-lite"  # Latest, fastest Gemini model
 # Temperature: Lower = more deterministic, Higher = more creative
 # max_output_tokens: Maximum tokens in generated response
 
-# Type hint as dict[str, int | float] to match GenerationConfigDict
-PROGRAMMER_GENERATION_CONFIG: dict[str, int | float] = {
+# Type as Any to avoid mypy errors with GenerationConfigDict
+# The dict structure matches GenerationConfigDict at runtime
+PROGRAMMER_GENERATION_CONFIG: Any = {
     "temperature": 0.3,  # Lower temp for consistent code generation
     "max_output_tokens": 2048,  # Enough for complex solvers
 }
 
-REFINER_GENERATION_CONFIG: dict[str, int | float] = {
+REFINER_GENERATION_CONFIG: Any = {
     "temperature": 0.4,  # Slightly higher for debugging creativity
     "max_output_tokens": 3048,  # More tokens to allow detailed fixes
 }
