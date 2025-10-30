@@ -142,7 +142,7 @@ class DockerSandbox:
                 # Security: Read-only filesystem
                 read_only=True,
                 # Security: /tmp as writable tmpfs (numpy needs temp space)
-                tmpfs={"/tmp": "size=100m,uid=1000"},  # noqa: S108
+                tmpfs={"/tmp": "size=100m,uid=1000"},  # noqa: S108  # nosec
                 # Resource limits
                 mem_limit=self.memory_limit,
                 memswap_limit=self.memory_limit,  # Prevent swap usage
@@ -315,7 +315,7 @@ class DockerSandbox:
 
                 # Deserialize result
                 result_bytes = base64.b64decode(result_b64)
-                result_grid = pickle.loads(result_bytes)  # noqa: S301
+                result_grid = pickle.loads(result_bytes)  # noqa: S301  # nosec
 
                 return (True, result_grid, None)
 
