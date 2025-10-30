@@ -7,6 +7,7 @@ implementations must follow, enabling pluggable execution backends
 """
 
 from typing import Any, Protocol
+
 import numpy as np
 
 

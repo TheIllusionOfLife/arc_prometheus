@@ -14,11 +14,16 @@ Security guarantees superior to multiprocessing sandbox.
 import base64
 import pickle
 import textwrap
-from typing import Any
+from typing import Any, cast
 
-import docker
-from docker.errors import ContainerError, DockerException, ImageNotFound
 import numpy as np
+
+try:
+    import docker
+    from docker.errors import ContainerError, DockerException, ImageNotFound
+except ImportError:
+    # Docker not installed - will raise error in __init__
+    pass
 
 from ..evolutionary_engine.error_classifier import ErrorType
 
@@ -63,7 +68,7 @@ class DockerSandbox:
     ):
         """Initialize Docker sandbox with resource limits."""
         try:
-            self.client = docker.from_env()
+            self.client = docker.from_env()  # type: ignore[attr-defined]
             # Verify Docker daemon is accessible
             self.client.ping()
         except DockerException as e:
@@ -137,7 +142,7 @@ class DockerSandbox:
                 # Security: Read-only filesystem
                 read_only=True,
                 # Security: /tmp as writable tmpfs (numpy needs temp space)
-                tmpfs={"/tmp": "size=100m,uid=1000"},
+                tmpfs={"/tmp": "size=100m,uid=1000"},  # noqa: S108
                 # Resource limits
                 mem_limit=self.memory_limit,
                 memswap_limit=self.memory_limit,  # Prevent swap usage
@@ -160,7 +165,7 @@ class DockerSandbox:
                 container.kill()
                 container.wait()  # Ensure container stopped
 
-                error_detail = {
+                error_detail: dict[str, Any] = {
                     "error_type": ErrorType.TIMEOUT,
                     "error_message": f"Execution exceeded {timeout}s timeout",
                     "exception_class": None,
@@ -204,10 +209,10 @@ class DockerSandbox:
         finally:
             # Cleanup: Always remove container
             if container is not None:
-                try:
+                try:  # noqa: SIM105
                     container.remove(force=True)
-                except Exception:
-                    # Ignore cleanup errors
+                except Exception:  # noqa: S110
+                    # Ignore cleanup errors - container may already be removed
                     pass
 
     def _create_execution_script(
@@ -312,7 +317,7 @@ class DockerSandbox:
 
                 # Deserialize result
                 result_bytes = base64.b64decode(result_b64)
-                result_grid = pickle.loads(result_bytes)
+                result_grid = pickle.loads(result_bytes)  # noqa: S301
 
                 return (True, result_grid, None)
 
@@ -339,7 +344,7 @@ class DockerSandbox:
                     # Map error type string to ErrorType enum
                     if error_type_str == "SYNTAX":
                         error_type = ErrorType.SYNTAX
-                        exception_class = "SyntaxError"
+                        exception_class: str | None = "SyntaxError"
                     elif error_type_str == "VALIDATION":
                         error_type = ErrorType.VALIDATION
                         exception_class = None
@@ -351,26 +356,35 @@ class DockerSandbox:
                         else:
                             exception_class = "RuntimeError"
 
-                    error_detail = {
-                        "error_type": error_type,
-                        "error_message": error_message,
-                        "exception_class": exception_class,
-                    }
+                    error_detail = cast(
+                        dict[str, Any],
+                        {
+                            "error_type": error_type,
+                            "error_message": error_message,
+                            "exception_class": exception_class,
+                        },
+                    )
                     return (False, None, error_detail)
 
         # Exit code != 0 but no parseable error
         if exit_code != 0:
-            error_detail = {
-                "error_type": ErrorType.RUNTIME,
-                "error_message": f"Container exited with code {exit_code}. Logs: {logs[:500]}",
-                "exception_class": None,
-            }
+            error_detail = cast(
+                dict[str, Any],
+                {
+                    "error_type": ErrorType.RUNTIME,
+                    "error_message": f"Container exited with code {exit_code}. Logs: {logs[:500]}",
+                    "exception_class": None,
+                },
+            )
             return (False, None, error_detail)
 
         # Unexpected: Exit code 0 but no result
-        error_detail = {
-            "error_type": ErrorType.RUNTIME,
-            "error_message": "Container succeeded but produced no result",
-            "exception_class": None,
-        }
+        error_detail = cast(
+            dict[str, Any],
+            {
+                "error_type": ErrorType.RUNTIME,
+                "error_message": "Container succeeded but produced no result",
+                "exception_class": None,
+            },
+        )
         return (False, None, error_detail)

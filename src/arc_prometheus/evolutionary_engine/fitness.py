@@ -9,10 +9,11 @@ import numpy as np
 from ..crucible.data_loader import load_task
 from ..crucible.evaluator import evaluate_grids
 from ..crucible.sandbox import MultiprocessSandbox
+from ..crucible.sandbox_protocol import ExecutionEnvironment
 from .error_classifier import ErrorType
 
 
-def _get_sandbox(sandbox_mode: str):
+def _get_sandbox(sandbox_mode: str) -> ExecutionEnvironment:
     """Factory function to create appropriate sandbox instance.
 
     Args:
@@ -55,7 +56,7 @@ def _evaluate_single_example(
     timeout: int,
     execution_errors: list[str],
     error_details: list[dict[str, Any]],
-    sandbox,
+    sandbox: ExecutionEnvironment,
 ) -> bool:
     """
     Evaluate solver on a single example (train or test).
