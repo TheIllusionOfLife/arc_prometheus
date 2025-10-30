@@ -416,51 +416,76 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - 3-tuple return: `(success, result, error_detail)`
 - Enables targeted Refiner debugging
 
+#### Competitive Context (ARC-AGI-2 Leaderboard)
+
+**What We're Up Against**: ARC-AGI-2 is extremely challenging - top AI systems score in single digits.
+
+**Current Leaders** (October 2025):
+- 🥇 **J. Berman**: 29.4% at $30.40/task - Instruction generation + nested LLM calls
+- 🥈 **E. Pang**: 26.0% at $3.97/task - **Code + Program Library** (DreamCoder-inspired)
+- 🥉 **GPT-5 Pro**: 18.3% at $7.14/task - Pure CoT reasoning
+- **Claude Sonnet 4.5**: 13.6% at $0.759/task - Extended thinking
+- **Gemini 2.5 Pro**: 4.9% at $0.767/task - Our base model's cousin
+- **Humans**: 60% average (100% at $17/task)
+- **Competition Target**: 85% at $0.42/task
+
+**Critical Insight**: E. Pang's 26% approach uses:
+1. ✅ Python code generation (like us!)
+2. ✅ **Program library** with cross-task learning
+3. ✅ Score-weighted sampling for 2 diverse attempts (pass@2)
+4. ✅ Shows output differences in prompts (like our error details)
+
+**Our Gap**: Missing pass@2 support and program library for cross-task learning.
+
 #### Next Priority Tasks
 
-**Based on PR #31 Benchmark Findings** (20% success rate, 82% logic errors):
+**Strategy Pivot**: Leaderboard analysis reveals E. Pang's winning approach perfectly aligns with our Phase 3 plan! But we have critical evaluation gaps first.
 
-**CRITICAL - Phase 2 Must Be Fixed Before Phase 3** (Week 1):
+**Phase 2.5: Critical Kaggle Requirements** (Week 1-2) ⚡ BLOCKS SUBMISSION:
 
-1. **Fix Programmer Prompt** ⭐ URGENT
-   - **Why Critical**: 82% logic errors indicate pattern recognition failure
-   - **Impact**: Without this fix, Phase 3 scaling is premature
-   - **Effort**: 1-2 days | **Risk**: Medium (prompt engineering)
+1. **Implement pass@2 Output** ⭐ CRITICAL (2-3 days)
+   - **Why**: Kaggle requires 2 attempts per test input (pass@2 metric)
+   - **Currently**: We generate 1 output, cannot submit to competition
    - **Approach**:
-     - Add explicit pattern recognition examples to prompt
-     - Emphasize grid transformation analysis (not just numpy operations)
-     - Test with known-working tasks (00576224, 025d127b)
-   - **Success Metric**: ≥40% success rate on same 15 tasks
+     - Generate 2 diverse attempts with temperature/prompt variation
+     - Output `submission.json` format: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}`
+     - Implement diversity penalty or sample from generation history
+   - **Success**: Can submit to Kaggle public leaderboard
 
-2. **Enhance Refiner Strategy** ⭐ HIGH
-   - **Why Important**: Current refiner shows limited improvement
-   - **Impact**: Better debugging → higher success rate per generation
-   - **Effort**: 1 day | **Risk**: Low
+2. **Fix Benchmark Evaluation** ⭐ CRITICAL (1 day)
+   - **Why**: PR #31 benchmarked training data WITHOUT test outputs
+   - **Currently**: Our "20%" measured train memorization, NOT generalization
    - **Approach**:
-     - Implement error-type-specific prompts (use Task 1.3 classification)
-     - Increase refiner temperature to 0.6-0.7 (more creative debugging)
-     - Add counter-example analysis from failed test cases
-   - **Dependencies**: None
+     - Merge `training_challenges.json` + `training_solutions.json`
+     - Properly evaluate train→test generalization
+     - Measure actual pass@2 score on test examples
+   - **Success**: Know if we're at 5% or 25% on actual test performance
 
-3. **Re-Benchmark with Fixes**
-   - **Why Important**: Validate improvements before Phase 3 investment
-   - **Impact**: Confirms Phase 2 readiness
-   - **Effort**: 0.5 days | **Risk**: Low
+3. **Baseline Kaggle Submission** ⭐ HIGH (1 day)
+   - **Why**: Ground truth on competitiveness vs SOTA
    - **Approach**:
-     - Run same 15 tasks with improved Programmer/Refiner
-     - Compare before/after success rates and error distributions
-     - Target: ≥40% success rate (2x current baseline)
+     - Submit current system to public leaderboard
+     - Compare against Claude (13.6%), Gemini (4.9%)
+     - Adjust Phase 3 strategy based on actual score
+   - **Decision Point**: If >10% → proceed Phase 3, if <5% → debug Programmer
 
-**Only After Phase 2 Fixes** (Week 2-3):
+**Phase 3: E. Pang's Library Strategy** (Week 3-5) 📚:
 
-4. **Task 2.2: Solver Library Schema**
-   - **Why Important**: Foundation for Phase 3
-   - **Effort**: 2 days | **Risk**: Low
-   - **Dependencies**: Phase 2 fixes validated
+4. **Program Library + Cross-Task Learning** (3-4 days)
+   - **Why**: E. Pang's 26% proves library >> prompt engineering
+   - **Approach**:
+     - SQLite storage for successful solvers (originally planned!)
+     - Score-weighted retrieval (softmax sampling like E. Pang)
+     - Library-augmented prompts: "Here are solvers from similar tasks..."
+   - **Impact**: Cross-task knowledge transfer (E. Pang's key advantage)
 
-5. **Task 3.3: Tagger Agent**
-   - **Effort**: 2-3 days | **Risk**: Medium
-   - **Dependencies**: Task 2.2 complete
+5. **Tagger for Similarity Retrieval** (2-3 days)
+   - **Why**: Query library for relevant patterns
+   - **Approach**:
+     - LLM tags techniques (rotation, fill, symmetry, pattern_matching)
+     - Retrieve 2-3 most relevant programs per task
+     - Include in Programmer/Refiner prompts
+   - **Dependencies**: Program library (Task 4)
 
 #### Known Issues / Blockers
 - ✅ **RESOLVED - Security**: Docker Sandbox now available for production-grade security
@@ -471,11 +496,14 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 #### Session Learnings (Most Recent)
 
+**From Competitive Analysis - October 31, 2025**:
+- **Validate Against Competition Metric FIRST**: PR #31 benchmarked training data without test outputs → measured memorization not generalization. Always check: What metric? What dataset? What's the submission format?
+- **Leaderboard Analysis Before Strategy**: E. Pang's 26% uses program library + pass@2 (exactly our Phase 3 plan!). Top approaches guide architecture choices better than intuition.
+- **pass@2 Requirement**: Kaggle requires 2 diverse attempts per test. Score = 1 if either matches ground truth. Must implement before any submission.
+
 **From PR #31 (Benchmarking) - October 31, 2025**:
 - **Iterative Multi-Review PR Workflow**: Address Critical → High → Medium → Low priority systematically. Quick wins (5-10min) build reviewer trust and prevent follow-up reviews
 - **CLI Flag Wiring Bug Pattern**: Thread parameters through ALL execution layers. Validate with targeted tests. Example: `--sandbox-mode docker` accepted but ignored until wired through benchmark → evolution_loop → calculate_fitness
-- **Import Order (Ruff)**: `import re` before `import random` (alphabetical). Use `ruff check --fix` to auto-sort
-- **Code Formatting**: Run `ruff format` before pushing to prevent CI failures
 
 **From Task 2.1 (Docker Sandbox) - October 30, 2025**:
 - **ExecutionEnvironment Protocol**: Use Protocol for pluggable backends (multiprocess, docker) with zero coupling
