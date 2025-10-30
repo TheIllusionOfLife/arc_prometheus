@@ -25,6 +25,9 @@ dev = [
     "bandit>=1.7.0",
     "pre-commit>=3.6.0",
 ]
+docker = [
+    "docker>=7.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]
