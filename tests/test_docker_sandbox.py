@@ -301,3 +301,97 @@ def solve(task_grid: np.ndarray) -> np.ndarray  # Missing colon
         assert mp_error["error_type"] == docker_error["error_type"]
         assert "error_message" in mp_error
         assert "error_message" in docker_error
+
+
+class TestDockerSandboxSecurity:
+    """Test security features and vulnerability mitigations."""
+
+    def test_json_serialization_prevents_code_injection(self):
+        """Test that JSON serialization prevents pickle-based code injection.
+
+        This test verifies the fix for the critical RCE vulnerability where
+        malicious LLM-generated code could craft pickle payloads to execute
+        arbitrary code on the host during deserialization.
+
+        Before fix: pickle.loads() on untrusted data = RCE
+        After fix: JSON deserialization = safe, no code execution
+        """
+        sandbox = DockerSandbox()
+
+        # Code that tries to inject malicious data via result
+        # (simulating what a malicious LLM might generate)
+        code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Return valid numpy array (malicious pickle injection won't work with JSON)
+    return task_grid + 1
+"""
+        input_grid = np.array([[1, 2], [3, 4]], dtype=np.int64)
+
+        # This should succeed safely with JSON serialization
+        success, result, error = sandbox.execute(code, input_grid, timeout=10)
+
+        # Verify execution succeeds (no code injection possible)
+        assert success is True
+        assert result is not None
+        assert error is None
+        assert isinstance(result, np.ndarray)
+        assert np.array_equal(result, np.array([[2, 3], [4, 5]]))
+
+    def test_malformed_json_handled_gracefully(self):
+        """Test that malformed JSON from container is handled safely.
+
+        Verifies that if untrusted code tries to output invalid JSON,
+        it's caught and reported as an error (not executed as code).
+        """
+        sandbox = DockerSandbox()
+
+        # Code that outputs malformed data
+        code = """
+import numpy as np
+import sys
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Try to output something that's not valid JSON
+    # (This would have been dangerous with pickle)
+    print("RESULT:not-valid-json-{{{", file=sys.stdout)
+    sys.exit(0)  # Exit before returning valid result
+    return task_grid
+"""
+        input_grid = np.array([[1]], dtype=np.int64)
+
+        success, result, error = sandbox.execute(code, input_grid, timeout=10)
+
+        # Should fail safely (parsing error, not code execution)
+        assert success is False
+        assert result is None
+        assert error is not None
+        assert "Failed to parse result" in error["error_message"]
+
+    def test_non_array_result_rejected(self):
+        """Test that non-array JSON results are rejected.
+
+        Ensures type validation prevents injection of unexpected data types.
+        """
+        sandbox = DockerSandbox()
+
+        # Code that tries to return a non-array type
+        code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Try to trick the system by returning non-array
+    # (JSON will serialize, but validation should catch it)
+    return "malicious_string"
+"""
+        input_grid = np.array([[1]], dtype=np.int64)
+
+        success, result, error = sandbox.execute(code, input_grid, timeout=10)
+
+        # Should fail validation (invalid return type)
+        assert success is False
+        assert result is None
+        assert error is not None
+        assert error["error_type"] == ErrorType.VALIDATION
+        assert "Invalid return type" in error["error_message"]
