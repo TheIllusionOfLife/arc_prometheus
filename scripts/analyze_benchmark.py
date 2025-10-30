@@ -18,7 +18,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 def load_benchmark_results(results_dir: str) -> dict:
@@ -193,7 +192,7 @@ def generate_markdown_report(results: dict, compare_results: dict | None = None)
     return "\n".join(md)
 
 
-def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Analyze benchmark results and generate report",
