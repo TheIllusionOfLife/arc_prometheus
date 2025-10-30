@@ -71,11 +71,14 @@ def classify_error(fitness_result: "FitnessResult") -> ErrorType | None:
     # Return most common error type
     error_summary = fitness_result.get("error_summary", {})
     if error_summary:
-        most_common_type = max(error_summary, key=error_summary.get)  # type: ignore[arg-type]
+        most_common_type = max(error_summary.items(), key=lambda x: x[1])[0]
         return ErrorType(most_common_type)
 
     # Fallback: return first error type
-    return error_details[0]["error_type"]
+    first_error_type = error_details[0]["error_type"]
+    if isinstance(first_error_type, ErrorType):
+        return first_error_type
+    return ErrorType(first_error_type)
 
 
 def get_debugging_strategy(error_type: ErrorType) -> str:

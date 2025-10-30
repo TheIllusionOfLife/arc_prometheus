@@ -1,6 +1,7 @@
 """Fitness evaluation for solver quality assessment (Phase 2.1)."""
 
 import json
+from collections import Counter
 from typing import Any, TypedDict
 
 import numpy as np
@@ -8,6 +9,7 @@ import numpy as np
 from ..crucible.data_loader import load_task
 from ..crucible.evaluator import evaluate_grids
 from ..crucible.sandbox import safe_execute
+from .error_classifier import ErrorType
 
 
 class FitnessResult(TypedDict):
@@ -123,7 +125,7 @@ def calculate_fitness(
                 # Logic error: execution succeeded but output is wrong
                 logic_error = {
                     "example_id": f"train_{idx}",
-                    "error_type": "logic",
+                    "error_type": ErrorType.LOGIC,
                     "error_message": "Output does not match expected result",
                     "exception_class": None,
                 }
@@ -163,7 +165,7 @@ def calculate_fitness(
                 # Logic error: execution succeeded but output is wrong
                 logic_error = {
                     "example_id": f"test_{idx}",
-                    "error_type": "logic",
+                    "error_type": ErrorType.LOGIC,
                     "error_message": "Output does not match expected result",
                     "exception_class": None,
                 }
@@ -185,11 +187,13 @@ def calculate_fitness(
     train_accuracy = train_correct / train_total if train_total > 0 else 0.0
     test_accuracy = test_correct / test_total if test_total > 0 else 0.0
 
-    # Aggregate error types
-    error_summary: dict[str, int] = {}
-    for detail in error_details:
-        error_type = detail.get("error_type", "unknown")
-        error_summary[error_type] = error_summary.get(error_type, 0) + 1
+    # Aggregate error types using Counter
+    error_summary: dict[str, int] = dict(
+        Counter(
+            detail["error_type"].value if isinstance(detail["error_type"], ErrorType) else str(detail["error_type"])
+            for detail in error_details
+        )
+    )
 
     return {
         "fitness": fitness,

@@ -89,8 +89,10 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
 
             # Check if solve() function exists
             if "solve" not in exec_globals:
+                from ..evolutionary_engine.error_classifier import ErrorType
+
                 error_detail = {
-                    "error_type": "validation",
+                    "error_type": ErrorType.VALIDATION,
                     "error_message": "solve() function not found",
                     "exception_class": None,
                 }
@@ -106,8 +108,10 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
 
             # Validate result type
             if not isinstance(result, np.ndarray):
+                from ..evolutionary_engine.error_classifier import ErrorType
+
                 error_detail = {
-                    "error_type": "validation",
+                    "error_type": ErrorType.VALIDATION,
                     "error_message": f"Invalid return type: {type(result).__name__} (expected np.ndarray)",
                     "exception_class": None,
                 }
@@ -122,24 +126,30 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
             sys.modules["builtins"] = original_builtins
 
     except SyntaxError as e:
+        from ..evolutionary_engine.error_classifier import ErrorType
+
         error_detail = {
-            "error_type": "syntax",
+            "error_type": ErrorType.SYNTAX,
             "error_message": f"SyntaxError: {str(e)}",
             "exception_class": "SyntaxError",
         }
         result_queue.put((False, None, error_detail))
     except TypeError as e:
         # Catch wrong function signature errors and type mismatches
+        from ..evolutionary_engine.error_classifier import ErrorType
+
         error_detail = {
-            "error_type": "runtime",
+            "error_type": ErrorType.RUNTIME,
             "error_message": f"TypeError: {str(e)}",
             "exception_class": "TypeError",
         }
         result_queue.put((False, None, error_detail))
     except Exception as e:
         # Catch all other runtime exceptions
+        from ..evolutionary_engine.error_classifier import ErrorType
+
         error_detail = {
-            "error_type": "runtime",
+            "error_type": ErrorType.RUNTIME,
             "error_message": f"{type(e).__name__}: {str(e)}",
             "exception_class": type(e).__name__,
         }
@@ -235,8 +245,10 @@ def safe_execute(
             process.join()
 
         # Return timeout error detail
+        from ..evolutionary_engine.error_classifier import ErrorType
+
         error_detail = {
-            "error_type": "timeout",
+            "error_type": ErrorType.TIMEOUT,
             "error_message": f"Execution exceeded {timeout}s timeout",
             "exception_class": None,
         }
@@ -260,8 +272,10 @@ def safe_execute(
             return (False, None, error_detail)
     except Exception:
         # No result in queue (unexpected) - process may have crashed
+        from ..evolutionary_engine.error_classifier import ErrorType
+
         error_detail = {
-            "error_type": "runtime",
+            "error_type": ErrorType.RUNTIME,
             "error_message": "Process crashed unexpectedly (no result in queue)",
             "exception_class": None,
         }
