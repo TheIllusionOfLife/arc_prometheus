@@ -39,8 +39,8 @@ Output:
 
 import argparse
 import json
-import re
 import random
+import re
 import subprocess
 import sys
 import tempfile
