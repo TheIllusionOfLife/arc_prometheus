@@ -297,6 +297,7 @@ def run_single_task_benchmark(
                 timeout_per_eval=timeout_eval,
                 timeout_per_llm=timeout_llm,
                 verbose=False,  # Suppress console output for batch processing
+                sandbox_mode=sandbox_mode,
                 model_name=model_name,
                 programmer_temperature=programmer_temperature,
                 refiner_temperature=refiner_temperature,

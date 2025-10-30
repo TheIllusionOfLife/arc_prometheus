@@ -44,6 +44,7 @@ def run_evolution_loop(
     timeout_per_eval: int = 5,
     timeout_per_llm: int = 60,
     verbose: bool = True,
+    sandbox_mode: str = "multiprocess",
     model_name: str | None = None,
     programmer_temperature: float | None = None,
     refiner_temperature: float | None = None,
@@ -65,6 +66,7 @@ def run_evolution_loop(
         timeout_per_eval: Timeout for sandbox execution per example in seconds (default: 5)
         timeout_per_llm: Timeout for LLM API calls in seconds (default: 60)
         verbose: Print progress information (default: True)
+        sandbox_mode: "multiprocess" or "docker" (default: "multiprocess")
         model_name: LLM model name (default: from config.py)
         programmer_temperature: Temperature for code generation (default: from config.py)
         refiner_temperature: Temperature for debugging (default: from config.py)
@@ -171,7 +173,7 @@ def run_evolution_loop(
             print("\n📊 Evaluating fitness...")
 
         fitness_result = calculate_fitness(
-            task_json_path, current_code, timeout=timeout_per_eval
+            task_json_path, current_code, timeout=timeout_per_eval, sandbox_mode=sandbox_mode
         )
 
         current_fitness = fitness_result["fitness"]
