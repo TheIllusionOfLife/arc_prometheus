@@ -202,12 +202,14 @@ def safe_execute(
         ...     return task_grid + 1
         ... '''
         >>> input_grid = np.array([[1, 2], [3, 4]])
-        >>> success, result = safe_execute(solver_code, input_grid)
+        >>> success, result, error_detail = safe_execute(solver_code, input_grid)
         >>> success
         True
         >>> result
         array([[2, 3],
                [4, 5]])
+        >>> error_detail is None
+        True
 
         >>> # Timeout example
         >>> infinite_loop = '''
@@ -216,10 +218,12 @@ def safe_execute(
         ...     while True:
         ...         pass
         ... '''
-        >>> success, result = safe_execute(infinite_loop, input_grid, timeout=1)
+        >>> success, result, error_detail = safe_execute(infinite_loop, input_grid, timeout=1)
         >>> success
         False
         >>> result is None
+        True
+        >>> error_detail is not None
         True
     """
     # Create queue for inter-process communication
