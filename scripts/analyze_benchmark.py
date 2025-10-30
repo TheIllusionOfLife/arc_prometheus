@@ -222,7 +222,7 @@ def parse_args(args=None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def main():
+def main() -> int:
     """Main analysis function."""
     args = parse_args()
 

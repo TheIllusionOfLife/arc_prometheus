@@ -45,6 +45,7 @@ import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from statistics import median
 from typing import Any
 
 # Add src to path for module imports
@@ -275,8 +276,9 @@ def run_single_task_benchmark(
             )
 
         finally:
-            # Clean up temp file
-            Path(tmp_task_file).unlink(missing_ok=True)
+            # Clean up temp file (check exists to avoid NameError)
+            if "tmp_task_file" in locals():
+                Path(tmp_task_file).unlink(missing_ok=True)
 
     except Exception as e:
         # Capture exception details
@@ -383,7 +385,7 @@ def calculate_aggregate_statistics(task_results: list[dict]) -> dict[str, Any]:
     if successful:
         fitnesses = [r["final_fitness"] for r in successful]
         stats["avg_final_fitness"] = sum(fitnesses) / len(fitnesses)
-        stats["median_final_fitness"] = sorted(fitnesses)[len(fitnesses) // 2]
+        stats["median_final_fitness"] = median(fitnesses)
         stats["avg_generations"] = sum(
             r["total_generations"] for r in successful
         ) / len(successful)
