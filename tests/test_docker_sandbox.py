@@ -14,7 +14,7 @@ pytest.importorskip("docker")
 try:
     import docker
 
-    client = docker.from_env()
+    client = docker.from_env()  # type: ignore[attr-defined]
     client.ping()
     DOCKER_AVAILABLE = True
 except Exception:
