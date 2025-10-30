@@ -814,7 +814,7 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
    - **Blocks**: Production deployment, external code sharing
    - **Source**: plan_20251029.md Task 2.1, ALL external reviews
 
-3. **Task 2.2: Solver Library Schema Design**
+2. **Task 2.2: Solver Library Schema Design**
    - **Why Important**: Foundation for Phase 3 crossover and solver reuse
    - **Impact**: Enables historical analysis, cross-task learning
    - **Effort**: 2 days | **Risk**: Low
@@ -827,7 +827,7 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
 
 **Medium-term** (Week 3-4):
 
-4. **Task 3.3: Tagger Agent Implementation**
+3. **Task 3.3: Tagger Agent Implementation**
    - **Why Important**: Enables intelligent crossover by technique identification
    - **Impact**: Better parent selection for crossover operations
    - **Effort**: 2-3 days | **Risk**: Medium (LLM prompt engineering)
@@ -838,7 +838,7 @@ Demo Phase 2.3: Evolution loop (multi-generation tracking working!) ✅
    - **Dependencies**: Task 2.2 (Solver Library) must be complete
    - **Source**: plan_20251029.md Task 3.3
 
-5. **Task 3.4: Crossover Agent Implementation**
+4. **Task 3.4: Crossover Agent Implementation**
    - **Why Important**: Core Phase 3 feature for combining solver capabilities
    - **Impact**: Enables genetic algorithm crossover operations
    - **Effort**: 3-4 days | **Risk**: High (complex LLM prompt)
