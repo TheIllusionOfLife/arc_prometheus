@@ -89,6 +89,7 @@ def parse_evolution_args(args: list[str] | None = None) -> argparse.Namespace:
         - timeout_eval: Sandbox execution timeout in seconds
         - max_generations: Maximum evolution generations
         - target_fitness: Target fitness for early stopping (optional)
+        - sandbox_mode: Execution sandbox mode ('multiprocess' or 'docker')
         - verbose: Enable verbose output
         - use_cache: Enable LLM response caching
         - cache_stats: Show cache statistics and exit
@@ -117,6 +118,10 @@ Examples:
 
   # Early stopping when fitness reaches 15
   %(prog)s --target-fitness 15 --max-generations 20
+
+  # Sandbox mode (production-grade security)
+  %(prog)s --sandbox-mode docker      # Use Docker sandbox (secure)
+  %(prog)s --sandbox-mode multiprocess  # Use multiprocess (fast)
 
   # Cache management
   %(prog)s --cache-stats              # View cache performance
@@ -180,6 +185,15 @@ Examples:
         type=float,
         default=None,
         help="Target fitness for early stopping (optional)",
+    )
+
+    # Sandbox controls
+    parser.add_argument(
+        "--sandbox-mode",
+        type=str,
+        choices=["multiprocess", "docker"],
+        default="multiprocess",
+        help="Execution sandbox mode: 'multiprocess' (fast, limited security) or 'docker' (production-grade security). Default: multiprocess",
     )
 
     # Output controls
