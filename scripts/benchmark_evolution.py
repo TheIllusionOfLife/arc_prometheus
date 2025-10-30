@@ -45,6 +45,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 # Add src to path for module imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -340,7 +341,7 @@ def generate_experiment_metadata(
     return metadata
 
 
-def calculate_aggregate_statistics(task_results: list[dict]) -> dict:
+def calculate_aggregate_statistics(task_results: list[dict]) -> dict[str, Any]:
     """Calculate aggregate statistics from all task results.
 
     Args:
@@ -365,7 +366,7 @@ def calculate_aggregate_statistics(task_results: list[dict]) -> dict:
     successful = [r for r in task_results if r.get("success", False)]
     failed = [r for r in task_results if not r.get("success", False)]
 
-    stats = {
+    stats: dict[str, Any] = {
         "total_tasks": total_tasks,
         "successful_tasks": len(successful),
         "failed_tasks": len(failed),
@@ -414,7 +415,7 @@ def calculate_aggregate_statistics(task_results: list[dict]) -> dict:
     return stats
 
 
-def parse_benchmark_args(args=None) -> argparse.Namespace:
+def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments for benchmark script.
 
     Args:
@@ -542,7 +543,7 @@ def parse_benchmark_args(args=None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def main():
+def main() -> int:
     """Main benchmark execution function."""
     args = parse_benchmark_args()
 
