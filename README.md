@@ -52,7 +52,31 @@ venv\Scripts\activate  # On Windows
 pip install -e ".[dev]"
 ```
 
-4. **Set up API key**:
+4. **(Optional) Docker Sandbox Setup**:
+
+For production-grade security, install Docker support:
+
+```bash
+# Install Docker package
+pip install -e ".[docker]"
+
+# Install and start Docker Desktop (macOS/Windows)
+# Or install docker.io (Linux)
+# https://docs.docker.com/get-docker/
+
+# Build the sandbox image
+docker build -t arc-prometheus-sandbox:latest -f docker/sandbox.Dockerfile .
+```
+
+The Docker sandbox provides superior security:
+- **Network disabled**: No external communication possible
+- **Read-only filesystem**: Code cannot modify files (except /tmp tmpfs)
+- **Resource limits**: Memory, CPU, and process limits prevent resource exhaustion
+- **Container isolation**: Complete process isolation from host system
+
+Use `--sandbox-mode docker` flag to enable (see Usage section below).
+
+5. **Set up API key**:
 ```bash
 cp .env.example .env
 # Edit .env and add your GEMINI_API_KEY
@@ -141,7 +165,7 @@ python scripts/demo_phase1_3_sandbox.py
 **Security notes**:
 - Restricted builtins: eval, exec, compile, open removed
 - **Limitation**: Cannot prevent filesystem/network access (multiprocessing limitation)
-- **Production**: Use Docker with read-only filesystem and network disabled
+- **Production**: Use `--sandbox-mode docker` for complete isolation (see Installation step 4)
 
 ### Phase 1.5: End-to-End Pipeline
 
@@ -311,6 +335,9 @@ python scripts/demo_phase2_3_evolution.py \
   --programmer-temperature 0.5 \
   --refiner-temperature 0.6
 
+# Use Docker sandbox for production-grade security
+python scripts/demo_phase2_3_evolution.py --sandbox-mode docker
+
 # See all available options
 python scripts/demo_phase2_3_evolution.py --help
 ```
@@ -322,6 +349,7 @@ python scripts/demo_phase2_3_evolution.py --help
 - `--max-generations N`: Maximum evolution generations (default: 5)
 - `--target-fitness N`: Stop when fitness reaches this value (optional)
 - `--timeout-llm SECONDS`: LLM API call timeout (default: 60)
+- `--sandbox-mode MODE`: Execution sandbox mode - `multiprocess` (default, fast) or `docker` (production-grade security)
 - `--timeout-eval SECONDS`: Code execution timeout (default: 5)
 - `--no-verbose`: Disable verbose output
 

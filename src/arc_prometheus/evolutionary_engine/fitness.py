@@ -8,8 +8,43 @@ import numpy as np
 
 from ..crucible.data_loader import load_task
 from ..crucible.evaluator import evaluate_grids
-from ..crucible.sandbox import safe_execute
+from ..crucible.sandbox import MultiprocessSandbox
+from ..crucible.sandbox_protocol import ExecutionEnvironment
 from .error_classifier import ErrorType
+
+
+def _get_sandbox(sandbox_mode: str) -> ExecutionEnvironment:
+    """Factory function to create appropriate sandbox instance.
+
+    Args:
+        sandbox_mode: 'multiprocess' or 'docker'
+
+    Returns:
+        Sandbox instance implementing ExecutionEnvironment protocol
+    """
+    if sandbox_mode == "docker":
+        try:
+            from ..crucible.docker_sandbox import DockerSandbox
+
+            return DockerSandbox()
+        except ImportError as e:
+            raise RuntimeError(
+                "Docker sandbox requires docker package. "
+                "Install with: pip install -e '.[docker]'"
+            ) from e
+        except RuntimeError as e:
+            # Docker not available (daemon not running or image not built)
+            raise RuntimeError(
+                f"Docker sandbox not available: {e}. "
+                "Build image with: docker build -t arc-prometheus-sandbox:latest "
+                "-f docker/sandbox.Dockerfile ."
+            ) from e
+    elif sandbox_mode == "multiprocess":
+        return MultiprocessSandbox()
+    else:
+        raise ValueError(
+            f"Invalid sandbox_mode: {sandbox_mode}. Must be 'multiprocess' or 'docker'"
+        )
 
 
 def _evaluate_single_example(
@@ -20,6 +55,7 @@ def _evaluate_single_example(
     timeout: int,
     execution_errors: list[str],
     error_details: list[dict[str, Any]],
+    sandbox: ExecutionEnvironment,
 ) -> bool:
     """
     Evaluate solver on a single example (train or test).
@@ -32,6 +68,7 @@ def _evaluate_single_example(
         timeout: Execution timeout in seconds
         execution_errors: List to append error messages to (modified in-place)
         error_details: List to append structured error details to (modified in-place)
+        sandbox: Sandbox instance (MultiprocessSandbox or DockerSandbox)
 
     Returns:
         True if example was solved correctly, False otherwise
@@ -40,7 +77,9 @@ def _evaluate_single_example(
     expected_output = np.array(example["output"], dtype=np.int64)
 
     # Execute solver in sandbox
-    success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
+    success, result_grid, error_detail = sandbox.execute(
+        solver_code, input_grid, timeout
+    )
 
     if not success:
         # Store structured error detail
@@ -100,7 +139,10 @@ class FitnessResult(TypedDict):
 
 
 def calculate_fitness(
-    task_json_path: str, solver_code: str, timeout: int = 5
+    task_json_path: str,
+    solver_code: str,
+    timeout: int = 5,
+    sandbox_mode: str = "multiprocess",
 ) -> FitnessResult:
     """
     Evaluate solver performance on ARC task.
@@ -112,6 +154,7 @@ def calculate_fitness(
         task_json_path: Path to ARC task JSON file
         solver_code: Python code string containing solve() function
         timeout: Execution timeout per example in seconds (default: 5)
+        sandbox_mode: Sandbox mode - 'multiprocess' (default) or 'docker'
 
     Returns:
         Dictionary containing:
@@ -125,13 +168,15 @@ def calculate_fitness(
             - execution_errors (list[str]): Error messages from failed executions
 
     Example:
+        >>> # Default multiprocess sandbox
         >>> result = calculate_fitness("task.json", solver_code)
         >>> print(f"Fitness: {result['fitness']}")
         Fitness: 13
+
+        >>> # Docker sandbox (production-grade security)
+        >>> result = calculate_fitness("task.json", solver_code, sandbox_mode="docker")
         >>> print(f"Train: {result['train_correct']}/{result['train_total']}")
         Train: 3/3
-        >>> print(f"Test: {result['test_correct']}/{result['test_total']}")
-        Test: 1/1
 
     Note:
         The 10x weight on test accuracy ensures that solvers which only memorize
@@ -144,6 +189,9 @@ def calculate_fitness(
     test_total = 0
     execution_errors: list[str] = []
     error_details: list[dict[str, Any]] = []
+
+    # Create sandbox instance
+    sandbox = _get_sandbox(sandbox_mode)
 
     try:
         # Load task data
@@ -167,6 +215,7 @@ def calculate_fitness(
                 timeout,
                 execution_errors,
                 error_details,
+                sandbox,
             ):
                 train_correct += 1
 
@@ -187,6 +236,7 @@ def calculate_fitness(
                 timeout,
                 execution_errors,
                 error_details,
+                sandbox,
             ):
                 test_correct += 1
 

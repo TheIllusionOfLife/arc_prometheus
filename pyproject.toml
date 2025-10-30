@@ -25,6 +25,9 @@ dev = [
     "bandit>=1.7.0",
     "pre-commit>=3.6.0",
 ]
+docker = [
+    "docker>=7.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]
@@ -65,7 +68,7 @@ strict_equality = true
 
 # Allow missing imports for third-party libraries without stubs
 [[tool.mypy.overrides]]
-module = ["dotenv", "google", "google.*", "google.generativeai", "google.generativeai.*", "numpy", "numpy.*"]
+module = ["dotenv", "google", "google.*", "google.generativeai", "google.generativeai.*", "numpy", "numpy.*", "docker", "docker.*"]
 ignore_missing_imports = true
 
 # Relax type checking for test files

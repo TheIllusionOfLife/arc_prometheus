@@ -28,7 +28,7 @@ This project follows a strict Test-Driven Development approach and evolutionary 
 - **Few-shot learning**: ARC tasks provide only ~3 training examples on average
 - **Generalization over memorization**: Test accuracy is weighted 10x higher than train accuracy
 - **Emergent intelligence**: Multiple specialized agents collaborate like a scientific community
-- **Safe execution**: All generated code runs in sandboxed multiprocessing environments
+- **Safe execution**: All generated code runs in sandboxed environments (multiprocessing or Docker)
 
 ## Development Phases
 
@@ -134,17 +134,33 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 **Note**: Use `np.ndarray` (the type) not `np.array` (the function) for type annotations.
 
 ### Safe Execution Protocol
-- All LLM-generated code runs in isolated `multiprocessing.Process`
-- Default timeout: 5 seconds per execution
-- Return format: `tuple[bool, Optional[np.ndarray]]`
-  - `(True, result_grid)` on successful execution
-  - `(False, None)` on failure/timeout/exception
-- Handle: timeouts, runtime exceptions, invalid return types
-- Restricted builtins: eval, exec, compile, open removed from execution environment
-- **Security Limitations**:
-  - Multiprocessing does NOT prevent filesystem access
-  - Multiprocessing does NOT prevent network access
-  - For production: Use Docker with read-only filesystem and network disabled
+
+**Sandbox Options**:
+- **Multiprocessing** (default): Fast execution with basic isolation
+  - Restricted builtins: eval, exec, compile, open removed
+  - Timeout enforcement via process termination
+  - **Limitation**: Cannot prevent filesystem/network access
+- **Docker** (production-grade): Complete container isolation
+  - Network disabled (no external communication)
+  - Read-only filesystem (except /tmp tmpfs for numpy)
+  - Memory limit: 512MB (configurable)
+  - CPU limit: 50% of one core (configurable)
+  - Process limit: 100 (prevents fork bombs)
+  - Non-root user execution (UID 1000)
+
+**Return Format**: `tuple[bool, Optional[np.ndarray], Optional[dict]]`
+- `(True, result_grid, None)` on successful execution
+- `(False, None, error_detail)` on failure (error_detail includes error_type, error_message, exception_class)
+
+**Usage**:
+- Default: `calculate_fitness(task_path, code)` uses multiprocessing
+- Production: `calculate_fitness(task_path, code, sandbox_mode="docker")` uses Docker
+- CLI: `--sandbox-mode docker` flag for evolution scripts
+
+**Implementation**:
+- Both sandboxes implement `ExecutionEnvironment` protocol
+- Factory pattern in `fitness.py`: `_get_sandbox(sandbox_mode)` returns appropriate sandbox
+- Docker requires: `pip install -e '.[docker]'` and image built via `docker build`
 
 ### LLM Integration (Gemini)
 - Primary model: Google Gemini API
