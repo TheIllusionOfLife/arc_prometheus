@@ -143,8 +143,10 @@ def generate_markdown_report(results: dict, compare_results: dict | None = None)
                 f"| {task_id} | {success} | {fitness:.1f} | {gens} | {time:.1f} |"
             )
         else:
-            error = task.get("error", "Unknown")[:30]
-            md.append(f"| {task_id} | {success} | N/A | N/A | {error}... |")
+            error = task.get("error", "Unknown")
+            if len(error) > 30:
+                error = error[:27] + "..."
+            md.append(f"| {task_id} | {success} | N/A | N/A | {error} |")
 
     md.append("")
 

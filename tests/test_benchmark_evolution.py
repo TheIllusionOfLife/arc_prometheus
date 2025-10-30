@@ -152,7 +152,7 @@ class TestBenchmarkExecution:
         assert result["final_fitness"] == 5.0
         assert result["total_generations"] == 1
         assert "total_time" in result
-        assert "error" == None or "error" not in result
+        assert "error" not in result  # Success should never have 'error' key
 
     @patch("scripts.benchmark_evolution.run_evolution_loop")
     def test_run_single_task_benchmark_handles_exceptions(

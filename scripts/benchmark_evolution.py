@@ -334,6 +334,7 @@ def generate_experiment_metadata(
 
     # Try to get git commit hash
     try:
+        # S607: Safe to suppress - using shell=False with hardcoded command list
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             capture_output=True,
