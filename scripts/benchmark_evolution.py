@@ -39,6 +39,7 @@ Output:
 
 import argparse
 import json
+import re
 import random
 import subprocess
 import sys
@@ -52,6 +53,27 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+from arc_prometheus.utils.config import MODEL_NAME as DEFAULT_MODEL_NAME
+
+
+def validate_task_id(task_id: str) -> bool:
+    """Validate ARC task ID format (8-character hexadecimal string).
+
+    Args:
+        task_id: Task ID to validate
+
+    Returns:
+        True if valid, False otherwise
+
+    Examples:
+        >>> validate_task_id("007bbfb7")
+        True
+        >>> validate_task_id("invalid")
+        False
+        >>> validate_task_id("007bbfb7extra")
+        False
+    """
+    return bool(re.match(r"^[0-9a-f]{8}$", task_id.lower()))
 
 
 def load_task_ids_from_file(filepath: str) -> list[str]:
@@ -82,6 +104,14 @@ def load_task_ids_from_file(filepath: str) -> list[str]:
 
             task_ids.append(line)
 
+    # Validate all task IDs
+    invalid = [tid for tid in task_ids if not validate_task_id(tid)]
+    if invalid:
+        raise ValueError(
+            f"Invalid task ID format in {filepath}: {invalid}. "
+            f"Expected 8-character hexadecimal strings."
+        )
+
     return task_ids
 
 
@@ -98,7 +128,17 @@ def parse_task_ids(task_ids_str: str) -> list[str]:
         >>> parse_task_ids("00576224, 007bbfb7, 025d127b")
         ['00576224', '007bbfb7', '025d127b']
     """
-    return [tid.strip() for tid in task_ids_str.split(",")]
+    task_ids = [tid.strip() for tid in task_ids_str.split(",")]
+
+    # Validate all task IDs
+    invalid = [tid for tid in task_ids if not validate_task_id(tid)]
+    if invalid:
+        raise ValueError(
+            f"Invalid task ID format: {invalid}. "
+            f"Expected 8-character hexadecimal strings (e.g., '007bbfb7')."
+        )
+
+    return task_ids
 
 
 def random_sample_tasks(
@@ -502,7 +542,7 @@ def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-2.5-flash-lite",
+        default=DEFAULT_MODEL_NAME,
         help="LLM model name (default: %(default)s)",
     )
     parser.add_argument(
