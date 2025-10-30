@@ -233,8 +233,10 @@ def run_single_task_benchmark(
             collection = json.load(f)
 
         if task_id not in collection:
+            available_ids = list(collection.keys())[:5]
             raise ValueError(
-                f"Task ID '{task_id}' not found in {training_challenges_path}"
+                f"Task ID '{task_id}' not found in {training_challenges_path}. "
+                f"Available IDs (showing first 5): {available_ids}"
             )
 
         task_data = collection[task_id]
@@ -338,6 +340,7 @@ def generate_experiment_metadata(
             text=True,
             check=True,
             timeout=5,
+            shell=False,  # Explicit is better than implicit
         )
         metadata["git_commit"] = result.stdout.strip()
     except (
