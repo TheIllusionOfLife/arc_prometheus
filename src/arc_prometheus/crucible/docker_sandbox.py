@@ -12,7 +12,7 @@ Security guarantees superior to multiprocessing sandbox.
 """
 
 import base64
-import pickle
+import json
 import textwrap
 from typing import Any, cast
 
@@ -220,6 +220,7 @@ class DockerSandbox:
         Create Python script for container execution.
 
         Embeds solver code, input grid, and result serialization logic.
+        Uses JSON for safe serialization (no pickle to prevent RCE).
 
         Args:
             solver_code: User's solve() function code
@@ -228,24 +229,27 @@ class DockerSandbox:
         Returns:
             Complete Python script as string
         """
-        # Serialize input grid to pickle + base64
-        grid_bytes = pickle.dumps(task_grid)
-        grid_b64 = base64.b64encode(grid_bytes).decode("ascii")
+        # Serialize input grid to JSON (safe - no code execution)
+        # Convert numpy array to nested list for JSON compatibility
+        grid_list = task_grid.tolist()
+        grid_json = json.dumps(grid_list)
+        grid_b64 = base64.b64encode(grid_json.encode("utf-8")).decode("ascii")
 
         # Create execution script
         # This runs inside the container and must be completely self-contained
         script = textwrap.dedent(
             f"""
             import sys
-            import pickle
+            import json
             import base64
             import numpy as np
 
             try:
-                # Deserialize input grid
+                # Deserialize input grid (JSON - safe deserialization)
                 grid_b64 = {repr(grid_b64)}
-                grid_bytes = base64.b64decode(grid_b64)
-                task_grid = pickle.loads(grid_bytes)
+                grid_json = base64.b64decode(grid_b64).decode("utf-8")
+                grid_list = json.loads(grid_json)
+                task_grid = np.array(grid_list, dtype=np.int64)
 
                 # Execute user's solver code
                 exec_globals = {{}}
@@ -268,12 +272,12 @@ class DockerSandbox:
                     print(f"ERROR:VALIDATION:Invalid return type: {{type(result).__name__}} (expected np.ndarray)", file=sys.stderr)
                     sys.exit(1)
 
-                # Serialize result
-                result_bytes = pickle.dumps(result)
-                result_b64 = base64.b64encode(result_bytes).decode("ascii")
+                # Serialize result (JSON - safe, no code execution possible)
+                result_list = result.tolist()
+                result_json = json.dumps(result_list)
 
                 # Output result marker
-                print(f"RESULT:{{result_b64}}")
+                print(f"RESULT:{{result_json}}")
 
             except SyntaxError as e:
                 print(f"ERROR:SYNTAX:SyntaxError: {{str(e)}}", file=sys.stderr)
@@ -307,15 +311,21 @@ class DockerSandbox:
         # Success case: Look for RESULT: marker
         if "RESULT:" in logs:
             try:
-                # Extract base64-encoded result
+                # Extract JSON result
                 result_line = [line for line in logs.split("\n") if "RESULT:" in line][
                     0
                 ]
-                result_b64 = result_line.split("RESULT:")[1].strip()
+                result_json = result_line.split("RESULT:")[1].strip()
 
-                # Deserialize result
-                result_bytes = base64.b64decode(result_b64)
-                result_grid = pickle.loads(result_bytes)  # noqa: S301  # nosec
+                # Deserialize result (JSON - safe, no code execution)
+                result_list = json.loads(result_json)
+
+                # Validate structure is a list
+                if not isinstance(result_list, list):
+                    raise ValueError(f"Expected list, got {type(result_list).__name__}")
+
+                # Reconstruct numpy array with explicit dtype
+                result_grid = np.array(result_list, dtype=np.int64)
 
                 return (True, result_grid, None)
 
