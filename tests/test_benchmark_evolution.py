@@ -1,10 +1,7 @@
 """Tests for benchmark_evolution.py - Real-world evolution loop benchmarking."""
 
 import json
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 
 class TestTaskSelection:
@@ -155,7 +152,7 @@ class TestBenchmarkExecution:
         assert result["final_fitness"] == 5.0
         assert result["total_generations"] == 1
         assert "total_time" in result
-        assert "error" is None or "error" not in result
+        assert "error" == None or "error" not in result
 
     @patch("scripts.benchmark_evolution.run_evolution_loop")
     def test_run_single_task_benchmark_handles_exceptions(
@@ -394,8 +391,12 @@ class TestResumeCapability:
         output_dir.mkdir()
 
         # Create some result files
-        (output_dir / "task_00576224.json").write_text(json.dumps({"task_id": "00576224"}))
-        (output_dir / "task_007bbfb7.json").write_text(json.dumps({"task_id": "007bbfb7"}))
+        (output_dir / "task_00576224.json").write_text(
+            json.dumps({"task_id": "00576224"})
+        )
+        (output_dir / "task_007bbfb7.json").write_text(
+            json.dumps({"task_id": "007bbfb7"})
+        )
 
         completed = get_completed_task_ids(str(output_dir))
 

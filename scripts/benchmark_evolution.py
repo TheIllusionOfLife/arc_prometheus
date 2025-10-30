@@ -43,14 +43,13 @@ import random
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 # Add src to path for module imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from arc_prometheus.crucible.data_loader import load_task
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
 
 
@@ -206,7 +205,7 @@ def run_single_task_benchmark(
             "error": str | None  # Only present if success=False
         }
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
 
     result = {
         "task_id": task_id,
@@ -227,13 +226,15 @@ def run_single_task_benchmark(
 
     try:
         # Load task data from collection
-        # Note: load_task returns numpy arrays, but we need to save as JSON for evolution_loop
+        # Note: load_task returns numpy arrays, but we need JSON
         # We'll load the raw JSON and write directly to temp file
         with open(training_challenges_path) as f:
             collection = json.load(f)
 
         if task_id not in collection:
-            raise ValueError(f"Task ID '{task_id}' not found in {training_challenges_path}")
+            raise ValueError(
+                f"Task ID '{task_id}' not found in {training_challenges_path}"
+            )
 
         task_data = collection[task_id]
 
@@ -279,7 +280,9 @@ def run_single_task_benchmark(
 
     except Exception as e:
         # Capture exception details
-        result.update({"success": False, "error": str(e), "error_type": type(e).__name__})
+        result.update(
+            {"success": False, "error": str(e), "error_type": type(e).__name__}
+        )
 
     return result
 
@@ -319,7 +322,7 @@ def generate_experiment_metadata(
     """
     metadata = {
         "experiment_name": experiment_name,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "num_tasks": len(task_ids),
         "task_ids": task_ids,
         "config": config,
@@ -335,7 +338,11 @@ def generate_experiment_metadata(
             timeout=5,
         )
         metadata["git_commit"] = result.stdout.strip()
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+    ):
         metadata["git_commit"] = "unknown"
 
     return metadata
@@ -377,9 +384,9 @@ def calculate_aggregate_statistics(task_results: list[dict]) -> dict[str, Any]:
         fitnesses = [r["final_fitness"] for r in successful]
         stats["avg_final_fitness"] = sum(fitnesses) / len(fitnesses)
         stats["median_final_fitness"] = sorted(fitnesses)[len(fitnesses) // 2]
-        stats["avg_generations"] = sum(r["total_generations"] for r in successful) / len(
-            successful
-        )
+        stats["avg_generations"] = sum(
+            r["total_generations"] for r in successful
+        ) / len(successful)
         stats["avg_time_per_task"] = sum(r["total_time"] for r in successful) / len(
             successful
         )
@@ -672,16 +679,16 @@ def main() -> int:
     print(f"Success Rate: {stats['success_rate']:.1%}")
 
     if stats["successful_tasks"] > 0:
-        print(f"\nFitness Metrics:")
+        print("\nFitness Metrics:")
         print(f"  Average: {stats['avg_final_fitness']:.2f}")
         print(f"  Median: {stats['median_final_fitness']:.2f}")
-        print(f"\nEvolution Metrics:")
+        print("\nEvolution Metrics:")
         print(f"  Avg Generations: {stats['avg_generations']:.2f}")
         print(f"  Avg Time per Task: {stats['avg_time_per_task']:.1f}s")
         print(f"  Total Time: {stats['total_time']:.1f}s")
 
         if stats["error_distribution"]:
-            print(f"\nError Distribution:")
+            print("\nError Distribution:")
             for error_type, count in sorted(stats["error_distribution"].items()):
                 print(f"  {error_type}: {count}")
 
