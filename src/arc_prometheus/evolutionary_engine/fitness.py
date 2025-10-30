@@ -12,6 +12,63 @@ from ..crucible.sandbox import safe_execute
 from .error_classifier import ErrorType
 
 
+def _evaluate_single_example(
+    solver_code: str,
+    example: dict[str, Any],
+    idx: int,
+    example_type: str,
+    timeout: int,
+    execution_errors: list[str],
+    error_details: list[dict[str, Any]],
+) -> bool:
+    """
+    Evaluate solver on a single example (train or test).
+
+    Args:
+        solver_code: Python code string containing solve() function
+        example: Dictionary with "input" and "output" keys
+        idx: Example index (0-based)
+        example_type: "train" or "test" for error messages
+        timeout: Execution timeout in seconds
+        execution_errors: List to append error messages to (modified in-place)
+        error_details: List to append structured error details to (modified in-place)
+
+    Returns:
+        True if example was solved correctly, False otherwise
+    """
+    input_grid = np.array(example["input"], dtype=np.int64)
+    expected_output = np.array(example["output"], dtype=np.int64)
+
+    # Execute solver in sandbox
+    success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
+
+    if not success:
+        # Store structured error detail
+        if error_detail:
+            error_detail["example_id"] = f"{example_type}_{idx}"
+            error_details.append(error_detail)
+            execution_errors.append(
+                f"{example_type.capitalize()} example {idx}: {error_detail.get('error_type', 'unknown')}"
+            )
+        else:
+            execution_errors.append(f"{example_type.capitalize()} example {idx}: Execution failed")
+        return False
+
+    # Compare result with expected output
+    if result_grid is not None and evaluate_grids(result_grid, expected_output):
+        return True
+    else:
+        # Logic error: execution succeeded but output is wrong
+        logic_error = {
+            "example_id": f"{example_type}_{idx}",
+            "error_type": ErrorType.LOGIC,
+            "error_message": "Output does not match expected result",
+            "exception_class": None,
+        }
+        error_details.append(logic_error)
+        return False
+
+
 class FitnessResult(TypedDict):
     """Type definition for fitness evaluation result.
 
@@ -100,36 +157,10 @@ def calculate_fitness(
                 continue
 
             train_total += 1
-            input_grid = np.array(example["input"], dtype=np.int64)
-            expected_output = np.array(example["output"], dtype=np.int64)
-
-            # Execute solver in sandbox
-            success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
-
-            if not success:
-                # Store structured error detail
-                if error_detail:
-                    error_detail["example_id"] = f"train_{idx}"
-                    error_details.append(error_detail)
-                    execution_errors.append(
-                        f"Train example {idx}: {error_detail.get('error_type', 'unknown')}"
-                    )
-                else:
-                    execution_errors.append(f"Train example {idx}: Execution failed")
-                continue
-
-            # Compare result with expected output
-            if result_grid is not None and evaluate_grids(result_grid, expected_output):
+            if _evaluate_single_example(
+                solver_code, example, idx, "train", timeout, execution_errors, error_details
+            ):
                 train_correct += 1
-            else:
-                # Logic error: execution succeeded but output is wrong
-                logic_error = {
-                    "example_id": f"train_{idx}",
-                    "error_type": ErrorType.LOGIC,
-                    "error_message": "Output does not match expected result",
-                    "exception_class": None,
-                }
-                error_details.append(logic_error)
 
         # Evaluate on test examples
         test_examples = task_data.get("test", [])
@@ -140,36 +171,10 @@ def calculate_fitness(
                 continue
 
             test_total += 1
-            input_grid = np.array(example["input"], dtype=np.int64)
-            expected_output = np.array(example["output"], dtype=np.int64)
-
-            # Execute solver in sandbox
-            success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
-
-            if not success:
-                # Store structured error detail
-                if error_detail:
-                    error_detail["example_id"] = f"test_{idx}"
-                    error_details.append(error_detail)
-                    execution_errors.append(
-                        f"Test example {idx}: {error_detail.get('error_type', 'unknown')}"
-                    )
-                else:
-                    execution_errors.append(f"Test example {idx}: Execution failed")
-                continue
-
-            # Compare result with expected output
-            if result_grid is not None and evaluate_grids(result_grid, expected_output):
+            if _evaluate_single_example(
+                solver_code, example, idx, "test", timeout, execution_errors, error_details
+            ):
                 test_correct += 1
-            else:
-                # Logic error: execution succeeded but output is wrong
-                logic_error = {
-                    "example_id": f"test_{idx}",
-                    "error_type": ErrorType.LOGIC,
-                    "error_message": "Output does not match expected result",
-                    "exception_class": None,
-                }
-                error_details.append(logic_error)
 
     except FileNotFoundError:
         execution_errors.append(f"Task file not found: {task_json_path}")
