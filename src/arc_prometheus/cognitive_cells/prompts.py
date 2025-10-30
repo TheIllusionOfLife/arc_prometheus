@@ -4,9 +4,14 @@ This module provides prompt construction for the Analyst+Programmer
 unified pipeline that analyzes ARC tasks and generates solver code.
 """
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from ..evolutionary_engine.fitness import FitnessResult
+
+if TYPE_CHECKING:
+    from ..evolutionary_engine.error_classifier import ErrorType
 
 # Constants for prompt formatting
 MAX_ERRORS_TO_SHOW = 5  # Limit execution errors shown to prevent token overflow
@@ -126,6 +131,7 @@ def create_refiner_prompt(
     task_data: dict,
     fitness_result: FitnessResult,
     max_examples: int = 3,
+    error_type: "ErrorType | None" = None,
 ) -> str:
     """Create prompt for Refiner to debug failed solver code.
 
@@ -229,25 +235,39 @@ def create_refiner_prompt(
             remaining = len(execution_errors) - MAX_ERRORS_TO_SHOW
             prompt_parts.append(f"... and {remaining} more error(s)")
 
-    # Debugging instructions
+    # Add error-type-specific debugging strategy
+    prompt_parts.extend(["", "## Debugging Strategy"])
+
+    if error_type:
+        from ..evolutionary_engine.error_classifier import get_debugging_strategy
+
+        prompt_parts.append(f"**Error Type Detected: {error_type.value.upper()}**")
+        prompt_parts.append("")
+        prompt_parts.append(get_debugging_strategy(error_type))
+    else:
+        # Fallback: show all strategies
+        prompt_parts.extend(
+            [
+                "1. Identify the root cause of failure:",
+                "   - Syntax errors (missing colons, parentheses, indentation)",
+                "   - Runtime errors (division by zero, index out of bounds, type mismatches)",
+                "   - Logic errors (wrong algorithm, incorrect transformations)",
+                "   - Performance issues (infinite loops, excessive computation)",
+            ]
+        )
+
+    # Requirements (always show)
     prompt_parts.extend(
         [
             "",
-            "## Debugging Instructions",
-            "1. Identify the root cause of failure:",
-            "   - Syntax errors (missing colons, parentheses, indentation)",
-            "   - Runtime errors (division by zero, index out of bounds, type mismatches)",
-            "   - Logic errors (wrong algorithm, incorrect transformations)",
-            "   - Performance issues (infinite loops, excessive computation)",
-            "",
-            "2. Fix the bugs while maintaining these requirements:",
-            "   - Use ONLY numpy for array operations (no other libraries)",
-            "   - Function must be named 'solve' with signature: def solve(task_grid: np.ndarray) -> np.ndarray:",
-            "   - Must return np.ndarray",
-            "   - Include 'import numpy as np' at the top",
-            "   - Handle edge cases properly",
-            "",
-            "3. Ensure the fixed code correctly transforms the inputs to match the expected outputs",
+            "## Requirements",
+            "Fix the bugs while maintaining these requirements:",
+            "- Use ONLY numpy for array operations (no other libraries)",
+            "- Function must be named 'solve' with signature: def solve(task_grid: np.ndarray) -> np.ndarray:",
+            "- Must return np.ndarray",
+            "- Include 'import numpy as np' at the top",
+            "- Handle edge cases properly",
+            "- Ensure the fixed code correctly transforms the inputs to match the expected outputs",
             "",
             "## Output Format",
             "Return ONLY the corrected Python code, starting with 'import numpy as np'.",

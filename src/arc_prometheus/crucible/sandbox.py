@@ -17,6 +17,7 @@ IMPORTANT SECURITY LIMITATIONS:
 """
 
 import multiprocessing as mp
+import queue
 from multiprocessing import Queue
 from typing import Any
 
@@ -44,10 +45,14 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
     Args:
         code_str: Python code containing solve() function
         task_grid: Input grid to pass to solve()
-        result_queue: Queue for returning (success, result, error_msg) tuple
+        result_queue: Queue for returning (success, result, error_detail) tuple
 
     Returns:
         None (results sent through queue)
+        Result format: (bool, np.ndarray | None, dict | None)
+        - success: True if execution succeeded
+        - result: Output grid on success, None on failure
+        - error_detail: Structured error info on failure, None on success
     """
     try:
         # Create restricted execution environment
@@ -85,7 +90,14 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
 
             # Check if solve() function exists
             if "solve" not in exec_globals:
-                result_queue.put((False, None, "solve() function not found"))
+                from ..evolutionary_engine.error_classifier import ErrorType
+
+                error_detail = {
+                    "error_type": ErrorType.VALIDATION,
+                    "error_message": "solve() function not found",
+                    "exception_class": None,
+                }
+                result_queue.put((False, None, error_detail))
                 return
 
             # Get the solve function
@@ -97,9 +109,14 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
 
             # Validate result type
             if not isinstance(result, np.ndarray):
-                result_queue.put(
-                    (False, None, f"Invalid return type: {type(result).__name__}")
-                )
+                from ..evolutionary_engine.error_classifier import ErrorType
+
+                error_detail = {
+                    "error_type": ErrorType.VALIDATION,
+                    "error_message": f"Invalid return type: {type(result).__name__} (expected np.ndarray)",
+                    "exception_class": None,
+                }
+                result_queue.put((False, None, error_detail))
                 return
 
             # Success - send result back
@@ -110,18 +127,39 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
             sys.modules["builtins"] = original_builtins
 
     except SyntaxError as e:
-        result_queue.put((False, None, f"SyntaxError: {str(e)}"))
+        from ..evolutionary_engine.error_classifier import ErrorType
+
+        error_detail = {
+            "error_type": ErrorType.SYNTAX,
+            "error_message": f"SyntaxError: {str(e)}",
+            "exception_class": "SyntaxError",
+        }
+        result_queue.put((False, None, error_detail))
     except TypeError as e:
-        # Catch wrong function signature errors
-        result_queue.put((False, None, f"TypeError: {str(e)}"))
+        # Catch wrong function signature errors and type mismatches
+        from ..evolutionary_engine.error_classifier import ErrorType
+
+        error_detail = {
+            "error_type": ErrorType.RUNTIME,
+            "error_message": f"TypeError: {str(e)}",
+            "exception_class": "TypeError",
+        }
+        result_queue.put((False, None, error_detail))
     except Exception as e:
         # Catch all other runtime exceptions
-        result_queue.put((False, None, f"{type(e).__name__}: {str(e)}"))
+        from ..evolutionary_engine.error_classifier import ErrorType
+
+        error_detail = {
+            "error_type": ErrorType.RUNTIME,
+            "error_message": f"{type(e).__name__}: {str(e)}",
+            "exception_class": type(e).__name__,
+        }
+        result_queue.put((False, None, error_detail))
 
 
 def safe_execute(
     solver_code: str, task_grid: np.ndarray, timeout: int = 5
-) -> tuple[bool, np.ndarray | None]:
+) -> tuple[bool, np.ndarray | None, dict[str, Any] | None]:
     """Execute LLM-generated solver code safely in isolated process.
 
     Runs untrusted code in a separate process with:
@@ -130,6 +168,7 @@ def safe_execute(
     - Prevention of builtins bypass via "import builtins"
     - Exception handling
     - Return type validation
+    - Structured error reporting
 
     Args:
         solver_code: Python code containing solve() function
@@ -137,8 +176,14 @@ def safe_execute(
         timeout: Maximum execution time in seconds (default: 5)
 
     Returns:
-        (True, result_grid) on successful execution
-        (False, None) on failure/timeout/exception
+        Tuple of (success, result, error_detail):
+        - (True, result_grid, None) on successful execution
+        - (False, None, error_detail) on failure/timeout/exception
+
+        error_detail dict contains:
+        - error_type: "syntax" | "runtime" | "timeout" | "validation"
+        - error_message: Human-readable error description
+        - exception_class: Python exception class name (or None for timeout)
 
     Security Notes:
         - Runs in isolated multiprocessing.Process (separate memory space)
@@ -157,12 +202,14 @@ def safe_execute(
         ...     return task_grid + 1
         ... '''
         >>> input_grid = np.array([[1, 2], [3, 4]])
-        >>> success, result = safe_execute(solver_code, input_grid)
+        >>> success, result, error_detail = safe_execute(solver_code, input_grid)
         >>> success
         True
         >>> result
         array([[2, 3],
                [4, 5]])
+        >>> error_detail is None
+        True
 
         >>> # Timeout example
         >>> infinite_loop = '''
@@ -171,10 +218,12 @@ def safe_execute(
         ...     while True:
         ...         pass
         ... '''
-        >>> success, result = safe_execute(infinite_loop, input_grid, timeout=1)
+        >>> success, result, error_detail = safe_execute(infinite_loop, input_grid, timeout=1)
         >>> success
         False
         >>> result is None
+        True
+        >>> error_detail is not None
         True
     """
     # Create queue for inter-process communication
@@ -200,21 +249,39 @@ def safe_execute(
             process.kill()
             process.join()
 
-        return (False, None)
+        # Return timeout error detail
+        from ..evolutionary_engine.error_classifier import ErrorType
+
+        error_detail = {
+            "error_type": ErrorType.TIMEOUT,
+            "error_message": f"Execution exceeded {timeout}s timeout",
+            "exception_class": None,
+        }
+        return (False, None, error_detail)
 
     # Process completed - check for results using get_nowait() instead of empty()
     # empty() is unreliable due to multiprocessing race conditions
     try:
-        success, result, error_msg = result_queue.get_nowait()
+        success, result, error_detail = result_queue.get_nowait()
         if success:
-            return (True, result)
+            return (True, result, None)
         else:
             # Error occurred during execution - log to stderr for debugging
             import sys
 
-            if error_msg:
-                print(f"Sandbox execution error: {error_msg}", file=sys.stderr)
-            return (False, None)
-    except Exception:
+            if error_detail and "error_message" in error_detail:
+                print(
+                    f"Sandbox execution error: {error_detail['error_message']}",
+                    file=sys.stderr,
+                )
+            return (False, None, error_detail)
+    except queue.Empty:
         # No result in queue (unexpected) - process may have crashed
-        return (False, None)
+        from ..evolutionary_engine.error_classifier import ErrorType
+
+        error_detail = {
+            "error_type": ErrorType.RUNTIME,
+            "error_message": "Process crashed unexpectedly (no result in queue)",
+            "exception_class": None,
+        }
+        return (False, None, error_detail)

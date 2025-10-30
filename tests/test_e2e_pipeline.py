@@ -48,7 +48,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
 
         # Mock sandbox to return correct output
-        mock_execute.return_value = (True, np.array([[1, 2], [3, 4]]))
+        mock_execute.return_value = (True, np.array([[1, 2], [3, 4]]), None)
 
         # Simulate pipeline logic
         train_pairs = [
@@ -59,7 +59,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert solver_code is not None
         assert "def solve" in solver_code
 
-        success, result = mock_execute(solver_code, train_pairs[0]["input"])
+        success, result, _ = mock_execute(solver_code, train_pairs[0]["input"])
         assert success is True
         assert result is not None
 
@@ -84,10 +84,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_generate.return_value = "def solve(grid): return grid"
 
         # Mock sandbox to timeout
-        mock_execute.return_value = (False, None)
+        mock_execute.return_value = (False, None, {"error_type": "timeout"})
 
         solver_code = mock_generate([])
-        success, result = mock_execute(solver_code, np.array([[1]]))
+        success, result, _ = mock_execute(solver_code, np.array([[1]]))
 
         assert success is False
         assert result is None
@@ -99,12 +99,12 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         # Mock successful generation and execution
         mock_generate.return_value = "def solve(grid): return grid"
         wrong_output = np.array([[9, 9], [9, 9]])
-        mock_execute.return_value = (True, wrong_output)
+        mock_execute.return_value = (True, wrong_output, None)
 
         expected_output = np.array([[1, 2], [3, 4]])
 
         solver_code = mock_generate([])
-        success, result = mock_execute(solver_code, np.array([[1, 2]]))
+        success, result, _ = mock_execute(solver_code, np.array([[1, 2]]))
 
         assert success is True
         is_correct = evaluate_grids(result, expected_output)
@@ -118,9 +118,9 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
         # Mock: first succeeds, second fails, third succeeds
         mock_execute.side_effect = [
-            (True, np.array([[1, 2]])),  # Correct
-            (False, None),  # Timeout
-            (True, np.array([[5, 6]])),  # Correct
+            (True, np.array([[1, 2]]), None),  # Correct
+            (False, None, {"error_type": "timeout"}),  # Timeout
+            (True, np.array([[5, 6]]), None),  # Correct
         ]
 
         train_pairs = [
@@ -133,7 +133,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         correct_count = 0
 
         for example in train_pairs:
-            success, result = mock_execute(solver_code, example["input"])
+            success, result, _ = mock_execute(solver_code, example["input"])
             if success:
                 is_correct = evaluate_grids(result, example["output"])
                 if is_correct:
@@ -151,12 +151,12 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
         # Mock: returns wrong shape
         wrong_shape_output = np.array([[1, 2, 3], [4, 5, 6]])  # 2x3
-        mock_execute.return_value = (True, wrong_shape_output)
+        mock_execute.return_value = (True, wrong_shape_output, None)
 
         expected_output = np.array([[1, 2], [3, 4]])  # 2x2
 
         solver_code = mock_generate([])
-        success, result = mock_execute(solver_code, np.array([[1]]))
+        success, result, _ = mock_execute(solver_code, np.array([[1]]))
 
         assert success is True
         is_correct = evaluate_grids(result, expected_output)
@@ -189,7 +189,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
         # Use REAL sandbox execution
         example = task_data["train"][0]
-        success, result = safe_execute(solver_code, example["input"], timeout=5)
+        success, result, _ = safe_execute(solver_code, example["input"], timeout=5)
 
         assert success is True
         assert isinstance(result, np.ndarray)
@@ -212,7 +212,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         test_grid = np.array([[1, 2], [3, 4]])
 
         # Should timeout after 2 seconds
-        success, result = safe_execute(solver_code, test_grid, timeout=2)
+        success, result, _ = safe_execute(solver_code, test_grid, timeout=2)
 
         assert success is False
         assert result is None
@@ -232,7 +232,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         solver_code = mock_generate([])
         test_grid = np.array([[1, 2], [3, 4]])
 
-        success, result = safe_execute(solver_code, test_grid, timeout=5)
+        success, result, _ = safe_execute(solver_code, test_grid, timeout=5)
 
         assert success is False
         assert result is None
@@ -259,7 +259,7 @@ class TestE2EPipelineErrorCases:
     def test_all_examples_fail(self, mock_execute, mock_generate):
         """Test pipeline when all train examples fail."""
         mock_generate.return_value = "def solve(grid): return grid"
-        mock_execute.return_value = (False, None)  # All fail
+        mock_execute.return_value = (False, None, {"error_type": "runtime"})  # All fail
 
         train_pairs = [
             {"input": np.array([[1]]), "output": np.array([[1]])},
@@ -270,7 +270,7 @@ class TestE2EPipelineErrorCases:
         correct_count = 0
 
         for example in train_pairs:
-            success, result = mock_execute(solver_code, example["input"])
+            success, result, _ = mock_execute(solver_code, example["input"])
             if success:
                 correct_count += 1
 
@@ -284,9 +284,9 @@ class TestE2EPipelineErrorCases:
 
         # 1 success, 2 failures
         mock_execute.side_effect = [
-            (True, np.array([[1]])),  # Correct
-            (False, None),  # Fail
-            (False, None),  # Fail
+            (True, np.array([[1]]), None),  # Correct
+            (False, None, {"error_type": "runtime"}),  # Fail
+            (False, None, {"error_type": "runtime"}),  # Fail
         ]
 
         train_pairs = [
@@ -299,7 +299,7 @@ class TestE2EPipelineErrorCases:
         correct_count = 0
 
         for example in train_pairs:
-            success, result = mock_execute(solver_code, example["input"])
+            success, result, _ = mock_execute(solver_code, example["input"])
             if success:
                 is_correct = evaluate_grids(result, example["output"])
                 if is_correct:

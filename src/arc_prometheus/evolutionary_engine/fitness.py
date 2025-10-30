@@ -1,13 +1,74 @@
 """Fitness evaluation for solver quality assessment (Phase 2.1)."""
 
 import json
-from typing import TypedDict
+from collections import Counter
+from typing import Any, TypedDict
 
 import numpy as np
 
 from ..crucible.data_loader import load_task
 from ..crucible.evaluator import evaluate_grids
 from ..crucible.sandbox import safe_execute
+from .error_classifier import ErrorType
+
+
+def _evaluate_single_example(
+    solver_code: str,
+    example: dict[str, Any],
+    idx: int,
+    example_type: str,
+    timeout: int,
+    execution_errors: list[str],
+    error_details: list[dict[str, Any]],
+) -> bool:
+    """
+    Evaluate solver on a single example (train or test).
+
+    Args:
+        solver_code: Python code string containing solve() function
+        example: Dictionary with "input" and "output" keys
+        idx: Example index (0-based)
+        example_type: "train" or "test" for error messages
+        timeout: Execution timeout in seconds
+        execution_errors: List to append error messages to (modified in-place)
+        error_details: List to append structured error details to (modified in-place)
+
+    Returns:
+        True if example was solved correctly, False otherwise
+    """
+    input_grid = np.array(example["input"], dtype=np.int64)
+    expected_output = np.array(example["output"], dtype=np.int64)
+
+    # Execute solver in sandbox
+    success, result_grid, error_detail = safe_execute(solver_code, input_grid, timeout)
+
+    if not success:
+        # Store structured error detail
+        if error_detail:
+            error_detail["example_id"] = f"{example_type}_{idx}"
+            error_details.append(error_detail)
+            execution_errors.append(
+                f"{example_type.capitalize()} example {idx}: {error_detail.get('error_type', 'unknown')}"
+            )
+        else:
+            execution_errors.append(
+                f"{example_type.capitalize()} example {idx}: Execution failed"
+            )
+        return False
+
+    # Compare result with expected output
+    if result_grid is not None and evaluate_grids(result_grid, expected_output):
+        return True
+    else:
+        # Logic error: execution succeeded but output is wrong
+        logic_error = {
+            "example_id": f"{example_type}_{idx}",
+            "error_type": ErrorType.LOGIC,
+            "error_message": "Output does not match expected result",
+            "exception_class": None,
+        }
+        error_details.append(logic_error)
+        return False
 
 
 class FitnessResult(TypedDict):
@@ -21,7 +82,9 @@ class FitnessResult(TypedDict):
         test_total: Total number of test examples
         train_accuracy: Train correctness ratio (0.0 to 1.0)
         test_accuracy: Test correctness ratio (0.0 to 1.0)
-        execution_errors: Error messages from failed executions
+        execution_errors: Error messages from failed executions (legacy)
+        error_details: Structured error information for each failed example
+        error_summary: Count of each error type
     """
 
     fitness: float
@@ -32,6 +95,8 @@ class FitnessResult(TypedDict):
     train_accuracy: float
     test_accuracy: float
     execution_errors: list[str]
+    error_details: list[dict[str, Any]]
+    error_summary: dict[str, int]
 
 
 def calculate_fitness(
@@ -78,6 +143,7 @@ def calculate_fitness(
     test_correct = 0
     test_total = 0
     execution_errors: list[str] = []
+    error_details: list[dict[str, Any]] = []
 
     try:
         # Load task data
@@ -93,18 +159,15 @@ def calculate_fitness(
                 continue
 
             train_total += 1
-            input_grid = np.array(example["input"], dtype=np.int64)
-            expected_output = np.array(example["output"], dtype=np.int64)
-
-            # Execute solver in sandbox
-            success, result_grid = safe_execute(solver_code, input_grid, timeout)
-
-            if not success:
-                execution_errors.append(f"Train example {idx}: Execution failed")
-                continue
-
-            # Compare result with expected output
-            if result_grid is not None and evaluate_grids(result_grid, expected_output):
+            if _evaluate_single_example(
+                solver_code,
+                example,
+                idx,
+                "train",
+                timeout,
+                execution_errors,
+                error_details,
+            ):
                 train_correct += 1
 
         # Evaluate on test examples
@@ -116,18 +179,15 @@ def calculate_fitness(
                 continue
 
             test_total += 1
-            input_grid = np.array(example["input"], dtype=np.int64)
-            expected_output = np.array(example["output"], dtype=np.int64)
-
-            # Execute solver in sandbox
-            success, result_grid = safe_execute(solver_code, input_grid, timeout)
-
-            if not success:
-                execution_errors.append(f"Test example {idx}: Execution failed")
-                continue
-
-            # Compare result with expected output
-            if result_grid is not None and evaluate_grids(result_grid, expected_output):
+            if _evaluate_single_example(
+                solver_code,
+                example,
+                idx,
+                "test",
+                timeout,
+                execution_errors,
+                error_details,
+            ):
                 test_correct += 1
 
     except FileNotFoundError:
@@ -146,6 +206,16 @@ def calculate_fitness(
     train_accuracy = train_correct / train_total if train_total > 0 else 0.0
     test_accuracy = test_correct / test_total if test_total > 0 else 0.0
 
+    # Aggregate error types using Counter
+    error_summary: dict[str, int] = dict(
+        Counter(
+            detail["error_type"].value
+            if isinstance(detail["error_type"], ErrorType)
+            else str(detail["error_type"])
+            for detail in error_details
+        )
+    )
+
     return {
         "fitness": fitness,
         "train_correct": train_correct,
@@ -155,4 +225,6 @@ def calculate_fitness(
         "train_accuracy": train_accuracy,
         "test_accuracy": test_accuracy,
         "execution_errors": execution_errors,
+        "error_details": error_details,
+        "error_summary": error_summary,
     }

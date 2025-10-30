@@ -288,6 +288,8 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             "train_accuracy",
             "test_accuracy",
             "execution_errors",
+            "error_details",
+            "error_summary",
         }
 
         assert set(result.keys()) == required_keys
@@ -391,3 +393,176 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             <= result["fitness"]
             <= (result["train_total"] + result["test_total"] * 10)
         )
+
+
+class TestErrorDetails:
+    """Tests for structured error details (Phase 1.3)."""
+
+    def test_error_details_populated_on_syntax_error(self, tmp_path):
+        """Test that syntax errors populate error_details."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray
+    # Missing colon
+    return task_grid * 2
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        assert len(result["error_details"]) == 1
+        assert result["error_details"][0]["error_type"] == "syntax"
+        assert result["error_details"][0]["example_id"] == "train_0"
+        assert result["error_details"][0]["exception_class"] == "SyntaxError"
+
+    def test_error_details_populated_on_timeout(self, tmp_path):
+        """Test that timeout errors populate error_details."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    while True:
+        pass
+    return task_grid
+"""
+
+        result = calculate_fitness(str(task_file), solver_code, timeout=1)
+
+        assert len(result["error_details"]) == 1
+        assert result["error_details"][0]["error_type"] == "timeout"
+        assert result["error_details"][0]["example_id"] == "train_0"
+        assert result["error_details"][0]["exception_class"] is None
+
+    def test_error_details_populated_on_runtime_error(self, tmp_path):
+        """Test that runtime errors populate error_details."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    x = 1 / 0  # ZeroDivisionError
+    return task_grid * 2
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        assert len(result["error_details"]) == 1
+        assert result["error_details"][0]["error_type"] == "runtime"
+        assert result["error_details"][0]["example_id"] == "train_0"
+        assert result["error_details"][0]["exception_class"] == "ZeroDivisionError"
+
+    def test_error_details_populated_on_logic_error(self, tmp_path):
+        """Test that logic errors (wrong output) populate error_details."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 3  # Wrong transformation (expects *2, gets *3)
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        assert len(result["error_details"]) == 1
+        assert result["error_details"][0]["error_type"] == "logic"
+        assert result["error_details"][0]["example_id"] == "train_0"
+        assert result["error_details"][0]["exception_class"] is None
+        assert "does not match" in result["error_details"][0]["error_message"].lower()
+
+    def test_error_summary_aggregates_error_types(self, tmp_path):
+        """Test that error_summary correctly counts error types."""
+        task_data = {
+            "train": [
+                {"input": [[1]], "output": [[2]]},
+                {"input": [[2]], "output": [[4]]},
+                {"input": [[3]], "output": [[6]]},
+            ],
+            "test": [],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    while True:
+        pass  # Timeout on all examples
+    return task_grid * 2
+"""
+
+        result = calculate_fitness(str(task_file), solver_code, timeout=1)
+
+        assert result["error_summary"]["timeout"] == 3
+        assert len(result["error_details"]) == 3
+
+    def test_error_details_include_example_ids(self, tmp_path):
+        """Test that error details include correct example IDs."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    x = 1 / 0
+    return task_grid
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        assert len(result["error_details"]) == 2
+        example_ids = {detail["example_id"] for detail in result["error_details"]}
+        assert example_ids == {"train_0", "test_0"}
+
+    def test_successful_execution_has_empty_error_details(self, tmp_path):
+        """Test that successful execution results in empty error_details."""
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[2]], "output": [[4]]}],
+        }
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2
+"""
+
+        result = calculate_fitness(str(task_file), solver_code)
+
+        assert len(result["error_details"]) == 0
+        assert len(result["error_summary"]) == 0
+        assert result["fitness"] == 11  # 1*1 + 1*10

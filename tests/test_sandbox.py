@@ -32,7 +32,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         input_grid = np.array([[1, 2], [3, 4]])
         expected_output = np.array([[2, 3], [4, 5]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
@@ -50,14 +50,14 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         input_grid = np.array([[1, 2, 3], [4, 5, 6]])
         expected_output = np.array([[2, 8], [4, 10], [6, 12]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
         assert np.array_equal(result, expected_output)
 
     def test_return_format(self):
-        """Verify return format is (bool, Optional[np.ndarray])."""
+        """Verify return format is (bool, Optional[np.ndarray], Optional[dict])."""
         solver_code = """
 import numpy as np
 
@@ -69,9 +69,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         result = safe_execute(solver_code, input_grid)
 
         assert isinstance(result, tuple)
-        assert len(result) == 2
+        assert len(result) == 3
         assert isinstance(result[0], bool)
         assert result[1] is None or isinstance(result[1], np.ndarray)
+        assert result[2] is None or isinstance(result[2], dict)
 
 
 class TestTimeoutEnforcement:
@@ -90,7 +91,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid, timeout=2)
+        success, result, _ = safe_execute(solver_code, input_grid, timeout=2)
 
         assert success is False
         assert result is None
@@ -108,12 +109,12 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         input_grid = np.array([[1]])
 
         # Should timeout with 1 second
-        success, result = safe_execute(solver_code, input_grid, timeout=1)
+        success, result, _ = safe_execute(solver_code, input_grid, timeout=1)
         assert success is False
         assert result is None
 
         # Should succeed with 5 seconds
-        success, result = safe_execute(solver_code, input_grid, timeout=5)
+        success, result, _ = safe_execute(solver_code, input_grid, timeout=5)
         assert success is True
         assert result is not None
 
@@ -133,7 +134,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -149,7 +150,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1, 2], [3, 4]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -165,7 +166,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -184,7 +185,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -199,7 +200,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -214,7 +215,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -233,7 +234,7 @@ def other_function():
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -248,7 +249,7 @@ def solve():  # Missing parameter
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is False
         assert result is None
@@ -293,7 +294,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         # Simple 3x3 input with diagonal pattern
         input_grid = np.array([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
@@ -315,7 +316,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         input_grid = np.ones((30, 30), dtype=int)
         expected_output = np.full((30, 30), 5, dtype=int)
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
@@ -336,7 +337,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         # Should fail due to eval not being available
         assert success is False
@@ -353,7 +354,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         # Should fail due to exec not being available
         assert success is False
@@ -370,7 +371,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         # Should fail due to compile not being available
         assert success is False
@@ -389,7 +390,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         # Should fail - the imported builtins module should also be restricted
         assert success is False
@@ -419,7 +420,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 
         # This test documents the limitation - it will succeed
         # because multiprocessing doesn't prevent file I/O
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         # Clean up test file if it exists
         with contextlib.suppress(OSError):
@@ -442,7 +443,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[]]).reshape(0, 0)
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
@@ -458,7 +459,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[5]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
@@ -475,8 +476,167 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 """
         input_grid = np.array([[1, 2], [3, 4]])
 
-        success, result = safe_execute(solver_code, input_grid)
+        success, result, _ = safe_execute(solver_code, input_grid)
 
         assert success is True
         assert result is not None
         assert result.shape == (5, 5)
+
+
+class TestErrorDetails:
+    """Tests for structured error details (Phase 1.2)."""
+
+    def test_syntax_error_returns_error_detail(self):
+        """Test that syntax errors return structured error details."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray
+    # Missing colon after function signature
+    return task_grid + 1
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "syntax"
+        assert error_detail["exception_class"] == "SyntaxError"
+        assert "syntax" in error_detail["error_message"].lower()
+
+    def test_runtime_error_returns_error_detail(self):
+        """Test that runtime errors return structured error details."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # TypeError: wrong operand types
+    return task_grid + "invalid"
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "runtime"
+        assert error_detail["exception_class"] == "TypeError"
+        assert len(error_detail["error_message"]) > 0
+
+    def test_timeout_returns_error_detail(self):
+        """Test that timeout returns structured error details."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    while True:
+        pass
+    return task_grid
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid, timeout=1)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "timeout"
+        assert error_detail["exception_class"] is None
+        assert "timeout" in error_detail["error_message"].lower()
+
+    def test_validation_error_missing_solve(self):
+        """Test validation error when solve() function is missing."""
+        solver_code = """
+import numpy as np
+
+def wrong_function_name(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid + 1
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "validation"
+        assert "solve()" in error_detail["error_message"]
+
+    def test_validation_error_wrong_return_type(self):
+        """Test validation error when return type is wrong."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Return list instead of np.ndarray
+    return [[1, 2], [3, 4]]
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "validation"
+        assert "return type" in error_detail["error_message"].lower()
+
+    def test_successful_execution_returns_none_error(self):
+        """Test that successful execution returns None for error_detail."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid + 1
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is True
+        assert result is not None
+        assert error_detail is None
+
+    def test_error_detail_serializable_through_queue(self):
+        """Test that error details can be serialized through multiprocessing.Queue."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # Cause a ZeroDivisionError
+    x = 1 / 0
+    return task_grid
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert isinstance(error_detail, dict)
+        assert "error_type" in error_detail
+        assert "error_message" in error_detail
+        assert "exception_class" in error_detail
+
+    def test_index_error_returns_runtime_detail(self):
+        """Test that IndexError is classified as runtime error."""
+        solver_code = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    # IndexError: out of bounds
+    return task_grid[100, 100]
+"""
+        input_grid = np.array([[1, 2], [3, 4]])
+
+        success, result, error_detail = safe_execute(solver_code, input_grid)
+
+        assert success is False
+        assert result is None
+        assert error_detail is not None
+        assert error_detail["error_type"] == "runtime"
+        assert error_detail["exception_class"] == "IndexError"
