@@ -63,9 +63,7 @@ def load_benchmark_results(results_dir: str) -> dict:
     }
 
 
-def generate_markdown_report(
-    results: dict, compare_results: dict | None = None
-) -> str:
+def generate_markdown_report(results: dict, compare_results: dict | None = None) -> str:
     """Generate markdown report from benchmark results.
 
     Args:
@@ -101,9 +99,7 @@ def generate_markdown_report(
     md.append(f"- **Total Tasks**: {summary.get('total_tasks', 0)}")
     md.append(f"- **Successful**: {summary.get('successful_tasks', 0)}")
     md.append(f"- **Failed**: {summary.get('failed_tasks', 0)}")
-    md.append(
-        f"- **Success Rate**: {summary.get('success_rate', 0) * 100:.1f}%"
-    )
+    md.append(f"- **Success Rate**: {summary.get('success_rate', 0) * 100:.1f}%")
     md.append("")
 
     if summary.get("successful_tasks", 0) > 0:
@@ -115,9 +111,7 @@ def generate_markdown_report(
 
         md.append("### Evolution Metrics")
         md.append("")
-        md.append(
-            f"- **Avg Generations**: {summary.get('avg_generations', 0):.2f}"
-        )
+        md.append(f"- **Avg Generations**: {summary.get('avg_generations', 0):.2f}")
         md.append(
             f"- **Avg Time per Task**: {summary.get('avg_time_per_task', 0):.1f}s"
         )
@@ -127,9 +121,7 @@ def generate_markdown_report(
         if summary.get("error_distribution"):
             md.append("### Error Distribution")
             md.append("")
-            for error_type, count in sorted(
-                summary["error_distribution"].items()
-            ):
+            for error_type, count in sorted(summary["error_distribution"].items()):
                 md.append(f"- **{error_type}**: {count}")
             md.append("")
 
@@ -176,7 +168,7 @@ def generate_markdown_report(
         sr2 = comp_summary.get("success_rate", 0)
         diff_sr = (sr1 - sr2) * 100
         md.append(
-            f"| Success Rate | {sr1*100:.1f}% | {sr2*100:.1f}% | {diff_sr:+.1f}% |"
+            f"| Success Rate | {sr1 * 100:.1f}% | {sr2 * 100:.1f}% | {diff_sr:+.1f}% |"
         )
 
         # Average fitness
@@ -184,9 +176,7 @@ def generate_markdown_report(
             af1 = summary.get("avg_final_fitness", 0)
             af2 = comp_summary.get("avg_final_fitness", 0)
             diff_af = af1 - af2
-            md.append(
-                f"| Avg Fitness | {af1:.2f} | {af2:.2f} | {diff_af:+.2f} |"
-            )
+            md.append(f"| Avg Fitness | {af1:.2f} | {af2:.2f} | {diff_af:+.2f} |")
 
             # Avg time
             at1 = summary.get("avg_time_per_task", 0)
