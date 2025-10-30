@@ -173,7 +173,10 @@ def run_evolution_loop(
             print("\n📊 Evaluating fitness...")
 
         fitness_result = calculate_fitness(
-            task_json_path, current_code, timeout=timeout_per_eval, sandbox_mode=sandbox_mode
+            task_json_path,
+            current_code,
+            timeout=timeout_per_eval,
+            sandbox_mode=sandbox_mode,
         )
 
         current_fitness = fitness_result["fitness"]
