@@ -1,5 +1,9 @@
 """Safe execution sandbox for untrusted LLM-generated solver code.
 
+This module provides backward-compatible sandbox execution using the
+MultiprocessSandbox class. For production use, consider DockerSandbox
+with enhanced security.
+
 Provides isolated execution environment using multiprocessing with:
 - Process isolation (separate memory space)
 - Timeout enforcement
@@ -10,7 +14,7 @@ Provides isolated execution environment using multiprocessing with:
 IMPORTANT SECURITY LIMITATIONS:
 - Multiprocessing does NOT prevent filesystem access
 - Multiprocessing does NOT prevent network access
-- For production use, consider Docker with:
+- For production use, use DockerSandbox with:
   - Read-only filesystem
   - Network disabled
   - Resource limits (CPU, memory)
@@ -157,10 +161,123 @@ def _worker_execute(code_str: str, task_grid: np.ndarray, result_queue: Queue) -
         result_queue.put((False, None, error_detail))
 
 
+class MultiprocessSandbox:
+    """
+    Multiprocessing-based execution sandbox.
+
+    Provides process isolation with restricted builtins but limited security.
+    For production use, prefer DockerSandbox for enhanced security.
+
+    Security Features:
+        - Process isolation (separate memory space)
+        - Timeout enforcement
+        - Restricted builtins (no eval, exec, compile, open)
+        - Builtins bypass prevention
+
+    Security Limitations:
+        - Does NOT prevent filesystem access
+        - Does NOT prevent network access
+        - No CPU/memory limits
+
+    Example:
+        >>> sandbox = MultiprocessSandbox()
+        >>> code = "def solve(grid): return grid * 2"
+        >>> grid = np.array([[1, 2]], dtype=np.int64)
+        >>> success, result, error = sandbox.execute(code, grid, timeout=5)
+    """
+
+    def execute(
+        self,
+        solver_code: str,
+        task_grid: np.ndarray,
+        timeout: int,
+    ) -> tuple[bool, np.ndarray | None, dict[str, Any] | None]:
+        """
+        Execute solver code in isolated multiprocessing environment.
+
+        Args:
+            solver_code: Python code containing solve() function
+            task_grid: Input grid as numpy array
+            timeout: Maximum execution time in seconds
+
+        Returns:
+            Tuple of (success, result_grid, error_detail):
+            - (True, result_grid, None) on success
+            - (False, None, error_detail) on failure
+
+        Example:
+            >>> sandbox = MultiprocessSandbox()
+            >>> success, result, error = sandbox.execute(code, grid, 5)
+            >>> if success:
+            ...     print(f"Result shape: {result.shape}")
+        """
+        # Create queue for inter-process communication
+        result_queue: Queue = mp.Queue()
+
+        # Create and start worker process
+        process = mp.Process(
+            target=_worker_execute, args=(solver_code, task_grid, result_queue)
+        )
+        process.start()
+
+        # Wait for process to complete with timeout
+        process.join(timeout=timeout)
+
+        # Check if process is still running (timeout occurred)
+        if process.is_alive():
+            # Timeout - terminate the process
+            process.terminate()
+            process.join(timeout=1)  # Wait for termination
+
+            # Force kill if still alive
+            if process.is_alive():
+                process.kill()
+                process.join()
+
+            # Return timeout error detail
+            from ..evolutionary_engine.error_classifier import ErrorType
+
+            error_detail = {
+                "error_type": ErrorType.TIMEOUT,
+                "error_message": f"Execution exceeded {timeout}s timeout",
+                "exception_class": None,
+            }
+            return (False, None, error_detail)
+
+        # Process completed - check for results using get_nowait()
+        # empty() is unreliable due to multiprocessing race conditions
+        try:
+            success, result, error_detail = result_queue.get_nowait()
+            if success:
+                return (True, result, None)
+            else:
+                # Error occurred during execution - log to stderr for debugging
+                import sys
+
+                if error_detail and "error_message" in error_detail:
+                    print(
+                        f"Sandbox execution error: {error_detail['error_message']}",
+                        file=sys.stderr,
+                    )
+                return (False, None, error_detail)
+        except queue.Empty:
+            # No result in queue (unexpected) - process may have crashed
+            from ..evolutionary_engine.error_classifier import ErrorType
+
+            error_detail = {
+                "error_type": ErrorType.RUNTIME,
+                "error_message": "Process crashed unexpectedly (no result in queue)",
+                "exception_class": None,
+            }
+            return (False, None, error_detail)
+
+
 def safe_execute(
     solver_code: str, task_grid: np.ndarray, timeout: int = 5
 ) -> tuple[bool, np.ndarray | None, dict[str, Any] | None]:
     """Execute LLM-generated solver code safely in isolated process.
+
+    Backward-compatible wrapper around MultiprocessSandbox.execute().
 
     Runs untrusted code in a separate process with:
     - Timeout enforcement
@@ -193,7 +310,7 @@ def safe_execute(
         - Error messages logged to stderr for debugging
         - LIMITATION: Does not prevent filesystem/network access
           (multiprocessing isolation is not a security sandbox)
-        - For production: Use Docker with read-only filesystem and network disabled
+        - For production: Use DockerSandbox with read-only filesystem and network disabled
 
     Examples:
         >>> solver_code = '''
@@ -226,62 +343,5 @@ def safe_execute(
         >>> error_detail is not None
         True
     """
-    # Create queue for inter-process communication
-    result_queue: Queue = mp.Queue()
-
-    # Create and start worker process
-    process = mp.Process(
-        target=_worker_execute, args=(solver_code, task_grid, result_queue)
-    )
-    process.start()
-
-    # Wait for process to complete with timeout
-    process.join(timeout=timeout)
-
-    # Check if process is still running (timeout occurred)
-    if process.is_alive():
-        # Timeout - terminate the process
-        process.terminate()
-        process.join(timeout=1)  # Wait for termination
-
-        # Force kill if still alive
-        if process.is_alive():
-            process.kill()
-            process.join()
-
-        # Return timeout error detail
-        from ..evolutionary_engine.error_classifier import ErrorType
-
-        error_detail = {
-            "error_type": ErrorType.TIMEOUT,
-            "error_message": f"Execution exceeded {timeout}s timeout",
-            "exception_class": None,
-        }
-        return (False, None, error_detail)
-
-    # Process completed - check for results using get_nowait() instead of empty()
-    # empty() is unreliable due to multiprocessing race conditions
-    try:
-        success, result, error_detail = result_queue.get_nowait()
-        if success:
-            return (True, result, None)
-        else:
-            # Error occurred during execution - log to stderr for debugging
-            import sys
-
-            if error_detail and "error_message" in error_detail:
-                print(
-                    f"Sandbox execution error: {error_detail['error_message']}",
-                    file=sys.stderr,
-                )
-            return (False, None, error_detail)
-    except queue.Empty:
-        # No result in queue (unexpected) - process may have crashed
-        from ..evolutionary_engine.error_classifier import ErrorType
-
-        error_detail = {
-            "error_type": ErrorType.RUNTIME,
-            "error_message": "Process crashed unexpectedly (no result in queue)",
-            "exception_class": None,
-        }
-        return (False, None, error_detail)
+    sandbox = MultiprocessSandbox()
+    return sandbox.execute(solver_code, task_grid, timeout)
