@@ -202,8 +202,9 @@ results/{experiment_name}/
 
 **Phase 2 Baseline Results** (October 30, 2025):
 - **Tasks**: 15 diverse ARC tasks
-- **Success Rate**: 100% (no crashes)
-- **Average Fitness**: 0.33 (only 20% of tasks achieved fitness > 0)
+- **Execution Stability**: 100% (no crashes or timeouts)
+- **Solution Quality**: 20% of tasks (3/15) achieved meaningful fitness > 0
+- **Average Fitness**: 0.33 across all tasks
 - **Key Finding**: System is stable but Programmer/Refiner need improvement
 - **Full Report**: [docs/benchmarks/phase2_findings.md](docs/benchmarks/phase2_findings.md)
 
@@ -238,7 +239,7 @@ arc_prometheus/
 │   │   └── evolution_loop.py # (Phase 2.3) Evolution loop ✅
 │   └── utils/
 │       └── config.py       # Configuration management
-├── tests/                  # Test suite (127 tests passing)
+├── tests/                  # Test suite (267 tests passing)
 ├── scripts/                # Demo and utility scripts
 ├── data/                   # ARC dataset (gitignored)
 └── plan_20251024.md       # Detailed implementation plan
