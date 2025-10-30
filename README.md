@@ -6,15 +6,30 @@ ARC-Prometheus is an ambitious project that simulates how human scientists solve
 
 ## 🎯 Project Vision
 
-Modern deep learning fails at ARC because it requires millions of examples, while ARC provides only ~3 training examples per task. This project takes a fundamentally different approach:
+**We are not building an ARC solver. We are building an AI civilization.**
 
-- **The Crucible (るつぼ)**: Sandbox environment for safe code execution and validation
-- **The Cognitive Cells (認知的細胞)**: Specialized LLM agent teams (Analyst, Programmer, Refiner, Tagger)
-- **The Evolutionary Engine (進化的エンジン)**: Evolution mechanisms (Mutation, Crossover, Fitness Function)
+Modern deep learning fails at ARC because it requires millions of examples, while ARC provides only ~3 training examples per task. This project takes a fundamentally different approach: instead of building a single "super-intelligent" AI, we're creating an **ecosystem of specialized LLM agents** that collaborate, experiment, and evolve solutions like a scientific community.
+
+### The Three Pillars
+
+- **The Crucible (るつぼ)**: Sandbox environment where AI-generated solvers are tested against ARC puzzles
+- **The Cognitive Cells (認知的細胞)**: Specialized LLM agent teams working like human researchers:
+  - **Analyst**: Analyzes patterns and infers transformation rules
+  - **Programmer**: Generates Python solver code from specifications
+  - **Refiner**: Debugs and improves failed solutions (mutation)
+  - **Tagger**: Classifies solver techniques (rotation, fill, symmetry...)
+  - **Crossover**: Fuses capabilities from different solvers
+- **The Evolutionary Engine (進化的エンジン)**: Natural selection through:
+  - **Fitness Function**: Prioritizes generalization over memorization (10x weight on test accuracy)
+  - **Mutation**: Refiner improves individual solvers
+  - **Crossover**: Combines techniques from multiple solvers
+  - **Population Dynamics**: Many solvers evolving together, competing and breeding
 
 ### Why This Matters
 
 ARC Prize tests **abstraction and reasoning** - the ability to learn underlying transformation rules from just 3 examples and apply them to never-before-seen problems. This is the essence of human intelligence and a critical step toward AGI.
+
+**Our hypothesis**: A diverse community of specialized agents evolving together can achieve emergent intelligence that surpasses single-model approaches. The ARC Prize 2025 competition serves as our testbed to validate this hypothesis.
 
 **Current Status**: Phase 1.1 Complete ✅
 - Data loading and visualization
@@ -422,20 +437,31 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Current Leaders** (October 2025):
 - 🥇 **J. Berman**: 29.4% at $30.40/task - Instruction generation + nested LLM calls
-- 🥈 **E. Pang**: 26.0% at $3.97/task - **Code + Program Library** (DreamCoder-inspired)
+- 🥈 **E. Pang**: 26.0% at $3.97/task - Code + Program Library (DreamCoder-inspired)
 - 🥉 **GPT-5 Pro**: 18.3% at $7.14/task - Pure CoT reasoning
 - **Claude Sonnet 4.5**: 13.6% at $0.759/task - Extended thinking
 - **Gemini 2.5 Pro**: 4.9% at $0.767/task - Our base model's cousin
 - **Humans**: 60% average (100% at $17/task)
 - **Competition Target**: 85% at $0.42/task
 
-**Critical Insight**: E. Pang's 26% approach uses:
-1. ✅ Python code generation (like us!)
-2. ✅ **Program library** with cross-task learning
-3. ✅ Score-weighted sampling for 2 diverse attempts (pass@2)
-4. ✅ Shows output differences in prompts (like our error details)
+**How We Differ from Top Approaches**:
 
-**Our Gap**: Missing pass@2 support and program library for cross-task learning.
+| Approach | J. Berman (29.4%) | E. Pang (26.0%) | **ARC-Prometheus** |
+|----------|-------------------|-----------------|-------------------|
+| **Architecture** | Single LLM | Single LLM + Library | **Multi-agent ecosystem** |
+| **Code Generation** | ❌ (Instructions) | ✅ Python | ✅ Python |
+| **Learning** | Iterative refinement | Pattern reuse | **Genetic evolution** |
+| **Collaboration** | ❌ Monolithic | ❌ Single agent | ✅ **Analyst + Programmer + Refiner** |
+| **Innovation** | Template variations | Library lookup | **Crossover (technique fusion)** |
+| **Novel Problems** | Limited | Relies on similar patterns | **Emergent problem-solving** |
+
+**Our Unique Advantages**:
+- **Specialized Agents**: Analyst understands patterns abstractly (not just code matching)
+- **Crossover**: Can invent solutions by fusing techniques that never appeared together
+- **Population Dynamics**: Multiple hypotheses evolving simultaneously
+- **Emergent Intelligence**: Novel capabilities from agent interaction
+
+**What We're Validating**: Can a multi-agent civilization outperform single-agent systems?
 
 #### Competition Requirements Analysis
 
@@ -465,9 +491,9 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 #### Next Priority Tasks
 
-**Strategy Pivot**: Leaderboard analysis reveals E. Pang's winning approach perfectly aligns with our Phase 3 plan! But we have critical evaluation gaps first.
+**Philosophy**: We're building an AI civilization, not chasing leaderboard scores. The competition validates our hypothesis: can multi-agent evolution outperform single-agent approaches?
 
-**Phase 2.5: Critical Kaggle Requirements** (Week 1-2) ⚡ BLOCKS SUBMISSION:
+**Phase 2.5: Competition Compatibility** (Week 1-2) - Technical fixes only, architecture stays intact:
 
 1. **Fix Data Pipeline** ⭐ CRITICAL (1 day)
    - **Why**: Using WRONG data files - training_challenges has no test outputs by design
@@ -509,24 +535,39 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - **Decision Point**: If >10% → proceed Phase 3, if <5% → debug Programmer
    - **Timeline**: Final submission deadline November 3, 2025 ⏰
 
-**Phase 3: E. Pang's Library Strategy** (Week 3-5) 📚:
+**Phase 3: Complete the AI Civilization** (Week 3-5) 🧬 - Original vision:
 
-5. **Program Library + Cross-Task Learning** (3-4 days)
-   - **Why**: E. Pang's 26% proves library >> prompt engineering
+5. **Analyst Agent** (2-3 days)
+   - **Why**: Separates pattern understanding from code generation
    - **Approach**:
-     - SQLite storage for successful solvers (originally planned!)
-     - Score-weighted retrieval (softmax sampling like E. Pang)
-     - Library-augmented prompts: "Here are solvers from similar tasks..."
-     - Build library from training set (400+ tasks)
-   - **Impact**: Cross-task knowledge transfer (E. Pang's key advantage)
+     - Analyzes task examples to infer transformation rules
+     - Generates natural language specification
+     - Feeds spec to Programmer (collaboration!)
+   - **Impact**: Abstracts reasoning from implementation
 
-6. **Tagger for Similarity Retrieval** (2-3 days)
-   - **Why**: Query library for relevant patterns
+6. **Tagger Agent** (2 days)
+   - **Why**: Enables technique-based crossover
    - **Approach**:
-     - LLM tags techniques (rotation, fill, symmetry, pattern_matching)
-     - Retrieve 2-3 most relevant programs per task
-     - Include in Programmer/Refiner prompts
-   - **Dependencies**: Program library (Task 5)
+     - Classifies successful solvers by technique (rotation, fill, symmetry, pattern_matching)
+     - Tags stored in solver library
+   - **Impact**: Query "Find solvers using rotation + color fill"
+
+7. **Crossover Agent** (3-4 days)
+   - **Why**: The missing piece - genetic recombination!
+   - **Approach**:
+     - Select 2 solvers with complementary techniques (via tags)
+     - LLM prompt: "Fuse these capabilities into a more general solver"
+     - Test offspring against both parent tasks
+   - **Impact**: Create solutions that didn't exist in training data
+
+8. **Population-Based Evolution** (2-3 days)
+   - **Why**: Move from single-lineage to true genetic algorithm
+   - **Approach**:
+     - Solver library (SQLite) stores population with fitness scores
+     - Selection: Tournament or roulette wheel based on fitness
+     - Breeding: Crossover between high-fitness parents
+     - Mutation: Refiner improves offspring
+   - **Impact**: Parallel exploration of solution space
 
 #### Known Issues / Blockers
 - ✅ **RESOLVED - Security**: Docker Sandbox now available for production-grade security
@@ -537,10 +578,12 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 #### Session Learnings (Most Recent)
 
-**From Competitive Analysis - October 31, 2025**:
-- **Validate Against Competition Metric FIRST**: PR #31 benchmarked training data without test outputs → measured memorization not generalization. Always check: What metric? What dataset? What's the submission format?
-- **Leaderboard Analysis Before Strategy**: E. Pang's 26% uses program library + pass@2 (exactly our Phase 3 plan!). Top approaches guide architecture choices better than intuition.
-- **pass@2 Requirement**: Kaggle requires 2 diverse attempts per test. Score = 1 if either matches ground truth. Must implement before any submission.
+**From Competitive Analysis & Philosophy Clarification - October 31, 2025**:
+- **Competition as Testbed, Not Goal**: We're building an AI civilization to validate multi-agent evolution. Competition provides benchmarks and constraints, but doesn't dictate architecture. Chasing leaderboard rankings = cart before the horse.
+- **Multi-Agent vs Single-Agent**: Top performers (J. Berman, E. Pang) are single-agent systems with clever tricks. Our hypothesis: specialized agents (Analyst, Programmer, Refiner, Tagger, Crossover) + genetic evolution = emergent intelligence that surpasses single models.
+- **Crossover as Key Differentiator**: E. Pang uses library lookup (pattern matching). We use Crossover (technique fusion) - can invent solutions by combining capabilities that never appeared together. This is true genetic innovation.
+- **Validate Against Competition Metric**: PR #31 benchmarked training data without test outputs → measured memorization not generalization. Always check: What metric? What dataset? What's the submission format?
+- **pass@2 Requirement**: Kaggle requires 2 diverse attempts per test. Score = 1 if either matches ground truth. Must implement for submission compatibility.
 
 **From PR #31 (Benchmarking) - October 31, 2025**:
 - **Iterative Multi-Review PR Workflow**: Address Critical → High → Medium → Low priority systematically. Quick wins (5-10min) build reviewer trust and prevent follow-up reviews
