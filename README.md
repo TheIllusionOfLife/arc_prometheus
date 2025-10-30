@@ -437,55 +437,96 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Our Gap**: Missing pass@2 support and program library for cross-task learning.
 
+#### Competition Requirements Analysis
+
+**Critical Findings from Official Rules**:
+
+1. **Data Split** (Competition uses 3 separate datasets):
+   - Training: 400+ tasks with solutions (for development)
+   - Evaluation: 100 tasks with solutions (for validation)
+   - Test: **240 hidden tasks** without solutions (for leaderboard)
+
+2. **Runtime Constraint**: 12-hour hard limit for 240 tasks
+   - Our current: ~2 min/task × 240 = 8 hours ✅ (4-hour buffer)
+   - Risk: Library lookups and multi-test tasks could add overhead
+
+3. **Variable Test Inputs**: Most tasks have 1 test input, some have 2
+   - Must handle dynamic number of test inputs per task
+   - Format: `[{"attempt_1": [...], "attempt_2": [...]}, {...}]` (array of predictions)
+
+4. **External Resources Allowed**: Pre-trained models and external data permitted
+   - Could fine-tune on training set (400+ tasks)
+   - Could use vision models for grid analysis
+   - Could pre-compute pattern libraries offline
+
+5. **Open Source Mandatory**: Must open-source to win prizes ✅ (already compliant)
+
+6. **Timeline**: Final submission deadline **November 3, 2025** ⏰
+
 #### Next Priority Tasks
 
 **Strategy Pivot**: Leaderboard analysis reveals E. Pang's winning approach perfectly aligns with our Phase 3 plan! But we have critical evaluation gaps first.
 
 **Phase 2.5: Critical Kaggle Requirements** (Week 1-2) ⚡ BLOCKS SUBMISSION:
 
-1. **Implement pass@2 Output** ⭐ CRITICAL (2-3 days)
+1. **Fix Data Pipeline** ⭐ CRITICAL (1 day)
+   - **Why**: Using WRONG data files - training_challenges has no test outputs by design
+   - **Currently**: PR #31 benchmarked training set (can't measure test performance)
+   - **Correct Setup**:
+     - Development: `training_challenges.json` + `training_solutions.json` (400+ tasks)
+     - Validation: `evaluation_challenges.json` + `evaluation_solutions.json` (100 tasks)
+     - Submission: `test_challenges.json` (240 hidden tasks, no solutions)
+   - **Success**: Benchmark on evaluation set with proper test outputs
+
+2. **Implement pass@2 Output** ⭐ CRITICAL (2-3 days)
    - **Why**: Kaggle requires 2 attempts per test input (pass@2 metric)
    - **Currently**: We generate 1 output, cannot submit to competition
+   - **Challenges**:
+     - Handle variable test inputs per task (most have 1, some have 2)
+     - Generate 2 diverse attempts per test input
+     - Format: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}`
    - **Approach**:
-     - Generate 2 diverse attempts with temperature/prompt variation
-     - Output `submission.json` format: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}`
-     - Implement diversity penalty or sample from generation history
-   - **Success**: Can submit to Kaggle public leaderboard
+     - Run evolution loop twice with temperature variation (0.3 and 0.5)
+     - Or sample from generation history with diversity penalty
+   - **Success**: Can generate valid submission.json for 240 tasks
 
-2. **Fix Benchmark Evaluation** ⭐ CRITICAL (1 day)
-   - **Why**: PR #31 benchmarked training data WITHOUT test outputs
-   - **Currently**: Our "20%" measured train memorization, NOT generalization
+3. **Runtime Optimization** ⚠️ IMPORTANT (1 day)
+   - **Why**: 12-hour hard limit for 240 tasks (3 min/task average)
+   - **Currently**: ~2 min/task (5 generations) ✅ under budget
+   - **Risks**: Library lookups, multiple test inputs could push over limit
    - **Approach**:
-     - Merge `training_challenges.json` + `training_solutions.json`
-     - Properly evaluate train→test generalization
-     - Measure actual pass@2 score on test examples
-   - **Success**: Know if we're at 5% or 25% on actual test performance
+     - Profile bottlenecks (LLM calls, sandbox execution)
+     - Add timeout safeguards per task (max 5 minutes)
+     - Implement early stopping if approaching 12-hour limit
+   - **Success**: Complete 240-task submission in <11 hours (buffer)
 
-3. **Baseline Kaggle Submission** ⭐ HIGH (1 day)
+4. **Baseline Kaggle Submission** ⭐ HIGH (1 day)
    - **Why**: Ground truth on competitiveness vs SOTA
    - **Approach**:
-     - Submit current system to public leaderboard
+     - Submit current system to public leaderboard (evaluation set first)
+     - Measure actual pass@2 performance on 100 validation tasks
      - Compare against Claude (13.6%), Gemini (4.9%)
-     - Adjust Phase 3 strategy based on actual score
    - **Decision Point**: If >10% → proceed Phase 3, if <5% → debug Programmer
+   - **Timeline**: Final submission deadline November 3, 2025 ⏰
 
 **Phase 3: E. Pang's Library Strategy** (Week 3-5) 📚:
 
-4. **Program Library + Cross-Task Learning** (3-4 days)
+5. **Program Library + Cross-Task Learning** (3-4 days)
    - **Why**: E. Pang's 26% proves library >> prompt engineering
    - **Approach**:
      - SQLite storage for successful solvers (originally planned!)
      - Score-weighted retrieval (softmax sampling like E. Pang)
      - Library-augmented prompts: "Here are solvers from similar tasks..."
+     - Build library from training set (400+ tasks)
    - **Impact**: Cross-task knowledge transfer (E. Pang's key advantage)
 
-5. **Tagger for Similarity Retrieval** (2-3 days)
+6. **Tagger for Similarity Retrieval** (2-3 days)
    - **Why**: Query library for relevant patterns
    - **Approach**:
      - LLM tags techniques (rotation, fill, symmetry, pattern_matching)
      - Retrieve 2-3 most relevant programs per task
      - Include in Programmer/Refiner prompts
-   - **Dependencies**: Program library (Task 4)
+   - **Dependencies**: Program library (Task 5)
 
 #### Known Issues / Blockers
 - ✅ **RESOLVED - Security**: Docker Sandbox now available for production-grade security
