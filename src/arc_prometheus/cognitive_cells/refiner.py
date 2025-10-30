@@ -106,7 +106,9 @@ def refine_solver(
     error_type = classify_error(fitness_result)
 
     # Create refiner prompt with failure analysis and error classification
-    prompt = create_refiner_prompt(failed_code, task_data, fitness_result, error_type=error_type)
+    prompt = create_refiner_prompt(
+        failed_code, task_data, fitness_result, error_type=error_type
+    )
 
     # Check cache if enabled
     if use_cache:

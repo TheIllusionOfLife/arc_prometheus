@@ -246,13 +246,15 @@ def create_refiner_prompt(
         prompt_parts.append(get_debugging_strategy(error_type))
     else:
         # Fallback: show all strategies
-        prompt_parts.extend([
-            "1. Identify the root cause of failure:",
-            "   - Syntax errors (missing colons, parentheses, indentation)",
-            "   - Runtime errors (division by zero, index out of bounds, type mismatches)",
-            "   - Logic errors (wrong algorithm, incorrect transformations)",
-            "   - Performance issues (infinite loops, excessive computation)",
-        ])
+        prompt_parts.extend(
+            [
+                "1. Identify the root cause of failure:",
+                "   - Syntax errors (missing colons, parentheses, indentation)",
+                "   - Runtime errors (division by zero, index out of bounds, type mismatches)",
+                "   - Logic errors (wrong algorithm, incorrect transformations)",
+                "   - Performance issues (infinite loops, excessive computation)",
+            ]
+        )
 
     # Requirements (always show)
     prompt_parts.extend(

@@ -26,7 +26,13 @@ class TestErrorType:
 
     def test_error_type_membership(self):
         """Test that all error types are valid enum members."""
-        valid_types = {ErrorType.SYNTAX, ErrorType.RUNTIME, ErrorType.TIMEOUT, ErrorType.LOGIC, ErrorType.VALIDATION}
+        valid_types = {
+            ErrorType.SYNTAX,
+            ErrorType.RUNTIME,
+            ErrorType.TIMEOUT,
+            ErrorType.LOGIC,
+            ErrorType.VALIDATION,
+        }
         assert len(valid_types) == 5
 
     def test_error_type_string_conversion(self):
@@ -202,7 +208,11 @@ class TestClassifyError:
             "test_total": 1,
             "train_accuracy": 0.0,
             "test_accuracy": 0.0,
-            "execution_errors": ["Train example 0: timeout", "Train example 1: timeout", "Train example 2: runtime"],
+            "execution_errors": [
+                "Train example 0: timeout",
+                "Train example 1: timeout",
+                "Train example 2: runtime",
+            ],
             "error_details": [
                 {
                     "example_id": "train_0",

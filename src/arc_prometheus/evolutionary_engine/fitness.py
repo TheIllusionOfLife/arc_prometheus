@@ -51,7 +51,9 @@ def _evaluate_single_example(
                 f"{example_type.capitalize()} example {idx}: {error_detail.get('error_type', 'unknown')}"
             )
         else:
-            execution_errors.append(f"{example_type.capitalize()} example {idx}: Execution failed")
+            execution_errors.append(
+                f"{example_type.capitalize()} example {idx}: Execution failed"
+            )
         return False
 
     # Compare result with expected output
@@ -158,7 +160,13 @@ def calculate_fitness(
 
             train_total += 1
             if _evaluate_single_example(
-                solver_code, example, idx, "train", timeout, execution_errors, error_details
+                solver_code,
+                example,
+                idx,
+                "train",
+                timeout,
+                execution_errors,
+                error_details,
             ):
                 train_correct += 1
 
@@ -172,7 +180,13 @@ def calculate_fitness(
 
             test_total += 1
             if _evaluate_single_example(
-                solver_code, example, idx, "test", timeout, execution_errors, error_details
+                solver_code,
+                example,
+                idx,
+                "test",
+                timeout,
+                execution_errors,
+                error_details,
             ):
                 test_correct += 1
 
@@ -195,7 +209,9 @@ def calculate_fitness(
     # Aggregate error types using Counter
     error_summary: dict[str, int] = dict(
         Counter(
-            detail["error_type"].value if isinstance(detail["error_type"], ErrorType) else str(detail["error_type"])
+            detail["error_type"].value
+            if isinstance(detail["error_type"], ErrorType)
+            else str(detail["error_type"])
             for detail in error_details
         )
     )
