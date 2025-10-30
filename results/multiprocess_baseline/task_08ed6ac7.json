@@ -1,0 +1,116 @@
+{
+  "task_id": "08ed6ac7",
+  "success": true,
+  "timestamp": "2025-10-30T08:40:29.755140+00:00",
+  "config": {
+    "max_generations": 5,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": false
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by identifying contiguous regions of the color 5\n    and assigning sequential integer labels to these regions.\n    \"\"\"\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.zeros_like(task_grid, dtype=int)\n    visited = np.zeros_like(task_grid, dtype=bool)\n    label_counter = 1\n\n    # Define the four cardinal directions for BFS\n    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]\n\n    for r in range(rows):\n        for c in range(cols):\n            # If we find an unvisited cell with color 5, start a new region\n            if task_grid[r, c] == 5 and not visited[r, c]:\n                queue = [(r, c)]\n                visited[r, c] = True\n                output_grid[r, c] = label_counter\n\n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n\n                    # Explore neighbors\n                    for dr, dc in directions:\n                        nr, nc = curr_r + dr, curr_c + dc\n\n                        # Check if the neighbor is within bounds, has color 5, and is unvisited\n                        if 0 <= nr < rows and 0 <= nc < cols and task_grid[nr, nc] == 5 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            output_grid[nr, nc] = label_counter\n                            queue.append((nr, nc))\n                label_counter += 1\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 2,
+        "train_correct": 2,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [],
+        "error_summary": {}
+      },
+      "refinement_count": 0,
+      "total_time": 2.3496499061584473,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by identifying contiguous regions of the color 5\n    and assigning sequential integer labels to these regions.\n    \"\"\"\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.zeros_like(task_grid, dtype=int)\n    visited = np.zeros_like(task_grid, dtype=bool)\n    label_counter = 1\n\n    # Define the four cardinal directions for BFS\n    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]\n\n    for r in range(rows):\n        for c in range(cols):\n            # If we find an unvisited cell with color 5, start a new region\n            if task_grid[r, c] == 5 and not visited[r, c]:\n                queue = [(r, c)]\n                visited[r, c] = True\n                output_grid[r, c] = label_counter\n\n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n\n                    # Explore neighbors\n                    for dr, dc in directions:\n                        nr, nc = curr_r + dr, curr_c + dc\n\n                        # Check if the neighbor is within bounds, has color 5, and is unvisited\n                        if 0 <= nr < rows and 0 <= nc < cols and task_grid[nr, nc] == 5 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            output_grid[nr, nc] = label_counter\n                            queue.append((nr, nc))\n                label_counter += 1\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 2,
+        "train_correct": 2,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [],
+        "error_summary": {}
+      },
+      "refinement_count": 1,
+      "total_time": 2.3857510089874268,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by identifying contiguous regions of the color 5\n    and assigning sequential integer labels to these regions.\n    \"\"\"\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.zeros_like(task_grid, dtype=int)\n    visited = np.zeros_like(task_grid, dtype=bool)\n    label_counter = 1\n\n    # Define the four cardinal directions for BFS\n    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]\n\n    for r in range(rows):\n        for c in range(cols):\n            # If we find an unvisited cell with color 5, start a new region\n            if task_grid[r, c] == 5 and not visited[r, c]:\n                queue = [(r, c)]\n                visited[r, c] = True\n                output_grid[r, c] = label_counter\n\n                head = 0\n                while head < len(queue):\n                    curr_r, curr_c = queue[head]\n                    head += 1\n\n                    # Explore neighbors\n                    for dr, dc in directions:\n                        nr, nc = curr_r + dr, curr_c + dc\n\n                        # Check if the neighbor is within bounds, has color 5, and is unvisited\n                        if 0 <= nr < rows and 0 <= nc < cols and task_grid[nr, nc] == 5 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            output_grid[nr, nc] = label_counter\n                            queue.append((nr, nc))\n                label_counter += 1\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 2,
+        "train_correct": 2,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [],
+        "error_summary": {}
+      },
+      "refinement_count": 1,
+      "total_time": 2.781914234161377,
+      "improvement": 0.0
+    },
+    {
+      "generation": 3,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by identifying contiguous regions of the color 5\n    and assigning sequential integer labels to these regions.\n    \"\"\"\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.zeros_like(task_grid, dtype=int)\n    visited = np.zeros_like(task_grid, dtype=bool)\n    label_counter = 1\n\n    # Define the four cardinal directions for BFS\n    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]\n\n    for r in range(rows):\n        for c in range(cols):\n            # If we find an unvisited cell with color 5, start a new region\n            if task_grid[r, c] == 5 and not visited[r, c]:\n                queue = [(r, c)]\n                visited[r, c] = True\n                output_grid[r, c] = label_counter\n\n                head = 0\n                while head < len(queue):\n                    curr_r, curr_c = queue[head]\n                    head += 1\n\n                    # Explore neighbors\n                    for dr, dc in directions:\n                        nr, nc = curr_r + dr, curr_c + dc\n\n                        # Check if the neighbor is within bounds, has color 5, and is unvisited\n                        if 0 <= nr < rows and 0 <= nc < cols and task_grid[nr, nc] == 5 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            output_grid[nr, nc] = label_counter\n                            queue.append((nr, nc))\n                label_counter += 1\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 2,
+        "train_correct": 2,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [],
+        "error_summary": {}
+      },
+      "refinement_count": 1,
+      "total_time": 2.352154016494751,
+      "improvement": 0.0
+    },
+    {
+      "generation": 4,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by identifying contiguous regions of the color 5\n    and assigning sequential integer labels to these regions.\n    \"\"\"\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.zeros_like(task_grid, dtype=int)\n    visited = np.zeros_like(task_grid, dtype=bool)\n    label_counter = 1\n\n    # Define the four cardinal directions for BFS\n    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]\n\n    for r in range(rows):\n        for c in range(cols):\n            # If we find an unvisited cell with color 5, start a new region\n            if task_grid[r, c] == 5 and not visited[r, c]:\n                queue = [(r, c)]\n                visited[r, c] = True\n                output_grid[r, c] = label_counter\n\n                head = 0\n                while head < len(queue):\n                    curr_r, curr_c = queue[head]\n                    head += 1\n\n                    # Explore neighbors\n                    for dr, dc in directions:\n                        nr, nc = curr_r + dr, curr_c + dc\n\n                        # Check if the neighbor is within bounds, has color 5, and is unvisited\n                        if 0 <= nr < rows and 0 <= nc < cols and task_grid[nr, nc] == 5 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            output_grid[nr, nc] = label_counter\n                            queue.append((nr, nc))\n                label_counter += 1\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 2,
+        "train_correct": 2,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 1.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [],
+        "error_summary": {}
+      },
+      "refinement_count": 1,
+      "total_time": 2.3406169414520264,
+      "improvement": 0.0
+    }
+  ],
+  "final_fitness": 2,
+  "total_generations": 5,
+  "total_time": 12.210086107254028
+}

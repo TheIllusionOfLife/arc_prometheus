@@ -1,0 +1,191 @@
+{
+  "task_id": "025d127b",
+  "success": true,
+  "timestamp": "2025-10-30T08:40:15.736339+00:00",
+  "config": {
+    "max_generations": 5,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": false
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by shifting the non-zero elements to the left.\n    Each connected component of non-zero elements is treated independently.\n    \"\"\"\n    if task_grid.size == 0:\n        return task_grid\n\n    output_grid = np.zeros_like(task_grid)\n    rows, cols = task_grid.shape\n\n    # Find connected components\n    visited = np.zeros_like(task_grid, dtype=bool)\n    \n    for r in range(rows):\n        for c in range(cols):\n            if task_grid[r, c] != 0 and not visited[r, c]:\n                # Found a new component, perform BFS/DFS to find all its pixels\n                component_pixels = []\n                queue = [(r, c)]\n                visited[r, c] = True\n                \n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n                    component_pixels.append((curr_r, curr_c))\n                    \n                    # Check neighbors\n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           task_grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            queue.append((nr, nc))\n                \n                # Sort pixels by column to determine the leftmost pixel\n                component_pixels.sort(key=lambda x: x[1])\n                \n                # Find the minimum column index for this component\n                min_c = component_pixels[0][1]\n                \n                # Shift all pixels in the component to the left by min_c\n                for pixel_r, pixel_c in component_pixels:\n                    new_c = pixel_c - min_c\n                    # Ensure the new column is within bounds (though it should be)\n                    if 0 <= new_c < cols:\n                        output_grid[pixel_r, new_c] = task_grid[pixel_r, pixel_c]\n                        \n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 0,
+      "total_time": 3.1500039100646973,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by shifting the non-zero elements to the left.\n    Each connected component of non-zero elements is treated independently.\n    \"\"\"\n    if task_grid.size == 0:\n        return task_grid\n\n    output_grid = np.zeros_like(task_grid)\n    rows, cols = task_grid.shape\n\n    # Find connected components\n    visited = np.zeros_like(task_grid, dtype=bool)\n    \n    for r in range(rows):\n        for c in range(cols):\n            if task_grid[r, c] != 0 and not visited[r, c]:\n                # Found a new component, perform BFS/DFS to find all its pixels\n                component_pixels = []\n                queue = [(r, c)]\n                visited[r, c] = True\n                \n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n                    component_pixels.append((curr_r, curr_c))\n                    \n                    # Check neighbors\n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           task_grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            queue.append((nr, nc))\n                \n                # Find the minimum column index for this component\n                min_c = cols # Initialize with a value larger than any possible column index\n                for pixel_r, pixel_c in component_pixels:\n                    min_c = min(min_c, pixel_c)\n                \n                # Shift all pixels in the component to the left by min_c\n                for pixel_r, pixel_c in component_pixels:\n                    new_c = pixel_c - min_c\n                    # Ensure the new column is within bounds\n                    if 0 <= new_c < cols:\n                        output_grid[pixel_r, new_c] = task_grid[pixel_r, pixel_c]\n                        \n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 2.7434608936309814,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by shifting the non-zero elements to the left.\n    Each connected component of non-zero elements is treated independently.\n    \"\"\"\n    if task_grid.size == 0:\n        return task_grid\n\n    output_grid = np.zeros_like(task_grid)\n    rows, cols = task_grid.shape\n\n    # Find connected components\n    visited = np.zeros_like(task_grid, dtype=bool)\n    \n    for r in range(rows):\n        for c in range(cols):\n            if task_grid[r, c] != 0 and not visited[r, c]:\n                # Found a new component, perform BFS/DFS to find all its pixels\n                component_pixels = []\n                queue = [(r, c)]\n                visited[r, c] = True\n                \n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n                    component_pixels.append((curr_r, curr_c))\n                    \n                    # Check neighbors\n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           task_grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            queue.append((nr, nc))\n                \n                # Find the minimum column index for this component\n                min_c = cols # Initialize with a value larger than any possible column index\n                for pixel_r, pixel_c in component_pixels:\n                    min_c = min(min_c, pixel_c)\n                \n                # Shift all pixels in the component to the left by min_c\n                for pixel_r, pixel_c in component_pixels:\n                    new_c = pixel_c - min_c\n                    # Ensure the new column is within bounds\n                    if 0 <= new_c < cols:\n                        output_grid[pixel_r, new_c] = task_grid[pixel_r, pixel_c]\n                        \n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 2.704392910003662,
+      "improvement": 0.0
+    },
+    {
+      "generation": 3,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by shifting the non-zero elements to the left.\n    Each connected component of non-zero elements is treated independently.\n    \"\"\"\n    if task_grid.size == 0:\n        return task_grid\n\n    output_grid = np.zeros_like(task_grid)\n    rows, cols = task_grid.shape\n\n    visited = np.zeros_like(task_grid, dtype=bool)\n    \n    for r in range(rows):\n        for c in range(cols):\n            if task_grid[r, c] != 0 and not visited[r, c]:\n                component_pixels = []\n                queue = [(r, c)]\n                visited[r, c] = True\n                \n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n                    component_pixels.append((curr_r, curr_c))\n                    \n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           task_grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            queue.append((nr, nc))\n                \n                min_c = cols\n                for pixel_r, pixel_c in component_pixels:\n                    min_c = min(min_c, pixel_c)\n                \n                for pixel_r, pixel_c in component_pixels:\n                    new_c = pixel_c - min_c\n                    if 0 <= new_c < cols:\n                        output_grid[pixel_r, new_c] = task_grid[pixel_r, pixel_c]\n                        \n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 2.567633867263794,
+      "improvement": 0.0
+    },
+    {
+      "generation": 4,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms the input grid by shifting the non-zero elements to the left.\n    Each connected component of non-zero elements is treated independently.\n    \"\"\"\n    if task_grid.size == 0:\n        return task_grid\n\n    output_grid = np.zeros_like(task_grid)\n    rows, cols = task_grid.shape\n\n    visited = np.zeros_like(task_grid, dtype=bool)\n    \n    for r in range(rows):\n        for c in range(cols):\n            if task_grid[r, c] != 0 and not visited[r, c]:\n                component_pixels = []\n                queue = [(r, c)]\n                visited[r, c] = True\n                \n                # BFS to find all connected pixels in the component\n                while queue:\n                    curr_r, curr_c = queue.pop(0)\n                    component_pixels.append((curr_r, curr_c))\n                    \n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           task_grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            queue.append((nr, nc))\n                \n                # Find the minimum column index for this component\n                min_c = cols\n                for pixel_r, pixel_c in component_pixels:\n                    min_c = min(min_c, pixel_c)\n                \n                # Shift all pixels in the component to the left by min_c\n                for pixel_r, pixel_c in component_pixels:\n                    new_c = pixel_c - min_c\n                    # Ensure the new column is within bounds\n                    if 0 <= new_c < cols:\n                        output_grid[pixel_r, new_c] = task_grid[pixel_r, pixel_c]\n                        \n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 2,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 2.7941927909851074,
+      "improvement": 0.0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 5,
+  "total_time": 13.959684371948242
+}
