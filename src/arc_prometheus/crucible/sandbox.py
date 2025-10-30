@@ -17,6 +17,7 @@ IMPORTANT SECURITY LIMITATIONS:
 """
 
 import multiprocessing as mp
+import queue
 from multiprocessing import Queue
 from typing import Any
 
@@ -270,7 +271,7 @@ def safe_execute(
                     file=sys.stderr,
                 )
             return (False, None, error_detail)
-    except Exception:
+    except queue.Empty:
         # No result in queue (unexpected) - process may have crashed
         from ..evolutionary_engine.error_classifier import ErrorType
 
