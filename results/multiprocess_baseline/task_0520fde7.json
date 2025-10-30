@@ -1,0 +1,221 @@
+{
+  "task_id": "0520fde7",
+  "success": true,
+  "timestamp": "2025-10-30T08:40:42.026105+00:00",
+  "config": {
+    "max_generations": 5,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": false
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on specific rules observed in ARC examples.\n\n    The rule appears to be:\n    For each row, if the number 5 is present, it acts as a separator.\n    The transformation is applied to the segments of the row before and after the 5.\n    The transformation seems to be: if a segment contains only 0s and 1s,\n    and has a length of 2 or more, the first element becomes 2 and the rest are 0.\n    If a segment is just a single 1, it remains a 1 (though this is not explicitly shown,\n    it's a reasonable assumption for consistency).\n    The number 5 itself is removed.\n\n    Example 1:\n    Input:\n    1 1 0 5 0 1 0\n    0 0 1 5 1 1 1\n    1 1 0 5 0 1 0\n\n    Row 1: [1, 1, 0] | 5 | [0, 1, 0]\n           [2, 0, 0] |   | [0, 2, 0]  -> [2, 0, 0, 0, 0, 2, 0] - This doesn't match output.\n\n    Let's re-evaluate the examples.\n\n    Example 1:\n    Input:\n    1 1 0 5 0 1 0\n    0 0 1 5 1 1 1\n    1 1 0 5 0 1 0\n\n    Output:\n    0 2 0\n    0 0 2\n    0 2 0\n\n    It seems the output grid is smaller. The 5 is removed.\n    The transformation might be related to the *presence* of 1s and their positions relative to 5.\n\n    Let's look at Example 1 again:\n    Row 1: [1, 1, 0, 5, 0, 1, 0] -> [0, 2, 0]\n    The 5 splits the row.\n    Left of 5: [1, 1, 0]. The first 1 is at index 0. The second 1 is at index 1.\n    Right of 5: [0, 1, 0]. The 1 is at index 5 (original index).\n\n    Consider the output [0, 2, 0].\n    The 2 is at index 1. This corresponds to the second '1' in the input row.\n    The first row has two 1s before the 5. The output has a 2 at index 1.\n    The first row has one 1 after the 5. The output has a 2 at index 1.\n\n    This is confusing. Let's try to find a simpler pattern.\n\n    What if the output grid's dimensions are determined by the number of 5s?\n    Example 1: 3 rows, one 5 per row. Output is 3x3.\n    Example 2: 3 rows, one 5 per row. Output is 3x3.\n    Example 3: 3 rows, one 5 per row. Output is 3x3.\n\n    This suggests the output grid has the same number of rows as the input.\n    The number of columns in the output might be related to the number of 5s.\n    If there's one 5 per row, the output has 3 columns.\n\n    Let's analyze Example 1 row by row:\n    Input row 1: [1, 1, 0, 5, 0, 1, 0]\n    Output row 1: [0, 2, 0]\n    The 5 is at index 3.\n    Elements before 5: [1, 1, 0]\n    Elements after 5: [0, 1, 0]\n\n    If we consider the *indices* of the 1s relative to the 5:\n    Before 5: 1s at original indices 0, 1.\n    After 5: 1 at original index 5.\n\n    Output [0, 2, 0]. The 2 is at index 1.\n    This index 1 in the output corresponds to the *second* '1' encountered in the row,\n    regardless of whether it's before or after the 5.\n\n    Let's test this hypothesis on Example 1:\n    Row 1: [1, 1, 0, 5, 0, 1, 0]\n    1s are at indices: 0, 1, 5.\n    If we consider these as a sequence: 1st '1' (index 0), 2nd '1' (index 1), 3rd '1' (index 5).\n    Output row 1: [0, 2, 0]. The 2 is at index 1. This is the *second* '1' in the sequence.\n\n    Row 2: [0, 0, 1, 5, 1, 1, 1]\n    1s are at indices: 2, 4, 5, 6.\n    Sequence of 1s: 1st (index 2), 2nd (index 4), 3rd (index 5), 4th (index 6).\n    Output row 2: [0, 0, 2]. The 2 is at index 2. This is the *third* '1' in the sequence.\n\n    Row 3: [1, 1, 0, 5, 0, 1, 0]\n    1s are at indices: 0, 1, 5.\n    Sequence of 1s: 1st (index 0), 2nd (index 1), 3rd (index 5).\n    Output row 3: [0, 2, 0]. The 2 is at index 1. This is the *second* '1' in the sequence.\n\n    This hypothesis seems to work for Example 1. The output column index of the '2' corresponds to the *rank* of the '1' in the input row, minus 1.\n    The output grid has the same number of rows. The number of columns is determined by the maximum rank of a '1' in any row.\n\n    Let's re-check Example 2:\n    Input:\n    1 0 0 5 0 1 0\n    0 1 0 5 1 1 1\n    1 0 0 5 0 0 0\n\n    Output:\n    0 0 0\n    0 2 0\n    0 0 0\n\n    Row 1: [1, 0, 0, 5, 0, 1, 0]\n    1s at indices: 0, 5.\n    Sequence: 1st (index 0), 2nd (index 5).\n    Output row 1: [0, 0, 0]. No '2' is present. This contradicts the hypothesis.\n\n    The hypothesis about the rank of '1's seems incorrect or incomplete.\n\n    Let's look at the *structure* of the output. It's sparse, with at most one '2' per row.\n    The '2' appears to be placed at a specific index.\n\n    Consider the number of '1's before the '5' and after the '5'.\n\n    Example 1:\n    Row 1: [1, 1, 0, 5, 0, 1, 0]\n    Before 5: [1, 1, 0] (two 1s)\n    After 5: [0, 1, 0] (one 1)\n    Output row 1: [0, 2, 0]. The '2' is at index 1.\n\n    Row 2: [0, 0, 1, 5, 1, 1, 1]\n    Before 5: [0, 0, 1] (one 1)\n    After 5: [1, 1, 1] (three 1s)\n    Output row 2: [0, 0, 2]. The '2' is at index 2.\n\n    Row 3: [1, 1, 0, 5, 0, 1, 0]\n    Before 5: [1, 1, 0] (two 1s)\n    After 5: [0, 1, 0] (one 1)\n    Output row 3: [0, 2, 0]. The '2' is at index 1.\n\n    It seems the output column index of the '2' is related to the *count* of '1's",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.SYNTAX",
+          "Train example 1: ErrorType.SYNTAX",
+          "Train example 2: ErrorType.SYNTAX"
+        ],
+        "error_details": [
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 136) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 136) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 136) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_2"
+          }
+        ],
+        "error_summary": {
+          "syntax": 3
+        }
+      },
+      "refinement_count": 0,
+      "total_time": 7.318002939224243,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on specific rules observed in ARC examples.\n\n    The rule appears to be:\n    For each row, if the number 5 is present, it acts as a separator.\n    The transformation is applied to the segments of the row before and after the 5.\n    The transformation seems to be: if a segment contains only 0s and 1s,\n    and has a length of 2 or more, the first element becomes 2 and the rest are 0.\n    If a segment is just a single 1, it remains a 1 (though this is not explicitly shown,\n    it's a reasonable assumption for consistency).\n    The number 5 itself is removed.\n\n    Example 1:\n    Input:\n    1 1 0 5 0 1 0\n    0 0 1 5 1 1 1\n    1 1 0 5 0 1 0\n\n    Output:\n    0 2 0\n    0 0 2\n    0 2 0\n\n    The output grid's dimensions are determined by the number of rows in the input\n    and the maximum number of '1's encountered in any row before the '5' or after the '5'.\n    Specifically, for each row:\n    1. Find the index of '5'.\n    2. Count the number of '1's before '5' (let's call this `ones_before`).\n    3. Count the number of '1's after '5' (let's call this `ones_after`).\n    4. The output row will have a '2' at an index determined by these counts.\n       If `ones_before` is greater than 0, the '2' is placed at index `ones_before - 1`.\n       If `ones_after` is greater than 0, and `ones_before` is 0, the '2' is placed at index `ones_after - 1`.\n       If both `ones_before` and `ones_after` are greater than 0, the '2' is placed at index `ones_before - 1`.\n       This implies the '2' represents the *last* '1' before the '5' or the *first* '1' after the '5' if there are no '1's before.\n\n    Let's re-examine the examples with this refined hypothesis:\n\n    Example 1:\n    Row 1: [1, 1, 0, 5, 0, 1, 0]\n    Index of 5: 3\n    Before 5: [1, 1, 0] -> ones_before = 2\n    After 5: [0, 1, 0] -> ones_after = 1\n    Output row 1: [0, 2, 0]. The '2' is at index 1. This matches `ones_before - 1`.\n\n    Row 2: [0, 0, 1, 5, 1, 1, 1]\n    Index of 5: 3\n    Before 5: [0, 0, 1] -> ones_before = 1\n    After 5: [1, 1, 1] -> ones_after = 3\n    Output row 2: [0, 0, 2]. The '2' is at index 2. This matches `ones_after - 1` if we consider the '2' to be placed based on the segment that has more '1's, or if it's placed based on the *last* '1' before the 5 if there are any.\n    The output column index of '2' seems to be `max(ones_before, ones_after) - 1` if there are any 1s.\n    Let's try:\n    Row 1: max(2, 1) - 1 = 2 - 1 = 1. Output: [0, 2, 0]. Correct.\n    Row 2: max(1, 3) - 1 = 3 - 1 = 2. Output: [0, 0, 2]. Correct.\n    Row 3: max(2, 1) - 1 = 2 - 1 = 1. Output: [0, 2, 0]. Correct.\n\n    Example 2:\n    Row 1: [1, 0, 0, 5, 0, 1, 0]\n    Index of 5: 3\n    Before 5: [1, 0, 0] -> ones_before = 1\n    After 5: [0, 1, 0] -> ones_after = 1\n    Output row 1: [0, 0, 0]. No '2'. This contradicts the `max(ones_before, ones_after) - 1` rule.\n\n    The rule is likely simpler:\n    For each row, find the index of '5'.\n    Count the number of '1's *before* the '5'. Let this be `count_before`.\n    Count the number of '1's *after* the '5'. Let this be `count_after`.\n    The output row will have a '2' at index `count_before` if `count_before > 0`.\n    If `count_before == 0` and `count_after > 0`, the '2' is at index `count_after - 1`.\n    This is still not quite right.\n\n    Let's consider the *position* of the '2' in the output.\n    Example 1:\n    Row 1: [1, 1, 0, 5, 0, 1, 0] -> [0, 2, 0] (2 at index 1)\n    Row 2: [0, 0, 1, 5, 1, 1, 1] -> [0, 0, 2] (2 at index 2)\n    Row 3: [1, 1, 0, 5, 0, 1, 0] -> [0, 2, 0] (2 at index 1)\n\n    The number of columns in the output seems to be determined by the maximum number of '1's in any segment (before or after '5') across all rows.\n    Let's find the maximum number of '1's in any segment before or after a '5' across all rows.\n\n    Example 1:\n    Row 1: before: 2 ones, after: 1 one. Max segment ones = 2.\n    Row 2: before: 1 one, after: 3 ones. Max segment ones = 3.\n    Row 3: before: 2 ones, after: 1 one. Max segment ones = 2.\n    Overall max segment ones = 3. Output columns = 3.\n\n    Example 2:\n    Row 1: before: 1 one, after: 1 one. Max segment ones = 1.\n    Row 2: before: 1 one, after: 3 ones. Max segment ones = 3.\n    Row 3: before: 0 ones, after: 0 ones. Max segment ones = 0.\n    Overall max segment ones = 3. Output columns = 3.\n\n    Example 3:\n    Row 1: before: 0 ones, after: 0 ones. Max segment ones = 0.\n    Row 2: before: 2 ones, after: 2 ones. Max segment ones = 2.\n    Row 3: before: 1 one, after: 2 ones. Max segment ones = 2.\n    Overall max segment ones = 2. Output columns = 2. This doesn't match example 3 output columns (which is 3).\n\n    Let's go back to the simplest observation: the '2' appears at a specific index.\n    The number of columns in the output is consistent for each example.\n    Example 1: 3 columns.\n    Example 2: 3 columns.\n    Example 3: 3 columns.\n\n    This suggests the output grid has the same number of rows as the input.\n    The number of columns in the output is constant for these examples (3).\n    Let's assume the output width is fixed at 3 for these examples.\n\n    For each row:\n    1. Find the index of '5'.\n    2. Extract the part before '5' and the part after '5'.\n    3. Count the number of '1's in the part before '5' (`ones_before`).\n    4. Count the number of '1's in the part after '5' (`ones_after`).\n    5. If `ones_before > 0`, place a '2' at index `ones_before - 1` in the output row.\n    6. If `ones_before == 0` and `ones_after > 0`, place a '2' at index `ones_after - 1` in the output row.\n    7. If `ones_before > 0` and `ones_after > 0`, the rule for placing '2' needs clarification.\n\n    Let's re-examine Example 3:\n    Input:\n    0 0 1 5 0 0 0\n    1 1 0 5 1 0 1\n    0 1 1 5 1 0 1\n\n    Output:\n    0 0 0\n    2 0 0\n    0 0 2\n\n    Row 1: [0, 0, 1, 5, 0, 0, 0]\n    Index of 5: 3\n    Before 5: [0, 0, 1] -> ones_before = 1\n    After 5: [0, 0, 0] -> ones_after = 0\n    Output row 1: [0, 0, 0]. No '2'. This is consistent if `ones_before` dictates the position.\n\n    Row 2: [1, 1, 0, 5, 1, 0, 1]\n    Index of 5: 3\n    Before 5: [1, 1, 0] -> ones_before = 2\n    After 5: [1, 0, 1] -> ones_after = 2\n    Output row 2: [2, 0, 0]. The '2' is at index 0.\n    This suggests if `ones_before > 0`, the '2' is at index `ones_before - 1`.\n    Here, `ones_before = 2`, so `ones_before - 1 = 1`. This doesn't match index 0.\n\n    There must be a simpler interpretation of the '2' placement.\n    The '2' seems to mark the *boundary* or *extent* of the '1's.\n\n    Let's consider the number of '1's before and after the '5' again, and the output column index of '2'.\n\n    Example 1:\n    Row 1: ones_before=2, ones_after=1. Output: [0, 2, 0] (2 at index 1).\n    Row 2: ones_before=1, ones_after=3. Output: [0, 0, 2] (2 at index 2).\n    Row 3: ones_before=2, ones_after=1. Output: [0, 2, 0] (2 at index 1).\n\n    Example 3:\n    Row 1: ones_before=1, ones_after=0. Output: [0, 0, 0].\n    Row 2: ones_before=2, ones_after=2. Output: [2, 0, 0] (2 at index 0).\n    Row 3: ones_before=1, ones_after=2. Output: [0, 0, 2] (2 at index 2).\n\n    Observation:\n    - If `ones_before > 0` and `ones_after == 0`: The '2' is at index `ones_before - 1`. (Example 3, Row 1 - no '2' though, this rule is flawed).\n    - If `ones_before == 0` and `ones_after > 0`: The '2' is at index `ones_after - 1`. (Example 3, Row 3: ones_before=1, ones_after=2. Output 2 at index 2. This rule is also flawed).\n\n    Let's focus on the *position* of the '2' relative to the '5'.\n    The '2' seems to be placed at an index that represents the *count* of '1's in one of the segments.\n\n    Consider the number of '1's *before* the '5'.\n    Example 1:\n    Row 1: [1, 1, 0, 5, 0, 1, 0]. '1's before 5: at indices 0, 1. Count = 2. Output: [0, 2, 0]. '2' at index 1.\n    Row",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.SYNTAX",
+          "Train example 1: ErrorType.SYNTAX",
+          "Train example 2: ErrorType.SYNTAX"
+        ],
+        "error_details": [
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 170) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 170) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: unterminated triple-quoted string literal (detected at line 170) (<string>, line 4)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_2"
+          }
+        ],
+        "error_summary": {
+          "syntax": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 9.957600831985474,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    output_grid = []\n    for row in task_grid:\n        try:\n            five_index = np.where(row == 5)[0][0]\n            before_five = row[:five_index]\n            after_five = row[five_index+1:]\n\n            ones_before = np.sum(before_five == 1)\n            ones_after = np.sum(after_five == 1)\n\n            # Determine the output row based on the number of ones before and after 5\n            # The '2' seems to mark the position related to the count of '1's.\n            # If there are '1's before the '5', the '2' is placed at an index related to that count.\n            # If there are no '1's before but '1's after, the '2' is placed at an index related to the count after.\n\n            # The examples suggest the output width is determined by the maximum number of '1's\n            # in either segment across all rows, or a fixed width for these specific examples.\n            # For the provided examples, the output width is consistently 3.\n            # Let's assume a fixed output width of 3 for these specific examples,\n            # and the '2' is placed at a specific index.\n\n            output_row = np.zeros(3, dtype=int) # Assuming output width of 3 for these examples\n\n            if ones_before > 0:\n                # The '2' is placed at index ones_before - 1 if ones_before > 0.\n                # However, Example 3, Row 2 (ones_before=2, ones_after=2) outputs [2, 0, 0] (2 at index 0).\n                # This suggests the index might be related to the *first* occurrence of '1' if ones_before > 0.\n                # Let's re-evaluate based on the examples provided:\n                # Example 1, Row 1: ones_before=2, ones_after=1 -> [0, 2, 0] (2 at index 1)\n                # Example 1, Row 2: ones_before=1, ones_after=3 -> [0, 0, 2] (2 at index 2)\n                # Example 1, Row 3: ones_before=2, ones_after=1 -> [0, 2, 0] (2 at index 1)\n                # Example 3, Row 2: ones_before=2, ones_after=2 -> [2, 0, 0] (2 at index 0)\n                # Example 3, Row 3: ones_before=1, ones_after=2 -> [0, 0, 2] (2 at index 2)\n\n                # The position of '2' seems to be:\n                # If ones_before > 0: index is ones_before - 1, UNLESS ones_before == ones_after and both > 0, then index is 0.\n                # If ones_before == 0 and ones_after > 0: index is ones_after - 1.\n\n                if ones_before > 0 and ones_after > 0 and ones_before == ones_after:\n                    # Special case for Example 3, Row 2\n                    output_row[0] = 2\n                elif ones_before > 0:\n                    # General case for '1's before\n                    # The index seems to be related to the count of '1's.\n                    # For Example 1, Row 1 & 3: ones_before=2, output index=1. (2-1=1)\n                    # For Example 1, Row 2: ones_before=1, ones_after=3. Output index=2. This is driven by ones_after.\n                    # For Example 3, Row 3: ones_before=1, ones_after=2. Output index=2. This is driven by ones_after.\n\n                    # Let's consider the dominant segment or the segment that determines the output.\n                    # If ones_before > ones_after, the '2' is at ones_before - 1.\n                    # If ones_after > ones_before, the '2' is at ones_after - 1.\n                    # If ones_before == ones_after and both > 0, it's tricky.\n                    # Example 3, Row 2: ones_before=2, ones_after=2 -> [2, 0, 0] (index 0)\n                    # This suggests if counts are equal, it might be index 0.\n\n                    if ones_before >= ones_after:\n                        # If ones_before is greater or equal, and > 0, place '2' at ones_before - 1.\n                        # But Example 3, Row 2 contradicts this if ones_before == ones_after.\n                        # The logic for equal counts needs to be handled.\n                        if ones_before == ones_after and ones_before > 0:\n                            output_row[0] = 2 # Example 3, Row 2\n                        else:\n                            output_row[ones_before - 1] = 2 # Example 1, Rows 1 & 3\n                    else: # ones_after > ones_before\n                        output_row[ones_after - 1] = 2 # Example 1, Row 2; Example 3, Row 3\n\n                elif ones_after > 0: # ones_before == 0\n                    output_row[ones_after - 1] = 2 # Example 2, Row 1 (ones_before=1, ones_after=1 -> [0,0,0] - this example is problematic for this rule)\n                                                  # Let's re-examine Example 2, Row 1: [1, 0, 0, 5, 0, 1, 0] -> [0, 0, 0]\n                                                  # ones_before=1, ones_after=1. No '2'.\n                                                  # This implies if ones_before == 1 and ones_after == 1, no '2'.\n                                                  # Or if counts are small, no '2'.\n\n                    # Let's refine the rule based on all examples:\n                    # The '2' is placed at an index determined by the counts of '1's.\n                    # The output width is fixed at 3 for these examples.\n                    # If ones_before > 0:\n                    #   If ones_before == 1 and ones_after == 0: no '2' (Example 3, Row 1: [0,0,1,5,0,0,0] -> [0,0,0])\n                    #   If ones_before == 1 and ones_after == 1: no '2' (Example 2, Row 1: [1,0,0,5,0,1,0] -> [0,0,0])\n                    #   If ones_before == 2 and ones_after == 2: '2' at index 0 (Example 3, Row 2: [1,1,0,5,1,0,1] -> [2,0,0])\n                    #   If ones_before == 2 and ones_after == 1: '2' at index 1 (Example 1, Rows 1 & 3: [1,1,0,5,0,1,0] -> [0,2,0])\n                    # If ones_before == 0 and ones_after > 0:\n                    #   If ones_after == 1: no '2' (Implied, no example shows this)\n                    #   If ones_after == 2 and ones_before == 1: '2' at index 2 (Example 3, Row 3: [0,1,1,5,1,0,1] -> [0,0,2])\n                    #   If ones_after == 3 and ones_before == 1: '2' at index 2 (Example 1, Row 2: [0,0,1,5,1,1,1] -> [0,0,2])\n\n                    # This is getting complicated. Let's simplify.\n                    # The '2' marks the *end* of a sequence of '1's, or the *start* if it's the first segment.\n                    # The position of '2' is related to the number of '1's.\n\n                    # Let's try a rule based on the *maximum* count of '1's in either segment,\n                    # and the segment that contributes to it.\n\n                    if ones_before > 0 and ones_after > 0:\n                        if ones_before >= ones_after:\n                            # If ones_before is greater or equal, and > 0, place '2' at ones_before - 1.\n                            # Except when ones_before == ones_after and both > 0, then index 0.\n                            if ones_before == ones_after:\n                                output_row[0] = 2 # Example 3, Row 2\n                            else:\n                                output_row[ones_before - 1] = 2 # Example 1, Rows 1 & 3\n                        else: # ones_after > ones_before\n                            output_row[ones_after - 1] = 2 # Example 1, Row 2; Example 3, Row 3\n                    elif ones_before > 0:\n                        # If only ones_before > 0, and not handled by special cases above.\n                        # Example 3, Row 1: ones_before=1, ones_after=0 -> [0,0,0]. No '2'.\n                        # This implies if ones_before is 1 and ones_after is 0, no '2'.\n                        if ones_before > 1: # If ones_before is > 1, place '2' at ones_before - 1.\n                            output_row[ones_before - 1] = 2\n                    elif ones_after > 0:\n                        # If only ones_after > 0.\n                        # Example 2, Row 1: ones_before=1, ones_after=1 -> [0,0,0]. No '2'.\n                        # This implies if ones_after is 1 and ones_before is 1, no '2'.\n                        # If ones_after is > 1, place '2' at ones_after - 1.\n                        if ones_after > 1:\n                            output_row[ones_after - 1] = 2\n\n            output_grid.append(output_row)\n\n        except IndexError:\n            # If '5' is not found in the row, or if segments are empty and cause issues.\n            # For these examples, '5' is always present.\n            # If a row has no '1's before or after '5', it should result in all zeros.\n            output_grid.append(np.zeros(3, dtype=int)) # Assuming output width of 3\n\n    return np.array(output_grid)",
+      "fitness_result": {
+        "fitness": 1,
+        "train_correct": 1,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.3333333333333333,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 9.003902912139893,
+      "improvement": 1.0
+    },
+    {
+      "generation": 3,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    output_grid = []\n    for row in task_grid:\n        output_row = np.zeros(3, dtype=int) # Assume fixed output width of 3 for these examples\n        try:\n            five_index = np.where(row == 5)[0][0]\n            before_five = row[:five_index]\n            after_five = row[five_index+1:]\n\n            ones_before = np.sum(before_five == 1)\n            ones_after = np.sum(after_five == 1)\n\n            # The '2' marks a position related to the count of '1's.\n            # Based on the examples:\n            # - If ones_before > 0 and ones_after > 0:\n            #   - If ones_before == ones_after, '2' is at index 0. (Example 3, Row 2)\n            #   - If ones_before > ones_after, '2' is at index ones_before - 1. (Example 1, Rows 1 & 3)\n            #   - If ones_after > ones_before, '2' is at index ones_after - 1. (Example 1, Row 2; Example 3, Row 3)\n            # - If ones_before > 0 and ones_after == 0:\n            #   - If ones_before > 1, '2' is at index ones_before - 1. (Implied, no example shows this)\n            #   - If ones_before == 1, no '2'. (Example 3, Row 1)\n            # - If ones_before == 0 and ones_after > 0:\n            #   - If ones_after > 1, '2' is at index ones_after - 1. (Implied, no example shows this)\n            #   - If ones_after == 1, no '2'. (Example 2, Row 1 has ones_before=1, ones_after=1 and no '2')\n\n            if ones_before > 0 and ones_after > 0:\n                if ones_before == ones_after:\n                    output_row[0] = 2\n                elif ones_before > ones_after:\n                    output_row[ones_before - 1] = 2\n                else: # ones_after > ones_before\n                    output_row[ones_after - 1] = 2\n            elif ones_before > 0: # ones_after == 0\n                if ones_before > 1:\n                    output_row[ones_before - 1] = 2\n            elif ones_after > 0: # ones_before == 0\n                if ones_after > 1:\n                    output_row[ones_after - 1] = 2\n\n        except IndexError:\n            # If '5' is not found or segments result in empty arrays where indexing fails.\n            # For these examples, '5' is always present.\n            # If no '1's are present before or after '5', the output row remains all zeros.\n            pass # output_row is already initialized to zeros\n\n        output_grid.append(output_row)\n\n    return np.array(output_grid)",
+      "fitness_result": {
+        "fitness": 1,
+        "train_correct": 1,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.3333333333333333,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 2
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 3.948068857192993,
+      "improvement": 0.0
+    },
+    {
+      "generation": 4,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    output_grid = []\n    for row in task_grid:\n        # Determine the output row width based on the maximum index of '2' that could be placed.\n        # The maximum index for '2' would be related to the number of '1's before or after '5'.\n        # In the provided examples, the maximum number of '1's before or after '5' is 2.\n        # Therefore, the maximum index could be 1 (for 2 ones).\n        # The output width needs to accommodate this. Let's assume a reasonable fixed width for now,\n        # or dynamically determine it if needed. For these examples, a width of 3 seems sufficient.\n        output_row = np.zeros(3, dtype=int)\n\n        try:\n            five_index = np.where(row == 5)[0][0]\n            before_five = row[:five_index]\n            after_five = row[five_index+1:]\n\n            ones_before = np.sum(before_five == 1)\n            ones_after = np.sum(after_five == 1)\n\n            # The '2' marks a position related to the count of '1's.\n            # The logic needs to be more precise based on the examples.\n            #\n            # Example 1:\n            # Row 1: [1 1 0 5 0 1 0] -> ones_before=2, ones_after=1. Output: [0 2 0]. '2' at index 1 (ones_before - 1).\n            # Row 2: [0 0 1 5 1 1 1] -> ones_before=1, ones_after=3. Output: [0 0 2]. '2' at index 2 (ones_after - 1).\n            # Row 3: [1 1 0 5 0 1 0] -> ones_before=2, ones_after=1. Output: [0 2 0]. '2' at index 1 (ones_before - 1).\n            #\n            # Example 2:\n            # Row 1: [1 0 0 5 0 1 0] -> ones_before=1, ones_after=1. Output: [0 0 0]. No '2'.\n            # Row 2: [0 1 0 5 1 1 1] -> ones_before=1, ones_after=3. Output: [0 2 0]. '2' at index 1. This is unexpected based on previous logic.\n            # Row 3: [1 0 0 5 0 0 0] -> ones_before=1, ones_after=0. Output: [0 0 0]. No '2'.\n            #\n            # Example 3:\n            # Row 1: [0 0 1 5 0 0 0] -> ones_before=0, ones_after=1. Output: [0 0 0]. No '2'.\n            # Row 2: [1 1 0 5 1 0 1] -> ones_before=2, ones_after=2. Output: [2 0 0]. '2' at index 0.\n            # Row 3: [0 1 1 5 1 0 1] -> ones_before=2, ones_after=2. Output: [0 0 2]. '2' at index 2. This is also unexpected.\n            #\n            # Re-evaluating the logic:\n            # It seems the '2' is placed at an index determined by the counts of '1's.\n            # The position of '2' is not always directly the count.\n            #\n            # Let's consider the *relative* counts and positions.\n            #\n            # Example 1, Row 1: ones_before=2, ones_after=1. Output: [0 2 0]. '2' at index 1.\n            # Example 1, Row 2: ones_before=1, ones_after=3. Output: [0 0 2]. '2' at index 2.\n            # Example 1, Row 3: ones_before=2, ones_after=1. Output: [0 2 0]. '2' at index 1.\n            #\n            # Example 2, Row 2: ones_before=1, ones_after=3. Output: [0 2 0]. '2' at index 1.\n            #\n            # Example 3, Row 2: ones_before=2, ones_after=2. Output: [2 0 0]. '2' at index 0.\n            # Example 3, Row 3: ones_before=2, ones_after=2. Output: [0 0 2]. '2' at index 2.\n            #\n            # The rule appears to be:\n            # If ones_before > 0 and ones_after > 0:\n            #   If ones_before == ones_after:\n            #     If ones_before == 1, no '2' (Example 2, Row 1).\n            #     If ones_before == 2, '2' is at index 0 (Example 3, Row 2) OR index 2 (Example 3, Row 3). This is ambiguous.\n            #     Let's re-examine Example 3. Row 2 has [1 1 0 5 1 0 1]. Row 3 has [0 1 1 5 1 0 1].\n            #     The difference is the placement of the first '1'.\n            #     This suggests the *position* of the '1's matters, not just the count.\n            #\n            # Let's try a different approach:\n            # The '2' seems to highlight a \"center\" or a \"boundary\" based on the '1's.\n            #\n            # Consider the indices of '1's before and after '5'.\n            #\n            # Example 1, Row 1: [1 1 0 5 0 1 0]. '1's before at [0, 1]. '1's after at [5].\n            #   ones_before = 2, ones_after = 1. Output: [0 2 0]. '2' at index 1.\n            # Example 1, Row 2: [0 0 1 5 1 1 1]. '1's before at [2]. '1's after at [4, 5, 6].\n            #   ones_before = 1, ones_after = 3. Output: [0 0 2]. '2' at index 2.\n            # Example 1, Row 3: [1 1 0 5 0 1 0]. '1's before at [0, 1]. '1's after at [5].\n            #   ones_before = 2, ones_after = 1. Output: [0 2 0]. '2' at index 1.\n            #\n            # Example 2, Row 2: [0 1 0 5 1 1 1]. '1's before at [1]. '1's after at [4, 5, 6].\n            #   ones_before = 1, ones_after = 3. Output: [0 2 0]. '2' at index 1.\n            #\n            # Example 3, Row 2: [1 1 0 5 1 0 1]. '1's before at [0, 1]. '1's after at [4, 6].\n            #   ones_before = 2, ones_after = 2. Output: [2 0 0]. '2' at index 0.\n            # Example 3, Row 3: [0 1 1 5 1 0 1]. '1's before at [1, 2]. '1's after at [4, 6].\n            #   ones_before = 2, ones_after = 2. Output: [0 0 2]. '2' at index 2.\n            #\n            # The rule seems to be:\n            # If ones_before > 0 and ones_after > 0:\n            #   If ones_before == ones_after:\n            #     If the first '1' before '5' is at index 0 AND the last '1' after '5' is at the last possible index, place '2' at index 0. (Example 3, Row 2)\n            #     If the first '1' before '5' is NOT at index 0 OR the last '1' after '5' is NOT at the last possible index, place '2' at index 2. (Example 3, Row 3)\n            #     This is still not fully consistent.\n            #\n            # Let's reconsider the simplest interpretation that fits most examples:\n            # The '2' is placed at an index related to the *count* of '1's.\n            #\n            # If ones_before > 0 and ones_after > 0:\n            #   If ones_before == ones_after:\n            #     If ones_before == 1, no '2'. (Example 2, Row 1)\n            #     If ones_before == 2:\n            #       Example 3, Row 2: ones_before=2, ones_after=2. Output: [2 0 0]. '2' at index 0.\n            #       Example 3, Row 3: ones_before=2, ones_after=2. Output: [0 0 2]. '2' at index 2.\n            #       This is the problematic case. The difference is the input.\n            #       Row 2: [1 1 0 5 1 0 1]\n            #       Row 3: [0 1 1 5 1 0 1]\n            #       The '2' seems to be placed at the index of the *last* '1' before '5' if it's at index 0, or the index of the *first* '1' after '5' if it's at the end.\n            #       This is getting too complex and specific to these few examples.\n            #\n            # Let's try to find a simpler, more general rule that covers the provided examples.\n            #\n            # The '2' seems to be a marker related to the *presence* and *count* of '1's.\n            #\n            # If ones_before > 0 and ones_after > 0:\n            #   If ones_before == ones_after:\n            #     If ones_before == 1: no '2' (Example 2, Row 1)\n            #     If ones_before > 1:\n            #       Example 3, Row 2: ones_before=2, ones_after=2. Output: [2 0 0]. '2' at index 0.\n            #       Example 3, Row 3: ones_before=2, ones_after=2. Output: [0 0 2]. '2' at index 2.\n            #       This implies a symmetry breaking.\n            #       In Example 3, Row 2: [1 1 0 5 1 0 1]. The '1's are at [0, 1] and [4, 6].\n            #       In Example 3, Row 3: [0 1 1 5 1 0 1]. The '1's are at [1, 2] and [4, 6].\n            #       The difference is the *first* '1' before '5'.\n            #       If the first '1' before '5' is at index 0, '2' goes to index 0.\n            #       If the first '1' before '5' is NOT at index 0, '2' goes to index 2.\n            #       This rule is still very specific.\n            #\n            # Let's revisit the original code's logic and see where it deviates.\n            # The original code had:\n            # - If ones_before > 0 and ones_after > 0:\n            #   - If ones_before == ones_after, '2' is at index 0. (Example 3, Row 2) -> This is incorrect for Example 3, Row 3.\n            #   - If ones_before > ones_after, '2' is at index ones_before - 1. (Example 1, Rows 1 & 3) -> This matches.\n            #   - If ones_after > ones_before, '2' is at index ones_after - 1. (Example 1, Row 2; Example 2, Row 2) -> This matches.\n            #\n            # The issue is when `ones_before == ones_after > 1`.\n            #\n            # Let's try to unify the logic",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.SYNTAX",
+          "Train example 1: ErrorType.SYNTAX",
+          "Train example 2: ErrorType.SYNTAX"
+        ],
+        "error_details": [
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected 'except' or 'finally' block (<string>, line 133)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected 'except' or 'finally' block (<string>, line 133)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected 'except' or 'finally' block (<string>, line 133)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_2"
+          }
+        ],
+        "error_summary": {
+          "syntax": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 10.10008716583252,
+      "improvement": -1.0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 5,
+  "total_time": 40.32766270637512
+}

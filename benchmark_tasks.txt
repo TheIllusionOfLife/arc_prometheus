@@ -1,0 +1,31 @@
+# ARC-Prometheus Phase 2 Benchmark Tasks
+# Selected for diversity in size, complexity, and transformation types
+#
+# Selection criteria:
+# - Varied grid sizes: small (≤10x10), medium (11-20x20), large (>20x20)
+# - Varied train example counts: few (2-3), typical (3-4), many (5+)
+# - Mix of same-size and different-size transformations
+# - Known working tasks (from demos) plus untested tasks
+
+# Small grids (≤10x10)
+00576224  # 2x2→6x6, 2 train - known working (Phase 1 demo)
+05269061  # 7x7→7x7, 3 train - known working (Phase 1.2 manual solver)
+025d127b  # 8x9→8x9, 2 train - known working (Phase 1 demo)
+08ed6ac7  # 9x9→9x9, 2 train - untested
+0520fde7  # 3x7→3x3, 3 train - size reduction transformation
+
+# Medium grids (11-20x20)
+070dd51e  # 20x10→20x10, 2 train - rectangular grid
+09629e4f  # 11x11→11x11, 4 train - untested
+09c534e7  # 20x20→20x20, 3 train - larger square grid
+0607ce86  # 21x22→21x22, 3 train - very large rectangular
+
+# Large grids (>20x20)
+045e512c  # 21x21→21x21, 3 train - very large square
+05a7bcf2  # 30x30→30x30, 3 train - maximum size grid
+06df4c85  # 23x23→23x23, 3 train - large square
+
+# Complex transformations
+007bbfb7  # 3x3→9x9, 5 train - size expansion, many examples
+0a1d4ef5  # 30x30→2x3, 3 train - extreme size reduction
+0bb8deee  # 15x13→6x6, 3 train - size reduction with cropping

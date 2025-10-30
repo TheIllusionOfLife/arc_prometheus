@@ -1,0 +1,225 @@
+{
+  "task_id": "05a7bcf2",
+  "success": true,
+  "timestamp": "2025-10-30T08:43:30.950904+00:00",
+  "config": {
+    "max_generations": 5,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": false
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n\n    # Find the bounding box of non-zero elements\n    non_zero_rows = np.any(task_grid != 0, axis=1)\n    non_zero_cols = np.any(task_grid != 0, axis=0)\n\n    min_row = np.where(non_zero_rows)[0].min() if np.any(non_zero_rows) else 0\n    max_row = np.where(non_zero_rows)[0].max() if np.any(non_zero_rows) else rows - 1\n    min_col = np.where(non_zero_cols)[0].min() if np.any(non_zero_cols) else 0\n    max_col = np.where(non_zero_cols)[0].max() if np.any(non_zero_cols) else cols - 1\n\n    # Extract the relevant part of the grid\n    cropped_grid = task_grid[min_row : max_row + 1, min_col : max_col + 1]\n    cropped_rows, cropped_cols = cropped_grid.shape\n\n    # Determine the transformation\n    # This is a heuristic based on the examples.\n    # The core idea seems to be to find the largest contiguous block of a single color\n    # and expand it, while other elements might be preserved or transformed.\n\n    # In Example 1, the '8' seems to be a background and the '2' and '4' are foreground.\n    # The output shows the '8' becoming a solid block and the '2' and '4' forming shapes.\n    # In Example 2, the '8' is a solid block, and '4' and '2' form shapes.\n    # In Example 3, '8' is a solid block, '4' forms a shape, and '2' forms a shape.\n\n    # Let's try to find the dominant non-zero color and its extent.\n    unique_colors, counts = np.unique(cropped_grid[cropped_grid != 0], return_counts=True)\n    if len(unique_colors) == 0:\n        return np.zeros_like(task_grid)\n\n    dominant_color = unique_colors[np.argmax(counts)]\n\n    # Find the largest contiguous block of the dominant color\n    # This is a simplification. A more robust approach would involve connected components.\n    # For now, let's assume the dominant color forms a significant block.\n\n    # A common pattern is to fill the entire grid with the dominant color,\n    # and then potentially add other shapes or preserve some original elements.\n\n    # Let's try a simple approach: find the largest contiguous block of any color\n    # and fill the output grid with that color. Then, try to place other shapes.\n\n    # This problem is highly pattern-dependent and requires inferring specific rules.\n    # Based on the examples, a common transformation is to:\n    # 1. Identify a \"background\" color (often 8 or 0).\n    # 2. Identify \"foreground\" colors.\n    # 3. The output often involves filling a significant portion of the grid with the background color.\n    # 4. Foreground elements are often transformed into more solid shapes or expanded.\n\n    # Let's try to detect a large solid block of a single color.\n    # We can iterate through the grid and find the largest rectangular block of a single color.\n\n    max_area = 0\n    best_color = 0\n    best_rect = (0, 0, 0, 0) # r1, c1, r2, c2\n\n    for r in range(cropped_rows):\n        for c in range(cropped_cols):\n            color = cropped_grid[r, c]\n            if color == 0:\n                continue\n\n            # Expand right\n            for c2 in range(c, cropped_cols):\n                if not np.all(cropped_grid[r, c:c2+1] == color):\n                    break\n                # Expand down\n                for r2 in range(r, cropped_rows):\n                    if not np.all(cropped_grid[r:r2+1, c:c2+1] == color):\n                        break\n                    area = (r2 - r + 1) * (c2 - c + 1)\n                    if area > max_area:\n                        max_area = area\n                        best_color = color\n                        best_rect = (r, c, r2, c2)\n\n    # If no significant block is found, return a grid of zeros\n    if max_area == 0:\n        return np.zeros_like(task_grid)\n\n    # Create an output grid filled with the dominant color of the largest block\n    output_grid = np.full_like(task_grid, best_color)\n\n    # Now, we need to infer how other colors are transformed.\n    # This is the most challenging part and requires specific logic for each example.\n\n    # Example 1: '8' is background, '2' and '4' are foreground.\n    # The '8' becomes a solid block. The '2' and '4' form shapes.\n    # The output grid has the same dimensions as the input.\n\n    # Example 2: '8' is background, '4' and '2' are foreground.\n    # The '8' becomes a solid block. The '4' and '2' form shapes.\n    # The output grid has the same dimensions as the input.\n\n    # Example 3: '8' is background, '4' and '2' are foreground.\n    # The '8' becomes a solid block. The '4' and '2' form shapes.\n    # The output grid has the same dimensions as the input.\n\n    # It seems like the output grid often has the same dimensions as the input.\n    # The transformation often involves filling the entire grid with a dominant color\n    # and then potentially adding or modifying other elements.\n\n    # Let's try to identify the \"background\" color. It's often the most frequent color\n    # or the color that forms the largest contiguous block.\n\n    # If the dominant color is 8, let's assume it's the background.\n    if best_color == 8:\n        # In this case, the output is often a solid block of 8,\n        # and other colors are transformed into shapes.\n        # The shapes seem to be preserved and potentially \"thickened\".\n\n        # Let's try to find the largest contiguous block of *any* color and fill the output with it.\n        # Then, try to place other shapes.\n\n        # This is a very specific heuristic for the given examples.\n        # It's likely that each example has a unique underlying rule.\n\n        # Let's try to find the largest connected component of non-zero elements.\n        # This is a simplified approach.\n\n        # For Example 1: The '8' is the background. The '2' and '4' are foreground.\n        # The output seems to be a solid block of '8's, and the '2' and '4' form shapes.\n        # The shapes seem to be expanded.\n\n        # Let's try to find the largest connected component of non-zero pixels.\n        # We can use a simple flood fill or BFS/DFS approach.\n\n        # For now, let's consider a simpler heuristic:\n        # If the dominant color is 8, then the output is a solid block of 8s.\n        # Then, we need to figure out how to place the other shapes.\n\n        # This is where it gets tricky without a clear general rule.\n        # Let's look at the examples again.\n\n        # Example 1: The '8' is the background. The '2' and '4' form shapes.\n        # The output is a solid block of '8's, and the '2' and '4' are placed.\n        # The shapes of '2' and '4' are preserved and sometimes expanded.\n\n        # Let's try to find the largest connected component of non-zero pixels.\n        # We can use a simple approach to find connected components.\n\n        # A common pattern is to find the largest connected component of a specific color\n        # and then fill the output with that color, and then add other elements.\n\n        # Let's consider the case where the largest block is the \"background\".\n        # In Example 1, the '8' is the largest block. The output is filled with '8'.\n        # Then, the '2' and '4' are placed.\n\n        # Let's try to find the largest contiguous block of any color.\n        # If that color is 8, then the output is filled with 8.\n        # Then, we need to place the other shapes.\n\n        # This problem is",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.SYNTAX",
+          "Train example 1: ErrorType.SYNTAX",
+          "Train example 2: ErrorType.SYNTAX"
+        ],
+        "error_details": [
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected an indented block after 'if' statement on line 113 (<string>, line 159)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected an indented block after 'if' statement on line 113 (<string>, line 159)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: expected an indented block after 'if' statement on line 113 (<string>, line 159)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_2"
+          }
+        ],
+        "error_summary": {
+          "syntax": 3
+        }
+      },
+      "refinement_count": 0,
+      "total_time": 8.349802017211914,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n\n    # Find the bounding box of non-zero elements\n    non_zero_rows = np.any(task_grid != 0, axis=1)\n    non_zero_cols = np.any(task_grid != 0, axis=0)\n\n    if not np.any(non_zero_rows) or not np.any(non_zero_cols):\n        return np.zeros_like(task_grid)\n\n    min_row = np.where(non_zero_rows)[0].min()\n    max_row = np.where(non_zero_rows)[0].max()\n    min_col = np.where(non_zero_cols)[0].min()\n    max_col = np.where(non_zero_cols)[0].max()\n\n    # Extract the relevant part of the grid\n    cropped_grid = task_grid[min_row : max_row + 1, min_col : max_col + 1]\n    cropped_rows, cropped_cols = cropped_grid.shape\n\n    # Identify the dominant color in the cropped grid\n    non_zero_elements = cropped_grid[cropped_grid != 0]\n    if non_zero_elements.size == 0:\n        return np.zeros_like(task_grid)\n\n    unique_colors, counts = np.unique(non_zero_elements, return_counts=True)\n    dominant_color = unique_colors[np.argmax(counts)]\n\n    # Heuristic: If the dominant color is 8, it's likely the background.\n    # The output grid will be filled with this dominant color.\n    # Then, we try to identify and place other shapes.\n\n    # For the given examples, the output grid has the same dimensions as the input.\n    output_grid = np.full_like(task_grid, dominant_color)\n\n    # Find all unique colors present in the cropped grid (excluding 0)\n    all_colors_in_cropped = np.unique(cropped_grid)\n    foreground_colors = [color for color in all_colors_in_cropped if color != 0 and color != dominant_color]\n\n    # For each foreground color, find its connected components and try to place them.\n    # This is a simplified approach and might need refinement for more complex cases.\n    for color in foreground_colors:\n        # Create a mask for the current foreground color\n        color_mask = (cropped_grid == color)\n\n        # Find connected components using a simple flood fill-like approach\n        # We'll iterate and expand from each pixel of the foreground color.\n        visited = np.zeros_like(cropped_grid, dtype=bool)\n\n        for r in range(cropped_rows):\n            for c in range(cropped_cols):\n                if color_mask[r, c] and not visited[r, c]:\n                    # Start a new component\n                    component_pixels = []\n                    queue = [(r, c)]\n                    visited[r, c] = True\n\n                    while queue:\n                        curr_r, curr_c = queue.pop(0)\n                        component_pixels.append((curr_r, curr_c))\n\n                        # Check neighbors (up, down, left, right)\n                        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                            nr, nc = curr_r + dr, curr_c + dc\n\n                            if 0 <= nr < cropped_rows and 0 <= nc < cropped_cols and \\\n                               color_mask[nr, nc] and not visited[nr, nc]:\n                                visited[nr, nc] = True\n                                queue.append((nr, nc))\n\n                    # Place the component in the output grid\n                    for comp_r, comp_c in component_pixels:\n                        output_grid[min_row + comp_r, min_col + comp_c] = color\n\n    # Special handling for Example 1 and 3 where '2' and '4' form shapes\n    # and '8' is the background. The output fills with '8' and then places shapes.\n    # The previous logic should cover this if '8' is the dominant color.\n\n    # For Example 2, '8' is the dominant color, and '4' and '2' are foreground.\n    # The logic should also apply.\n\n    # If the dominant color is not 8, we might need different logic,\n    # but based on the provided examples, filling with the dominant color and\n    # then placing foreground shapes seems to be the pattern.\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 5.181936025619507,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n\n    # Find the bounding box of non-zero elements\n    non_zero_rows = np.any(task_grid != 0, axis=1)\n    non_zero_cols = np.any(task_grid != 0, axis=0)\n\n    if not np.any(non_zero_rows) or not np.any(non_zero_cols):\n        return np.zeros_like(task_grid)\n\n    min_row = np.where(non_zero_rows)[0].min()\n    max_row = np.where(non_zero_rows)[0].max()\n    min_col = np.where(non_zero_cols)[0].min()\n    max_col = np.where(non_zero_cols)[0].max()\n\n    # Extract the relevant part of the grid\n    cropped_grid = task_grid[min_row : max_row + 1, min_col : max_col + 1]\n    cropped_rows, cropped_cols = cropped_grid.shape\n\n    # Identify the dominant color in the cropped grid\n    non_zero_elements = cropped_grid[cropped_grid != 0]\n    if non_zero_elements.size == 0:\n        return np.zeros_like(task_grid)\n\n    unique_colors, counts = np.unique(non_zero_elements, return_counts=True)\n    dominant_color = unique_colors[np.argmax(counts)]\n\n    # Initialize the output grid with zeros\n    output_grid = np.zeros_like(task_grid)\n\n    # Fill the output grid with the dominant color\n    output_grid.fill(dominant_color)\n\n    # Find all unique colors present in the cropped grid (excluding 0 and dominant color)\n    all_colors_in_cropped = np.unique(cropped_grid)\n    foreground_colors = [color for color in all_colors_in_cropped if color != 0 and color != dominant_color]\n\n    # For each foreground color, find its connected components and place them.\n    for color in foreground_colors:\n        # Create a mask for the current foreground color\n        color_mask = (cropped_grid == color)\n\n        # Find connected components using a simple flood fill-like approach\n        visited = np.zeros_like(cropped_grid, dtype=bool)\n\n        for r in range(cropped_rows):\n            for c in range(cropped_cols):\n                if color_mask[r, c] and not visited[r, c]:\n                    # Start a new component\n                    component_pixels = []\n                    queue = [(r, c)]\n                    visited[r, c] = True\n\n                    while queue:\n                        curr_r, curr_c = queue.pop(0)\n                        component_pixels.append((curr_r, curr_c))\n\n                        # Check neighbors (up, down, left, right)\n                        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                            nr, nc = curr_r + dr, curr_c + dc\n\n                            if 0 <= nr < cropped_rows and 0 <= nc < cropped_cols and \\\n                               color_mask[nr, nc] and not visited[nr, nc]:\n                                visited[nr, nc] = True\n                                queue.append((nr, nc))\n\n                    # Place the component in the output grid\n                    for comp_r, comp_c in component_pixels:\n                        output_grid[min_row + comp_r, min_col + comp_c] = color\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 4.337045192718506,
+      "improvement": 0.0
+    },
+    {
+      "generation": 3,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n\n    # Find the bounding box of non-zero elements\n    non_zero_rows_mask = np.any(task_grid != 0, axis=1)\n    non_zero_cols_mask = np.any(task_grid != 0, axis=0)\n\n    if not np.any(non_zero_rows_mask) or not np.any(non_zero_cols_mask):\n        return np.zeros_like(task_grid)\n\n    min_row = np.where(non_zero_rows_mask)[0].min()\n    max_row = np.where(non_zero_rows_mask)[0].max()\n    min_col = np.where(non_zero_cols_mask)[0].min()\n    max_col = np.where(non_zero_cols_mask)[0].max()\n\n    # Extract the relevant part of the grid\n    cropped_grid = task_grid[min_row : max_row + 1, min_col : max_col + 1]\n    cropped_rows, cropped_cols = cropped_grid.shape\n\n    # Identify the dominant color in the cropped grid\n    non_zero_elements = cropped_grid[cropped_grid != 0]\n    if non_zero_elements.size == 0:\n        return np.zeros_like(task_grid)\n\n    unique_colors, counts = np.unique(non_zero_elements, return_counts=True)\n    dominant_color = unique_colors[np.argmax(counts)]\n\n    # Initialize the output grid with zeros\n    output_grid = np.zeros_like(task_grid)\n\n    # Find all unique colors present in the cropped grid (excluding 0)\n    all_colors_in_cropped = np.unique(cropped_grid)\n    foreground_colors = [color for color in all_colors_in_cropped if color != 0]\n\n    # For each foreground color, find its connected components and place them.\n    for color in foreground_colors:\n        # Create a mask for the current foreground color\n        color_mask = (cropped_grid == color)\n\n        # Find connected components using a simple flood fill-like approach\n        visited = np.zeros_like(cropped_grid, dtype=bool)\n\n        for r in range(cropped_rows):\n            for c in range(cropped_cols):\n                if color_mask[r, c] and not visited[r, c]:\n                    # Start a new component\n                    component_pixels = []\n                    queue = [(r, c)]\n                    visited[r, c] = True\n\n                    while queue:\n                        curr_r, curr_c = queue.pop(0)\n                        component_pixels.append((curr_r, curr_c))\n\n                        # Check neighbors (up, down, left, right)\n                        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                            nr, nc = curr_r + dr, curr_c + dc\n\n                            if 0 <= nr < cropped_rows and 0 <= nc < cropped_cols and \\\n                               color_mask[nr, nc] and not visited[nr, nc]:\n                                visited[nr, nc] = True\n                                queue.append((nr, nc))\n\n                    # Place the component in the output grid\n                    for comp_r, comp_c in component_pixels:\n                        output_grid[min_row + comp_r, min_col + comp_c] = color\n\n    # If the dominant color is not present as a foreground color (e.g., it's the only color),\n    # fill the entire output grid with it.\n    if dominant_color not in foreground_colors and np.any(cropped_grid == dominant_color):\n        output_grid.fill(dominant_color)\n    elif not foreground_colors and np.any(cropped_grid == dominant_color):\n        # If there are no other foreground colors, just fill with the dominant color\n        output_grid.fill(dominant_color)\n    else:\n        # Otherwise, ensure the dominant color is placed correctly if it was part of the foreground\n        # This handles cases where the dominant color might have been overwritten if it was also a foreground color.\n        # The previous loop already places foreground colors, so we just need to ensure the background is correct.\n        # If the dominant color is the background, it should be filled everywhere.\n        # If it's also a foreground color, it's already placed by the loop.\n        # The logic here is tricky. Let's re-evaluate based on observed patterns.\n        # The pattern seems to be: fill with dominant color, then overlay foregrounds.\n        # The previous loop already does the overlay. So, if dominant_color is not a foreground,\n        # we need to fill the background.\n\n        # Check if the dominant color is truly the background (i.e., not in foreground_colors)\n        if dominant_color not in foreground_colors:\n            output_grid.fill(dominant_color)\n            # Re-apply foreground colors on top of the dominant background\n            for color in foreground_colors:\n                color_mask = (cropped_grid == color)\n                visited = np.zeros_like(cropped_grid, dtype=bool)\n                for r in range(cropped_rows):\n                    for c in range(cropped_cols):\n                        if color_mask[r, c] and not visited[r, c]:\n                            component_pixels = []\n                            queue = [(r, c)]\n                            visited[r, c] = True\n                            while queue:\n                                curr_r, curr_c = queue.pop(0)\n                                component_pixels.append((curr_r, curr_c))\n                                for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                                    nr, nc = curr_r + dr, curr_c + dc\n                                    if 0 <= nr < cropped_rows and 0 <= nc < cropped_cols and \\\n                                       color_mask[nr, nc] and not visited[nr, nc]:\n                                        visited[nr, nc] = True\n                                        queue.append((nr, nc))\n                            for comp_r, comp_c in component_pixels:\n                                output_grid[min_row + comp_r, min_col + comp_c] = color\n        else:\n            # If dominant color is also a foreground color, it's already handled.\n            # We just need to ensure the background is correctly set if it's not the dominant color.\n            # This is implicitly handled by the initialization of output_grid with zeros.\n            pass\n\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 6.705124139785767,
+      "improvement": 0.0
+    },
+    {
+      "generation": 4,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n\n    # Find the bounding box of non-zero elements\n    non_zero_rows_mask = np.any(task_grid != 0, axis=1)\n    non_zero_cols_mask = np.any(task_grid != 0, axis=0)\n\n    if not np.any(non_zero_rows_mask) or not np.any(non_zero_cols_mask):\n        return np.zeros_like(task_grid)\n\n    min_row = np.where(non_zero_rows_mask)[0].min()\n    max_row = np.where(non_zero_rows_mask)[0].max()\n    min_col = np.where(non_zero_cols_mask)[0].min()\n    max_col = np.where(non_zero_cols_mask)[0].max()\n\n    # Extract the relevant part of the grid\n    cropped_grid = task_grid[min_row : max_row + 1, min_col : max_col + 1]\n    cropped_rows, cropped_cols = cropped_grid.shape\n\n    # Identify the dominant color in the cropped grid\n    non_zero_elements = cropped_grid[cropped_grid != 0]\n    if non_zero_elements.size == 0:\n        return np.zeros_like(task_grid)\n\n    unique_colors, counts = np.unique(non_zero_elements, return_counts=True)\n    dominant_color = unique_colors[np.argmax(counts)]\n\n    # Initialize the output grid with the dominant color\n    output_grid = np.full_like(task_grid, dominant_color)\n\n    # Find all unique colors present in the cropped grid (excluding 0)\n    all_colors_in_cropped = np.unique(cropped_grid)\n    foreground_colors = [color for color in all_colors_in_cropped if color != 0 and color != dominant_color]\n\n    # For each foreground color, find its connected components and place them.\n    for color in foreground_colors:\n        # Create a mask for the current foreground color\n        color_mask = (cropped_grid == color)\n\n        # Find connected components using a simple flood fill-like approach\n        visited = np.zeros_like(cropped_grid, dtype=bool)\n\n        for r in range(cropped_rows):\n            for c in range(cropped_cols):\n                if color_mask[r, c] and not visited[r, c]:\n                    # Start a new component\n                    component_pixels = []\n                    queue = [(r, c)]\n                    visited[r, c] = True\n\n                    while queue:\n                        curr_r, curr_c = queue.pop(0)\n                        component_pixels.append((curr_r, curr_c))\n\n                        # Check neighbors (up, down, left, right)\n                        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                            nr, nc = curr_r + dr, curr_c + dc\n\n                            if 0 <= nr < cropped_rows and 0 <= nc < cropped_cols and \\\n                               color_mask[nr, nc] and not visited[nr, nc]:\n                                visited[nr, nc] = True\n                                queue.append((nr, nc))\n\n                    # Place the component in the output grid\n                    for comp_r, comp_c in component_pixels:\n                        output_grid[min_row + comp_r, min_col + comp_c] = color\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 4.9882729053497314,
+      "improvement": 0.0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 5,
+  "total_time": 29.562180280685425
+}

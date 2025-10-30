@@ -376,6 +376,57 @@ python scripts/demo_phase2_3_evolution.py --help
 - Verbose/silent modes for different use cases
 - Returns complete history for post-analysis
 
+### Benchmarking (Real-World Testing)
+
+Run evolution loop on diverse ARC tasks to measure performance and validate Phase 2:
+
+```bash
+# Benchmark specific tasks
+python scripts/benchmark_evolution.py \
+  --tasks "00576224,007bbfb7,025d127b" \
+  --output-dir results/test_run/ \
+  --experiment-name "test_run"
+
+# Random sample from training set
+python scripts/benchmark_evolution.py \
+  --random-sample 15 \
+  --training-data data/arc-prize-2025/arc-agi_training_challenges.json \
+  --output-dir results/baseline/ \
+  --experiment-name "baseline"
+
+# Load tasks from file
+python scripts/benchmark_evolution.py \
+  --task-ids-file benchmark_tasks.txt \
+  --output-dir results/multiprocess_baseline/ \
+  --experiment-name "multiprocess_baseline"
+
+# Analyze results and generate report
+python scripts/analyze_benchmark.py \
+  --results-dir results/multiprocess_baseline/ \
+  --output-report docs/benchmarks/report.md
+
+# Compare two experiments
+python scripts/analyze_benchmark.py \
+  --results-dir results/multiprocess_baseline/ \
+  --compare-with results/docker_baseline/ \
+  --output-report docs/benchmarks/comparison.md
+```
+
+**Benchmark Output Structure:**
+```
+results/{experiment_name}/
+├── metadata.json              # Experiment config, timestamp, git commit
+├── task_{task_id}.json        # Individual task results
+├── summary.json               # Aggregate statistics
+```
+
+**Phase 2 Baseline Results** (October 30, 2025):
+- **Tasks**: 15 diverse ARC tasks
+- **Success Rate**: 100% (no crashes)
+- **Average Fitness**: 0.33 (only 20% of tasks achieved fitness > 0)
+- **Key Finding**: System is stable but Programmer/Refiner need improvement
+- **Full Report**: [docs/benchmarks/phase2_findings.md](docs/benchmarks/phase2_findings.md)
+
 ### Running Tests
 
 ```bash

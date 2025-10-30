@@ -1,0 +1,225 @@
+{
+  "task_id": "0bb8deee",
+  "success": true,
+  "timestamp": "2025-10-30T08:45:31.419926+00:00",
+  "config": {
+    "max_generations": 5,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": false
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on observed patterns in ARC examples.\n\n    The transformation appears to involve:\n    1. Identifying distinct colored objects (non-zero pixels).\n    2. For each object, finding its bounding box.\n    3. Extracting the object's pixels within its bounding box.\n    4. For objects that form a \"line\" or \"bar\" (like the blue '2's in example 1,\n       or the green '2's in example 2, or the red '3's in example 3),\n       these seem to be used as separators or delimiters.\n    5. The output grid is constructed by arranging the extracted objects (excluding\n       the delimiter objects) in a new grid, potentially reordered or filtered.\n    6. The delimiter objects (e.g., the '1's in example 1, '2's in example 2, '3's in example 3)\n       seem to define the structure of the output grid. They are often a single row/column\n       or a consistent shape that spans across the input grid.\n\n    Specifically, the logic inferred is:\n    - Find the \"delimiter\" color. This is usually a color that forms a prominent\n      line or border (e.g., '1' in Ex1, '2' in Ex2, '3' in Ex3).\n    - Find the bounding box of the entire grid.\n    - Find the bounding box of the delimiter color.\n    - If the delimiter forms a single row or column, it might be used to split\n      the grid into segments.\n    - The non-delimiter colored objects are then extracted and placed into a new grid.\n    - The arrangement seems to be based on the relative positions of the objects\n      and the delimiter.\n\n    Let's refine the logic based on the examples:\n\n    Example 1:\n    - Delimiter: '1' (forms a horizontal line).\n    - Other colors: '2', '3', '5', '8'.\n    - The '1' line acts as a separator. The output seems to be formed by taking\n      the non-'1' colored regions and arranging them. The '3's and '8's seem to\n      be grouped. The '2's are also grouped. The '5's are grouped.\n    - The output grid has fewer rows and columns than the input. The '1' line\n      itself is removed. The structure of the output suggests that the '1' line\n      was used to define rows, and perhaps columns were defined by the extent\n      of the other objects.\n\n    Example 2:\n    - Delimiter: '2' (forms a vertical line).\n    - Other colors: '1', '3', '4', '5'.\n    - The '2' line acts as a separator. The output is formed by taking the\n      non-'2' colored regions. The '1's and '3's are grouped. The '4's are grouped.\n      The '5's are grouped.\n    - The output grid has fewer rows and columns. The '2' line is removed.\n\n    Example 3:\n    - Delimiter: '3' (forms a horizontal line).\n    - Other colors: '2', '1', '4', '5'.\n    - The '3' line acts as a separator. The output is formed by taking the\n      non-'3' colored regions. The '2's and '1's are grouped. The '4's are grouped.\n      The '5's are grouped.\n    - The output grid has fewer rows and columns. The '3' line is removed.\n\n    Generalizing:\n    1. Identify the \"delimiter\" color. This is the color that forms a continuous\n       line or border, often spanning most of the grid.\n    2. Extract all non-delimiter colored objects.\n    3. The output grid is constructed from these extracted objects. The delimiter\n       itself is removed. The dimensions of the output are smaller.\n\n    Let's try a more concrete approach:\n    - Find the most frequent non-zero color. This is likely the delimiter.\n    - Find the bounding box of the entire grid.\n    - Find the bounding box of the delimiter color.\n    - If the delimiter forms a single row or column, it splits the grid.\n    - Extract all other colored components.\n    - The output grid seems to be a collection of these components, possibly\n      filtered or re-arranged.\n\n    A key observation is that the output grid's dimensions are significantly reduced.\n    This suggests that the delimiter color is used to \"collapse\" or \"remove\"\n    parts of the grid, and the remaining colored components are then arranged.\n\n    Let's consider the colors present and their roles:\n    - Example 1: Delimiter '1'. Other colors '2', '3', '5', '8'. Output has '2', '3', '5', '8'.\n    - Example 2: Delimiter '2'. Other colors '1', '3', '4', '5'. Output has '1', '3', '4', '5'.\n    - Example 3: Delimiter '3'. Other colors '2', '1', '4', '5'. Output has '2', '1', '4', '5'.\n\n    It seems the delimiter color is always removed. The remaining colors are then\n    processed. The output grid's structure is derived from the arrangement of these\n    remaining colors relative to the delimiter.\n\n    Let's try to find the delimiter color by checking for a color that forms a\n    single row or column.\n\n    If a single row or column of a specific color exists, that's our delimiter.\n    Otherwise, we might need a more complex heuristic.\n\n    Let's assume the delimiter is the color that forms a single row or column\n    that spans almost the entire width or height.\n\n    Consider the bounding box of each color.\n    If a color's bounding box is a single row and its width is equal to the grid width,\n    or its bounding box is a single column and its height is equal to the grid height,\n    then it's a strong candidate for the delimiter.\n\n    Let's try to implement this:\n    \"\"\"\n\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    unique_colors = np.unique(task_grid)\n    delimiter_color = -1\n\n    # Find the delimiter color\n    for color in unique_colors:\n        if color == 0:\n            continue\n\n        color_pixels = np.argwhere(task_grid == color)\n\n        if color_pixels.shape[0] == 0:\n            continue\n\n        min_r, min_c = np.min(color_pixels, axis=0)\n        max_r, max_c = np.max(color_pixels, axis=0)\n\n        # Check if it forms a single row spanning the width\n        if min_r == max_r and max_c - min_c + 1 == cols:\n            delimiter_color = color\n            break\n        # Check if it forms a single column spanning the height\n        if min_c == max_c and max_r - min_r + 1 == rows:\n            delimiter_color = color\n            break\n\n    # If no clear delimiter found by row/column spanning, try another heuristic.\n    # For example, the most frequent non-zero color that forms a contiguous shape.\n    # However, based on the examples, the row/column spanning seems to be the primary rule.\n    # If still no delimiter, let's assume the most frequent non-zero color is the delimiter.\n    if delimiter_color == -1:\n        non_zero_colors = unique_colors[unique_colors != 0]\n        if non_zero_colors.size > 0:\n            # Count occurrences of each non-zero color\n            counts = np.bincount(task_grid.flatten(), minlength=np.max(task_grid) + 1)\n            # Find the color with the maximum count, excluding 0\n            delimiter_color = np.argmax(counts[non_zero_colors])\n            delimiter_color = non_zero_colors[delimiter_color]\n        else:\n            # If only black pixels, return an empty grid\n            return np.array([])\n\n    # Create a mask for the delimiter color\n    delimiter_mask = (task_grid == delimiter_color)\n\n    # Create a mask for non-delimiter colors\n    non_delimiter_mask = ~delimiter_mask\n\n    # Extract non-delimiter pixels\n    non_delimiter_pixels = task_grid[non_delimiter_mask]\n    non_delimiter_coords = np.argwhere(non_delimiter_mask)\n\n    if non_delimiter_coords.shape[0] == 0:\n        return np.array([])\n\n    # Determine the bounding box of the non-delimiter pixels\n    min_r, min_c = np.min(non_delimiter",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.SYNTAX",
+          "Train example 1: ErrorType.SYNTAX",
+          "Train example 2: ErrorType.SYNTAX"
+        ],
+        "error_details": [
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: '(' was never closed (<string>, line 165)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: '(' was never closed (<string>, line 165)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "syntax",
+            "error_message": "SyntaxError: '(' was never closed (<string>, line 165)",
+            "exception_class": "SyntaxError",
+            "example_id": "train_2"
+          }
+        ],
+        "error_summary": {
+          "syntax": 3
+        }
+      },
+      "refinement_count": 0,
+      "total_time": 8.67573881149292,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on observed patterns in ARC examples.\n    \"\"\"\n\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    unique_colors = np.unique(task_grid)\n    delimiter_color = -1\n\n    # Find the delimiter color\n    for color in unique_colors:\n        if color == 0:\n            continue\n\n        color_pixels = np.argwhere(task_grid == color)\n\n        if color_pixels.shape[0] == 0:\n            continue\n\n        min_r, min_c = np.min(color_pixels, axis=0)\n        max_r, max_c = np.max(color_pixels, axis=0)\n\n        # Check if it forms a single row spanning the width\n        if min_r == max_r and max_c - min_c + 1 == cols:\n            delimiter_color = color\n            break\n        # Check if it forms a single column spanning the height\n        if min_c == max_c and max_r - min_r + 1 == rows:\n            delimiter_color = color\n            break\n\n    # If no clear delimiter found by row/column spanning, try another heuristic.\n    # For example, the most frequent non-zero color.\n    if delimiter_color == -1:\n        non_zero_colors = unique_colors[unique_colors != 0]\n        if non_zero_colors.size > 0:\n            # Count occurrences of each non-zero color\n            counts = np.bincount(task_grid.flatten(), minlength=np.max(task_grid) + 1)\n            # Find the color with the maximum count, excluding 0\n            # Ensure we only consider colors that are actually present\n            present_non_zero_colors = non_zero_colors[non_zero_colors < len(counts)]\n            if present_non_zero_colors.size > 0:\n                delimiter_color = present_non_zero_colors[np.argmax(counts[present_non_zero_colors])]\n            else:\n                # If no non-zero colors are found within the counts range (unlikely but safe)\n                return np.array([])\n        else:\n            # If only black pixels, return an empty grid\n            return np.array([])\n\n    # Create a mask for the delimiter color\n    delimiter_mask = (task_grid == delimiter_color)\n\n    # Create a mask for non-delimiter colors\n    non_delimiter_mask = ~delimiter_mask\n\n    # Extract non-delimiter coordinates\n    non_delimiter_coords = np.argwhere(non_delimiter_mask)\n\n    if non_delimiter_coords.shape[0] == 0:\n        return np.array([])\n\n    # Determine the bounding box of the non-delimiter pixels\n    min_r, min_c = np.min(non_delimiter_coords, axis=0)\n    max_r, max_c = np.max(non_delimiter_coords, axis=0)\n\n    # Extract the subgrid containing non-delimiter pixels\n    subgrid = task_grid[min_r : max_r + 1, min_c : max_c + 1]\n\n    # Remove the delimiter color from the subgrid\n    subgrid[subgrid == delimiter_color] = 0\n\n    # Remove any rows or columns that are entirely black after removing the delimiter\n    # This is to handle cases where the delimiter was the only thing in a row/column\n    # that was part of the bounding box.\n    subgrid = subgrid[~np.all(subgrid == 0, axis=1)]\n    if subgrid.size == 0:\n        return np.array([])\n    subgrid = subgrid[:, ~np.all(subgrid == 0, axis=0)]\n\n    return subgrid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 3.9271559715270996,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on observed patterns in ARC examples.\n    This solver aims to identify a \"frame\" or \"border\" color and extract\n    the inner content, then potentially resize it.\n    \"\"\"\n\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    unique_colors = np.unique(task_grid)\n    \n    # Remove 0 (background) from unique colors for delimiter detection\n    non_zero_colors = unique_colors[unique_colors != 0]\n\n    if non_zero_colors.size == 0:\n        # If only black pixels, return an empty grid\n        return np.array([])\n\n    delimiter_color = -1\n\n    # Heuristic 1: Find a color that forms a complete row or column border.\n    for color in non_zero_colors:\n        color_pixels = np.argwhere(task_grid == color)\n\n        if color_pixels.shape[0] == 0:\n            continue\n\n        min_r, min_c = np.min(color_pixels, axis=0)\n        max_r, max_c = np.max(color_pixels, axis=0)\n\n        # Check if it forms a single row spanning the width\n        if min_r == max_r and max_c - min_c + 1 == cols:\n            delimiter_color = color\n            break\n        # Check if it forms a single column spanning the height\n        if min_c == max_c and max_r - min_r + 1 == rows:\n            delimiter_color = color\n            break\n\n    # Heuristic 2: If no clear border color found, assume the most frequent non-zero color is the delimiter.\n    if delimiter_color == -1:\n        # Count occurrences of each color\n        counts = np.bincount(task_grid.flatten(), minlength=np.max(task_grid) + 1)\n        \n        # Find the color with the maximum count among non-zero colors\n        # Ensure we only consider colors that are actually present and non-zero\n        present_non_zero_colors = non_zero_colors[non_zero_colors < len(counts)]\n        if present_non_zero_colors.size > 0:\n            delimiter_color = present_non_zero_colors[np.argmax(counts[present_non_zero_colors])]\n        else:\n            # This case should be rare if non_zero_colors.size > 0 initially\n            return np.array([])\n\n    # Create a mask for the delimiter color\n    delimiter_mask = (task_grid == delimiter_color)\n\n    # Create a mask for non-delimiter colors\n    non_delimiter_mask = ~delimiter_mask\n\n    # Extract non-delimiter coordinates\n    non_delimiter_coords = np.argwhere(non_delimiter_mask)\n\n    if non_delimiter_coords.shape[0] == 0:\n        # If only the delimiter color exists, return an empty grid\n        return np.array([])\n\n    # Determine the bounding box of the non-delimiter pixels\n    min_r, min_c = np.min(non_delimiter_coords, axis=0)\n    max_r, max_c = np.max(non_delimiter_coords, axis=0)\n\n    # Extract the subgrid containing non-delimiter pixels\n    subgrid = task_grid[min_r : max_r + 1, min_c : max_c + 1]\n\n    # Replace the delimiter color with 0 in the subgrid\n    subgrid[subgrid == delimiter_color] = 0\n\n    # Trim any rows or columns that are entirely black (0) after removing the delimiter.\n    # This handles cases where the delimiter was part of the bounding box but not the actual content.\n    \n    # Trim rows\n    row_sums = np.sum(subgrid, axis=1)\n    non_empty_rows_mask = row_sums != 0\n    subgrid = subgrid[non_empty_rows_mask, :]\n\n    if subgrid.size == 0:\n        return np.array([])\n\n    # Trim columns\n    col_sums = np.sum(subgrid, axis=0)\n    non_empty_cols_mask = col_sums != 0\n    subgrid = subgrid[:, non_empty_cols_mask]\n\n    return subgrid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 4.376452207565308,
+      "improvement": 0.0
+    },
+    {
+      "generation": 3,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on observed patterns in ARC examples.\n    This solver aims to identify a \"frame\" or \"border\" color and extract\n    the inner content, then potentially resize it.\n    \"\"\"\n\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    unique_colors = np.unique(task_grid)\n    \n    # Remove 0 (background) from unique colors for delimiter detection\n    non_zero_colors = unique_colors[unique_colors != 0]\n\n    if non_zero_colors.size == 0:\n        # If only black pixels, return an empty grid\n        return np.array([])\n\n    delimiter_color = -1\n\n    # Heuristic 1: Find a color that forms a complete row or column border.\n    # This heuristic is too strict and doesn't account for all cases.\n    # We need a more robust way to find the delimiter.\n\n    # Heuristic 2: Find the color that is present in all rows and all columns.\n    # This is a common pattern for delimiters in ARC.\n    for color in non_zero_colors:\n        color_mask = (task_grid == color)\n        \n        # Check if the color is present in all rows\n        present_in_all_rows = np.all(np.any(color_mask, axis=1))\n        \n        # Check if the color is present in all columns\n        present_in_all_cols = np.all(np.any(color_mask, axis=0))\n        \n        if present_in_all_rows and present_in_all_cols:\n            delimiter_color = color\n            break\n\n    # If no such color is found, fall back to the most frequent non-zero color.\n    # This is less reliable but can handle some cases.\n    if delimiter_color == -1:\n        # Count occurrences of each color\n        counts = np.bincount(task_grid.flatten(), minlength=np.max(task_grid) + 1)\n        \n        # Find the color with the maximum count among non-zero colors\n        present_non_zero_colors = non_zero_colors[non_zero_colors < len(counts)]\n        if present_non_zero_colors.size > 0:\n            delimiter_color = present_non_zero_colors[np.argmax(counts[present_non_zero_colors])]\n        else:\n            return np.array([])\n\n    # Create a mask for the delimiter color\n    delimiter_mask = (task_grid == delimiter_color)\n\n    # Create a mask for non-delimiter colors\n    non_delimiter_mask = ~delimiter_mask\n\n    # Extract non-delimiter coordinates\n    non_delimiter_coords = np.argwhere(non_delimiter_mask)\n\n    if non_delimiter_coords.shape[0] == 0:\n        # If only the delimiter color exists, return an empty grid\n        return np.array([])\n\n    # Determine the bounding box of the non-delimiter pixels\n    min_r, min_c = np.min(non_delimiter_coords, axis=0)\n    max_r, max_c = np.max(non_delimiter_coords, axis=0)\n\n    # Extract the subgrid containing non-delimiter pixels\n    subgrid = task_grid[min_r : max_r + 1, min_c : max_c + 1]\n\n    # Replace the delimiter color with 0 in the subgrid\n    # This is crucial for correctly extracting the inner content.\n    subgrid[subgrid == delimiter_color] = 0\n\n    # Trim any rows or columns that are entirely black (0) after removing the delimiter.\n    # This handles cases where the delimiter was part of the bounding box but not the actual content.\n    \n    # Trim rows\n    row_sums = np.sum(subgrid, axis=1)\n    non_empty_rows_mask = row_sums != 0\n    subgrid = subgrid[non_empty_rows_mask, :]\n\n    if subgrid.size == 0:\n        return np.array([])\n\n    # Trim columns\n    col_sums = np.sum(subgrid, axis=0)\n    non_empty_cols_mask = col_sums != 0\n    subgrid = subgrid[:, non_empty_cols_mask]\n\n    return subgrid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 4.95573091506958,
+      "improvement": 0.0
+    },
+    {
+      "generation": 4,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Transforms an input grid based on observed patterns in ARC examples.\n    This solver aims to identify a \"frame\" or \"border\" color and extract\n    the inner content, then potentially resize it.\n    \"\"\"\n\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    unique_colors = np.unique(task_grid)\n    \n    # Remove 0 (background) from unique colors for delimiter detection\n    non_zero_colors = unique_colors[unique_colors != 0]\n\n    if non_zero_colors.size == 0:\n        # If only black pixels, return an empty grid\n        return np.array([])\n\n    delimiter_color = -1\n\n    # Heuristic: Find the color that forms a complete border.\n    # This means the color must appear on all four edges of the grid.\n    for color in non_zero_colors:\n        color_mask = (task_grid == color)\n        \n        # Check if the color is present in the first row\n        present_in_first_row = np.any(color_mask[0, :])\n        # Check if the color is present in the last row\n        present_in_last_row = np.any(color_mask[-1, :])\n        # Check if the color is present in the first column\n        present_in_first_col = np.any(color_mask[:, 0])\n        # Check if the color is present in the last column\n        present_in_last_col = np.any(color_mask[:, -1])\n        \n        if present_in_first_row and present_in_last_row and present_in_first_col and present_in_last_col:\n            delimiter_color = color\n            break\n\n    # If no such color is found, fall back to the most frequent non-zero color.\n    # This is less reliable but can handle some cases.\n    if delimiter_color == -1:\n        # Count occurrences of each color\n        # Ensure counts array is large enough to hold the max color value\n        max_color = np.max(task_grid)\n        counts = np.bincount(task_grid.flatten(), minlength=max_color + 1)\n        \n        # Find the color with the maximum count among non-zero colors\n        present_non_zero_colors = non_zero_colors[non_zero_colors < len(counts)]\n        if present_non_zero_colors.size > 0:\n            delimiter_color = present_non_zero_colors[np.argmax(counts[present_non_zero_colors])]\n        else:\n            return np.array([])\n\n    # Create a mask for the delimiter color\n    delimiter_mask = (task_grid == delimiter_color)\n\n    # Create a mask for non-delimiter colors\n    non_delimiter_mask = ~delimiter_mask\n\n    # Extract non-delimiter coordinates\n    non_delimiter_coords = np.argwhere(non_delimiter_mask)\n\n    if non_delimiter_coords.shape[0] == 0:\n        # If only the delimiter color exists, return an empty grid\n        return np.array([])\n\n    # Determine the bounding box of the non-delimiter pixels\n    min_r, min_c = np.min(non_delimiter_coords, axis=0)\n    max_r, max_c = np.max(non_delimiter_coords, axis=0)\n\n    # Extract the subgrid containing non-delimiter pixels\n    subgrid = task_grid[min_r : max_r + 1, min_c : max_c + 1]\n\n    # Replace the delimiter color with 0 in the subgrid\n    # This is crucial for correctly extracting the inner content.\n    subgrid[subgrid == delimiter_color] = 0\n\n    # Trim any rows or columns that are entirely black (0) after removing the delimiter.\n    # This handles cases where the delimiter was part of the bounding box but not the actual content.\n    \n    # Trim rows\n    row_sums = np.sum(subgrid, axis=1)\n    non_empty_rows_mask = row_sums != 0\n    subgrid = subgrid[non_empty_rows_mask, :]\n\n    if subgrid.size == 0:\n        return np.array([])\n\n    # Trim columns\n    col_sums = np.sum(subgrid, axis=0)\n    non_empty_cols_mask = col_sums != 0\n    subgrid = subgrid[:, non_empty_cols_mask]\n\n    return subgrid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 0,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 3
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 3.966500759124756,
+      "improvement": 0.0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 5,
+  "total_time": 25.901578664779663
+}
