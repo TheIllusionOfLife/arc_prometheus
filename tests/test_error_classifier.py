@@ -5,8 +5,6 @@ This module tests error type detection, classification, and debugging strategy
 selection for solver failures.
 """
 
-import pytest
-
 from arc_prometheus.evolutionary_engine.error_classifier import (
     ErrorDetail,
     ErrorType,
