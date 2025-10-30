@@ -215,9 +215,7 @@ class DockerSandbox:
                     # Ignore cleanup errors - container may already be removed
                     pass
 
-    def _create_execution_script(
-        self, solver_code: str, task_grid: np.ndarray
-    ) -> str:
+    def _create_execution_script(self, solver_code: str, task_grid: np.ndarray) -> str:
         """
         Create Python script for container execution.
 

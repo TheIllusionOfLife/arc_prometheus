@@ -43,8 +43,7 @@ def _get_sandbox(sandbox_mode: str) -> ExecutionEnvironment:
         return MultiprocessSandbox()
     else:
         raise ValueError(
-            f"Invalid sandbox_mode: {sandbox_mode}. "
-            "Must be 'multiprocess' or 'docker'"
+            f"Invalid sandbox_mode: {sandbox_mode}. Must be 'multiprocess' or 'docker'"
         )
 
 
