@@ -8,12 +8,15 @@ This module implements the complete evolutionary cycle:
 5. Terminate when target fitness reached or max generations hit
 """
 
+import json
 import time
-from typing import TypedDict
+from typing import Any, TypedDict
 
+from ..cognitive_cells.analyst import Analyst
 from ..cognitive_cells.programmer import generate_solver
 from ..cognitive_cells.refiner import refine_solver
 from ..crucible.data_loader import load_task
+from ..utils.config import ANALYST_DEFAULT_TEMPERATURE, MODEL_NAME
 from .fitness import FitnessResult, calculate_fitness
 
 
@@ -49,15 +52,18 @@ def run_evolution_loop(
     programmer_temperature: float | None = None,
     refiner_temperature: float | None = None,
     use_cache: bool = True,
+    use_analyst: bool = False,
+    analyst_temperature: float | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
     Process:
-        1. Generate initial solver from train examples (Programmer)
-        2. Evaluate fitness with calculate_fitness()
-        3. If fitness < target_fitness, refine code (Refiner - Mutation)
-        4. Repeat for max_generations or until target_fitness reached
-        5. Track and return all generation results
+        1. (Optional) Analyze task with Analyst agent (if use_analyst=True)
+        2. Generate initial solver from train examples (Programmer)
+        3. Evaluate fitness with calculate_fitness()
+        4. If fitness < target_fitness, refine code (Refiner - Mutation)
+        5. Repeat for max_generations or until target_fitness reached
+        6. Track and return all generation results
 
     Args:
         task_json_path: Path to ARC task JSON file
@@ -71,6 +77,8 @@ def run_evolution_loop(
         programmer_temperature: Temperature for code generation (default: from config.py)
         refiner_temperature: Temperature for debugging (default: from config.py)
         use_cache: If True, use LLM response cache (default: True)
+        use_analyst: If True, use Analyst agent for pattern analysis (AI Civilization mode) (default: False)
+        analyst_temperature: Temperature for Analyst (default: 0.3, only used if use_analyst=True)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -81,9 +89,15 @@ def run_evolution_loop(
         Exception: If LLM API call fails
 
     Example:
+        >>> # Direct mode (Phase 2 - backward compatible)
         >>> results = run_evolution_loop("task.json", max_generations=3, target_fitness=11)  # doctest: +SKIP
         >>> print(f"Final fitness: {results[-1]['fitness_result']['fitness']}")  # doctest: +SKIP
         Final fitness: 13
+
+        >>> # AI Civilization mode (Phase 3 - with Analyst)
+        >>> results = run_evolution_loop("task.json", use_analyst=True, max_generations=3)  # doctest: +SKIP
+        >>> # Analyst analyzes pattern first, guides Programmer and Refiner
+
         >>> # Check improvement over generations
         >>> for r in results:  # doctest: +SKIP
         ...     print(f"Gen {r['generation']}: fitness = {r['fitness_result']['fitness']}")
@@ -95,6 +109,8 @@ def run_evolution_loop(
         - Subsequent generations refine if fitness < target_fitness
         - Early termination when target_fitness reached saves API calls
         - Each generation tracks its own timing for performance analysis
+        - When use_analyst=True, Analyst runs once in Generation 0 and its output
+          is reused for Programmer and Refiner (pattern analysis is task-specific, not code-specific)
     """
     # Load task once (used for prompt creation)
     task_data = load_task(task_json_path)
@@ -106,7 +122,41 @@ def run_evolution_loop(
     results: list[GenerationResult] = []
     current_code: str = ""
     previous_fitness: float = 0.0
+    analyst_spec: Any = None  # Store analyst result for reuse
 
+    # Phase 1: Analyst analysis (AI Civilization mode only)
+    if use_analyst:
+        if verbose:
+            print(f"\n{'=' * 70}")
+            print(" AI Civilization Mode: Analyst Agent")
+            print(f"{'=' * 70}")
+            print("\n🔍 Analyzing task patterns...")
+
+        analyst = Analyst(
+            model_name=model_name or MODEL_NAME,  # Ensure string type for mypy
+            temperature=(
+                analyst_temperature
+                if analyst_temperature is not None
+                else ANALYST_DEFAULT_TEMPERATURE
+            ),
+            use_cache=use_cache,
+        )
+
+        # Load full task for Analyst
+        with open(task_json_path) as f:
+            task_json = json.load(f)
+
+        analyst_spec = analyst.analyze_task(task_json)
+
+        if verbose:
+            print("✅ Pattern analysis complete")
+            print(f"  Pattern: {analyst_spec.pattern_description}")
+            print(f"  Confidence: {analyst_spec.confidence}")
+            print(
+                f"  Observations: {len(analyst_spec.key_observations)} key observations"
+            )
+
+    # Phase 2: Evolution loop
     for generation in range(max_generations):
         gen_start_time = time.time()
 
@@ -118,7 +168,10 @@ def run_evolution_loop(
         # Generation 0: Generate initial solver
         if generation == 0:
             if verbose:
-                print("\n📝 Generating initial solver from train examples...")
+                mode = "AI Civilization" if use_analyst else "Direct"
+                print(
+                    f"\n📝 Generating initial solver from train examples ({mode} mode)..."
+                )
 
             current_code = generate_solver(
                 train_pairs,
@@ -126,6 +179,7 @@ def run_evolution_loop(
                 temperature=programmer_temperature,
                 timeout=timeout_per_llm,
                 use_cache=use_cache,
+                analyst_spec=analyst_spec,  # Pass analyst result to Programmer
             )
 
             if verbose:
@@ -161,6 +215,7 @@ def run_evolution_loop(
                 temperature=refiner_temperature,
                 timeout=timeout_per_llm,
                 use_cache=use_cache,
+                analyst_spec=analyst_spec,  # Pass analyst result to Refiner
             )
 
             if verbose:

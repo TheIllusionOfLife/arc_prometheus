@@ -6,7 +6,7 @@ unified pipeline that analyzes ARC tasks and generates solver code.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -231,6 +231,7 @@ def create_refiner_prompt(
     fitness_result: FitnessResult,
     max_examples: int = 3,
     error_type: ErrorType | None = None,
+    analyst_spec: Any = None,
 ) -> str:
     """Create prompt for Refiner to debug failed solver code.
 
@@ -245,12 +246,16 @@ def create_refiner_prompt(
             - execution_errors: List of error messages
         max_examples: Maximum number of train examples to include (default: 3)
             Lower values save API tokens, higher values provide more context
+        error_type: Classified error type for targeted debugging strategy (optional)
+        analyst_spec: Optional AnalysisResult from Analyst agent (AI Civilization mode)
+            Provides original pattern description for debugging context
 
     Returns:
         Formatted prompt string for debugging
 
     Prompt Structure:
         - Role and debugging goal
+        - (Optional) Original pattern analysis from Analyst
         - Original task examples (up to max_examples train pairs for context)
         - Failed code with analysis
         - Failure details (which examples failed, errors)
@@ -273,9 +278,49 @@ def create_refiner_prompt(
         "## Goal",
         "Debug and fix the provided solver code that failed to solve the ARC task correctly.",
         "",
-        "## Original Task Examples",
-        "Here are some examples from the task (for context):",
     ]
+
+    # Add Analyst context if available (AI Civilization mode)
+    if analyst_spec:
+        prompt_parts.extend(
+            [
+                "## Original Pattern Analysis (from Analyst Agent)",
+                "",
+                f"**Transformation Rule:** {analyst_spec.pattern_description}",
+                "",
+            ]
+        )
+
+        if analyst_spec.key_observations:
+            prompt_parts.append("**Key Observations:**")
+            for obs in analyst_spec.key_observations:
+                prompt_parts.append(f"- {obs}")
+            prompt_parts.append("")
+
+        if analyst_spec.suggested_approach:
+            prompt_parts.extend(
+                [
+                    f"**Suggested Approach:** {analyst_spec.suggested_approach}",
+                    "",
+                ]
+            )
+
+        if analyst_spec.confidence:
+            prompt_parts.extend(
+                [f"**Analyst Confidence:** {analyst_spec.confidence}", ""]
+            )
+
+        prompt_parts.append(
+            "Keep this pattern in mind while debugging. The code should implement this transformation rule."
+        )
+        prompt_parts.append("")
+
+    prompt_parts.extend(
+        [
+            "## Original Task Examples",
+            "Here are some examples from the task (for context):",
+        ]
+    )
 
     # Show up to max_examples train examples (not all, to save tokens)
     train_examples = task_data.get("train", [])

@@ -8,14 +8,20 @@ This demonstrates the complete evolutionary cycle:
 5. Terminate when target reached or max generations hit
 
 Usage:
-    # Run with default configuration
+    # Run with default configuration (Direct mode)
     python scripts/demo_phase2_3_evolution.py
+
+    # Enable AI Civilization mode (use Analyst agent)
+    python scripts/demo_phase2_3_evolution.py --use-analyst
 
     # Use custom model
     python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp
 
     # Adjust temperatures for more/less creativity
     python scripts/demo_phase2_3_evolution.py --programmer-temperature 0.5 --refiner-temperature 0.6
+
+    # AI Civilization mode with custom Analyst temperature
+    python scripts/demo_phase2_3_evolution.py --use-analyst --analyst-temperature 0.5
 
     # Run more generations
     python scripts/demo_phase2_3_evolution.py --max-generations 10
@@ -26,7 +32,7 @@ Usage:
     python scripts/demo_phase2_3_evolution.py --no-cache              # Disable cache
 
     # Combine options
-    python scripts/demo_phase2_3_evolution.py --model gemini-2.0-flash-thinking-exp --max-generations 10 --programmer-temperature 0.5
+    python scripts/demo_phase2_3_evolution.py --use-analyst --model gemini-2.0-flash-thinking-exp --max-generations 10
 
 Requirements:
     - GEMINI_API_KEY environment variable must be set
@@ -160,6 +166,8 @@ def demo_1_simple_evolution(config):
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
             use_cache=config.use_cache,
+            use_analyst=config.use_analyst,
+            analyst_temperature=config.analyst_temperature,
         )
 
         # Display results
@@ -230,6 +238,8 @@ def demo_2_early_convergence(config):
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
             use_cache=config.use_cache,
+            use_analyst=config.use_analyst,
+            analyst_temperature=config.analyst_temperature,
         )
 
         print("\n✅ Evolution complete!")
@@ -294,6 +304,8 @@ def demo_3_gradual_improvement(config):
             programmer_temperature=config.programmer_temperature,
             refiner_temperature=config.refiner_temperature,
             use_cache=config.use_cache,
+            use_analyst=config.use_analyst,
+            analyst_temperature=config.analyst_temperature,
         )
 
         print("\n✅ Evolution complete!")
@@ -355,9 +367,12 @@ def main():
 
     # Display configuration
     print("\nConfiguration:")
+    print(f"  Mode: {'AI Civilization' if config.use_analyst else 'Direct'}")
     print(f"  Model: {config.model}")
     print(f"  Programmer Temperature: {config.programmer_temperature}")
     print(f"  Refiner Temperature: {config.refiner_temperature}")
+    if config.use_analyst:
+        print(f"  Analyst Temperature: {config.analyst_temperature}")
     print(f"  Max Generations: {config.max_generations}")
     print(f"  LLM Timeout: {config.timeout_llm}s")
     print(f"  Eval Timeout: {config.timeout_eval}s")

@@ -76,11 +76,17 @@ Expand to full multi-agent ecosystem with crossover:
   - 21 unit tests + 9 integration tests (all passing - 311 total)
   - Real API validation: 5/5 diverse tasks completed successfully
   - Production ready: No timeouts, truncation, or API errors
-- ⏭️ **Phase 3.2**: Enhanced Programmer with prompt optimization
-- ⏭️ **Phase 3.3**: Refiner with Analyst context for better debugging
-- ⏭️ **Phase 3.4**: Tagger for technique classification (rotation, fill, symmetry, etc.)
-- ⏭️ **Phase 3.5**: Crossover agent to fuse different solver capabilities
-- ⏭️ **Phase 3.6**: Population-based evolution with solver library (SQLite)
+- ✅ **Phase 3.2 Complete** (October 31, 2025 - Task 3.2): Enhanced Programmer Integration
+  - Evolution loop integrated with Analyst agent
+  - CLI support via `--use-analyst` and `--analyst-temperature` flags
+  - Two modes: AI Civilization (with Analyst) vs Direct (without Analyst)
+  - Refiner receives Analyst context for improved debugging
+  - 21 tests (4 new Analyst integration + 17 existing all passing - 315 total)
+  - Backward compatible: default behavior unchanged (use_analyst=False)
+  - Real API validated: both modes work correctly, no errors/timeouts
+- ⏭️ **Phase 3.3**: Tagger for technique classification (rotation, fill, symmetry, etc.)
+- ⏭️ **Phase 3.4**: Crossover agent to fuse different solver capabilities
+- ⏭️ **Phase 3.5**: Population-based evolution with solver library (SQLite)
 
 ## Common Commands
 
@@ -138,11 +144,40 @@ git push origin your-branch
 
 ### Testing
 ```bash
-# Run Phase 1 end-to-end test (when implemented)
-python run_phase1_test.py <path_to_arc_task.json>
+# Run all tests
+uv run pytest tests/
 
-# Run unit tests (future)
-pytest tests/
+# Run specific test file
+uv run pytest tests/test_evolution_loop.py -v
+
+# Run with coverage
+uv run pytest tests/ --cov=src/arc_prometheus
+```
+
+### Evolution Loop CLI (Phase 2.3 + Phase 3.2)
+```bash
+# Direct mode (Phase 2 - without Analyst)
+uv run python scripts/demo_phase2_3_evolution.py
+
+# AI Civilization mode (Phase 3 - with Analyst)
+uv run python scripts/demo_phase2_3_evolution.py --use-analyst
+
+# Customize temperatures
+uv run python scripts/demo_phase2_3_evolution.py \
+  --programmer-temperature 0.5 \
+  --refiner-temperature 0.6 \
+  --analyst-temperature 0.4  # Only used with --use-analyst
+
+# Longer evolution runs
+uv run python scripts/demo_phase2_3_evolution.py \
+  --use-analyst \
+  --max-generations 10 \
+  --model gemini-2.0-flash-thinking-exp
+
+# Cache management
+uv run python scripts/demo_phase2_3_evolution.py --cache-stats  # View stats
+uv run python scripts/demo_phase2_3_evolution.py --clear-cache  # Clear all
+uv run python scripts/demo_phase2_3_evolution.py --no-cache     # Disable
 ```
 
 ### Data Format

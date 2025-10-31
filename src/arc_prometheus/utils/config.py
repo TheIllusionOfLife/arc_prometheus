@@ -88,3 +88,6 @@ REFINER_GENERATION_CONFIG: Any = {
     "temperature": 0.4,  # Slightly higher for debugging creativity
     "max_output_tokens": 3048,  # More tokens to allow detailed fixes
 }
+
+# Analyst temperature (lower for consistent pattern analysis)
+ANALYST_DEFAULT_TEMPERATURE = 0.3

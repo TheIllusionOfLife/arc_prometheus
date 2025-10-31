@@ -17,6 +17,7 @@ Example:
 import argparse
 
 from .config import (
+    ANALYST_DEFAULT_TEMPERATURE,
     DEFAULT_TIMEOUT_SECONDS,
     MODEL_NAME,
     PROGRAMMER_GENERATION_CONFIG,
@@ -85,6 +86,8 @@ def parse_evolution_args(args: list[str] | None = None) -> argparse.Namespace:
         - model: LLM model name
         - programmer_temperature: Temperature for code generation
         - refiner_temperature: Temperature for debugging
+        - analyst_temperature: Temperature for Analyst (only used with use_analyst=True)
+        - use_analyst: Enable AI Civilization mode (Analyst analyzes pattern first)
         - timeout_llm: LLM API call timeout in seconds
         - timeout_eval: Sandbox execution timeout in seconds
         - max_generations: Maximum evolution generations
@@ -118,6 +121,10 @@ Examples:
 
   # Early stopping when fitness reaches 15
   %(prog)s --target-fitness 15 --max-generations 20
+
+  # AI Civilization mode (use Analyst agent)
+  %(prog)s --use-analyst              # Enable AI Civilization mode
+  %(prog)s --use-analyst --analyst-temperature 0.5
 
   # Sandbox mode (production-grade security)
   %(prog)s --sandbox-mode docker      # Use Docker sandbox (secure)
@@ -155,6 +162,20 @@ Examples:
         type=_validate_temperature,
         default=REFINER_GENERATION_CONFIG["temperature"],
         help=f"Temperature for debugging (0.0-2.0, default: {REFINER_GENERATION_CONFIG['temperature']})",
+    )
+
+    parser.add_argument(
+        "--analyst-temperature",
+        type=_validate_temperature,
+        default=ANALYST_DEFAULT_TEMPERATURE,
+        help=f"Temperature for Analyst pattern analysis (0.0-2.0, default: {ANALYST_DEFAULT_TEMPERATURE}, only used with --use-analyst)",
+    )
+
+    # AI Civilization mode
+    parser.add_argument(
+        "--use-analyst",
+        action="store_true",
+        help="Enable AI Civilization mode: use Analyst agent for pattern analysis before Programmer (default: disabled, Direct mode)",
     )
 
     # Timeout controls
