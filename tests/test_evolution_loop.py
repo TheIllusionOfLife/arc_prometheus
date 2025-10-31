@@ -447,6 +447,212 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert not mock_refine.called
 
 
+class TestEvolutionLoopAnalystIntegration:
+    """Test evolution loop with Analyst agent integration (Task 3.2)."""
+
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.Analyst")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
+    def test_analyst_called_when_use_analyst_true(
+        self, mock_generate, mock_refine, mock_analyst_class, tmp_path
+    ):
+        """Test that Analyst is called exactly once in Generation 0 when use_analyst=True."""
+        from arc_prometheus.cognitive_cells.analyst import AnalysisResult
+        from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        # Mock Analyst to return fake analysis
+        mock_analyst = mock_analyst_class.return_value
+        mock_analyst.analyze_task.return_value = AnalysisResult(
+            pattern_description="Multiply input by 2",
+            key_observations=["All outputs are double the inputs"],
+            suggested_approach="Use numpy multiplication",
+            confidence="high",
+        )
+
+        # Mock Programmer
+        mock_generate.return_value = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2
+"""
+
+        # Run evolution with Analyst enabled
+        _ = run_evolution_loop(
+            str(task_file),
+            max_generations=2,
+            use_analyst=True,
+            verbose=False,
+        )
+
+        # Verify Analyst was instantiated
+        assert mock_analyst_class.called
+        mock_analyst_class.assert_called_once()
+
+        # Verify Analyst.analyze_task() was called exactly once
+        assert mock_analyst.analyze_task.called
+        mock_analyst.analyze_task.assert_called_once()
+
+        # Verify generate_solver() received analyst_spec
+        assert mock_generate.called
+        call_kwargs = mock_generate.call_args[1]
+        assert "analyst_spec" in call_kwargs
+        assert call_kwargs["analyst_spec"] is not None
+
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
+    def test_analyst_not_called_when_use_analyst_false(
+        self, mock_generate, mock_refine, tmp_path
+    ):
+        """Test backward compatibility: Analyst not used when use_analyst=False (default)."""
+        from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        mock_generate.return_value = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2
+"""
+
+        # Run evolution WITHOUT Analyst (default behavior)
+        _ = run_evolution_loop(
+            str(task_file),
+            max_generations=1,
+            use_analyst=False,
+            verbose=False,
+        )
+
+        # Verify generate_solver() received analyst_spec=None
+        assert mock_generate.called
+        call_kwargs = mock_generate.call_args[1]
+        assert "analyst_spec" in call_kwargs
+        assert call_kwargs["analyst_spec"] is None
+
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.Analyst")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
+    def test_analyst_spec_passed_to_refiner(
+        self, mock_generate, mock_refine, mock_analyst_class, tmp_path
+    ):
+        """Test that analyst_spec is passed to Refiner in subsequent generations."""
+        from arc_prometheus.cognitive_cells.analyst import AnalysisResult
+        from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        # Mock Analyst
+        mock_analyst = mock_analyst_class.return_value
+        analyst_result = AnalysisResult(
+            pattern_description="Multiply by 2",
+            key_observations=["Pattern is doubling"],
+            suggested_approach="Use * 2 operator",
+            confidence="high",
+        )
+        mock_analyst.analyze_task.return_value = analyst_result
+
+        # Mock bad initial code
+        mock_generate.return_value = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid + 1  # Wrong
+"""
+
+        # Mock refined code
+        mock_refine.return_value = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2  # Correct
+"""
+
+        # Run evolution for 2 generations with Analyst
+        _ = run_evolution_loop(
+            str(task_file),
+            max_generations=2,
+            use_analyst=True,
+            verbose=False,
+        )
+
+        # Verify Refiner was called
+        assert mock_refine.called
+
+        # Verify refine_solver() received analyst_spec
+        call_kwargs = mock_refine.call_args[1]
+        assert "analyst_spec" in call_kwargs
+        assert call_kwargs["analyst_spec"] == analyst_result
+
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.Analyst")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.refine_solver")
+    @patch("arc_prometheus.evolutionary_engine.evolution_loop.generate_solver")
+    def test_analyst_temperature_override(
+        self, mock_generate, mock_refine, mock_analyst_class, tmp_path
+    ):
+        """Test that analyst_temperature parameter is passed to Analyst."""
+        from arc_prometheus.cognitive_cells.analyst import AnalysisResult
+        from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+
+        task_file = tmp_path / "task.json"
+        task_file.write_text(json.dumps(task_data))
+
+        # Mock Analyst
+        mock_analyst = mock_analyst_class.return_value
+        mock_analyst.analyze_task.return_value = AnalysisResult(
+            pattern_description="Test",
+            key_observations=[],
+            suggested_approach="Test",
+            confidence="high",
+        )
+
+        mock_generate.return_value = """
+import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid * 2
+"""
+
+        # Run with custom analyst_temperature
+        _ = run_evolution_loop(
+            str(task_file),
+            max_generations=1,
+            use_analyst=True,
+            analyst_temperature=0.5,
+            verbose=False,
+        )
+
+        # Verify Analyst was instantiated with correct temperature
+        call_kwargs = mock_analyst_class.call_args[1]
+        assert "temperature" in call_kwargs
+        assert call_kwargs["temperature"] == 0.5
+
+
 class TestEvolutionLoopIntegration:
     """Integration tests with real dataset."""
 

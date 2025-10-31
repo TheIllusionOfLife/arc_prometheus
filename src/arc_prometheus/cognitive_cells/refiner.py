@@ -28,6 +28,7 @@ def refine_solver(
     temperature: float | None = None,
     timeout: int = 60,
     use_cache: bool = True,
+    analyst_spec: Any = None,
 ) -> str:
     """Debug and improve failed solver code using Gemini API.
 
@@ -45,6 +46,8 @@ def refine_solver(
         temperature: LLM temperature 0.0-2.0 (default: from config.py)
         timeout: API request timeout in seconds (default: 60)
         use_cache: If True, use LLM response cache (default: True)
+        analyst_spec: Optional AnalysisResult from Analyst agent (AI Civilization mode)
+            Provides pattern description and debugging context (default: None)
 
     Returns:
         Improved solver code string with bugs fixed
@@ -56,7 +59,7 @@ def refine_solver(
 
     Process:
         1. Load task data for context
-        2. Create refiner prompt with failure analysis
+        2. Create refiner prompt with failure analysis (and analyst context if provided)
         3. Call Gemini API with temperature 0.4 (debugging creativity)
         4. Extract corrected code from response
         5. Return refined code (ready for re-evaluation)
@@ -107,7 +110,11 @@ def refine_solver(
 
     # Create refiner prompt with failure analysis and error classification
     prompt = create_refiner_prompt(
-        failed_code, task_data, fitness_result, error_type=error_type
+        failed_code,
+        task_data,
+        fitness_result,
+        error_type=error_type,
+        analyst_spec=analyst_spec,  # Pass analyst context for better debugging
     )
 
     # Check cache if enabled
