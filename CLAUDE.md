@@ -94,7 +94,47 @@ pip install numpy google-generativeai
 
 # Future phases will add:
 # pip install multiprocess celery redis pytest
+
+# Install git hooks (IMPORTANT - prevents CI failures)
+./scripts/setup_hooks.sh
 ```
+
+### Development Workflow (Prevent CI Failures) ⚠️
+
+**MANDATORY FOR ALL DEVELOPMENT**: Install git hooks to catch issues before CI
+```bash
+# One-time setup
+./scripts/setup_hooks.sh
+
+# This installs:
+# - Pre-commit hooks: Fast checks (ruff, mypy, bandit) - ~5 seconds
+# - Pre-push hooks: Full CI suite (all checks + tests) - ~30-60 seconds
+```
+
+**Before Every Commit**:
+```bash
+# Option 1: Let git hooks handle it automatically
+git commit -m "feat: your changes"
+# → Pre-commit hooks run automatically
+
+# Option 2: Run all checks manually first
+make ci
+git commit -m "feat: your changes"
+```
+
+**Before Every Push**:
+```bash
+git push origin your-branch
+# → Pre-push hooks run automatically (includes full test suite)
+# → Prevents pushing code that will fail CI
+```
+
+**Why This Matters** (Lessons from PR #37):
+- PR #37 had 5+ CI failure iterations despite pre-commit config
+- Issues: ruff linting, formatting, type annotations, missing test mocks
+- Root cause: Tests not run before push, mypy only checked `src/` not `tests/`
+- Solution: Hybrid approach - fast commits, thorough pre-push validation
+- Result: Catches issues locally before wasting CI/reviewer time
 
 ### Testing
 ```bash

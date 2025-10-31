@@ -382,6 +382,62 @@ Fitness = (train_correct * 1) + (test_correct * 10)
 
 ## 🧑‍💻 Development
 
+### Development Workflow (⚡ Recommended)
+
+**Option C: Hybrid Approach** - Fast commits with thorough pre-push validation
+
+#### First-Time Setup
+
+```bash
+# Install git hooks (one-time setup)
+./scripts/setup_hooks.sh
+```
+
+This installs:
+- **Pre-commit hooks**: Fast checks (ruff formatting, mypy type checking, bandit security) - runs in ~5 seconds
+- **Pre-push hooks**: Full CI suite (all checks + full test suite) - runs before pushing to remote
+
+#### Development Cycle
+
+```bash
+# 1. Make changes to code
+
+# 2. (Optional) Run full CI checks manually before committing
+make ci                  # Runs all checks locally
+
+# 3. Commit your changes
+git commit -m "feat: add new feature"
+# → Pre-commit hooks run automatically (fast checks only)
+
+# 4. Push to remote
+git push origin feature-branch
+# → Pre-push hooks run automatically (full test suite)
+# → Prevents pushing code that will fail CI
+```
+
+#### Why This Workflow?
+
+**Problem**: PR #37 had 5+ CI failure iterations despite having pre-commit config:
+- Ruff linting errors (F541, F401, F841)
+- Ruff formatting issues
+- Runtime errors (type annotations)
+- Test failures (missing API key mocks)
+
+**Root Cause**: Tests weren't run before pushing, pre-commit only checked `src/` not `tests/`
+
+**Solution**: Hybrid approach balances speed with reliability:
+- ✅ **Fast commits** (~5 seconds) - formatting, linting, type checking
+- ✅ **Thorough pre-push** (~30-60 seconds) - full test suite catches API mocking issues
+- ✅ **Manual override** - `make ci` runs all checks anytime
+- ✅ **Skip if needed** - `git push --no-verify` for emergencies
+
+#### Skip Hooks (Not Recommended)
+
+```bash
+git commit --no-verify   # Skip pre-commit hooks
+git push --no-verify     # Skip pre-push hooks
+```
+
 ### Running Tests (TDD Approach)
 
 This project follows Test-Driven Development:
@@ -406,7 +462,7 @@ We use a comprehensive CI/CD pipeline with automated quality checks:
 **Available Commands** (via Makefile):
 
 ```bash
-# Run all CI checks at once
+# Run all CI checks at once (same as what runs in CI)
 make ci
 
 # Individual checks
@@ -422,26 +478,23 @@ make clean         # Clean cache files
 make help          # Show all available commands
 ```
 
+**Alternative CI Check Script**:
+```bash
+# Standalone script that mimics GitHub Actions CI
+./scripts/check_ci.sh
+```
+
 **Quality Tools**:
-- **mypy**: Strict type checking (Python 3.13)
+- **mypy**: Strict type checking (Python 3.13) - checks both `src/` and `tests/`
 - **ruff**: Fast linting and formatting (replaces black, flake8, isort)
 - **pytest**: Test framework with coverage reporting
 - **bandit**: Security vulnerability scanning
-
-**Pre-commit Hooks** (Optional):
-
-```bash
-# Install pre-commit hooks to run checks before each commit
-pre-commit install
-
-# Run manually
-pre-commit run --all-files
-```
 
 **CI/CD Pipeline**:
 - Automated checks run on all PRs via GitHub Actions
 - Type checking, linting, formatting, security, and tests
 - All checks must pass before merging
+- Git hooks ensure code is validated before it reaches CI
 
 ### Commit Convention
 
