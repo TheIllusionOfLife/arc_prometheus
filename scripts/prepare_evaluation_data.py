@@ -14,6 +14,7 @@ Usage:
 """
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -21,9 +22,9 @@ from typing import Any
 
 
 def merge_evaluation_data(
-    challenges_path: str,
-    solutions_path: str,
-    output_path: str,
+    challenges_path: str | Path,
+    solutions_path: str | Path,
+    output_path: str | Path,
 ) -> None:
     """Merge evaluation challenges with solutions into unified format.
 
@@ -46,15 +47,14 @@ def merge_evaluation_data(
     with open(solutions_path) as f:
         solutions: dict[str, list[list[list[int]]]] = json.load(f)
 
-    # Validate all challenge tasks have solutions
+    # Validate all challenge tasks have solutions (using set operations)
     print("\nValidating data integrity...")
     print(f"  Challenges: {len(challenges)} tasks")
     print(f"  Solutions: {len(solutions)} tasks")
 
-    missing_tasks = []
-    for task_id in challenges:
-        if task_id not in solutions:
-            missing_tasks.append(task_id)
+    challenge_ids = set(challenges)
+    solution_ids = set(solutions)
+    missing_tasks = list(challenge_ids - solution_ids)
 
     if missing_tasks:
         raise ValueError(
@@ -67,10 +67,10 @@ def merge_evaluation_data(
     mismatches = []
 
     for task_id, task_data in challenges.items():
-        # Copy task structure
+        # Copy task structure (deepcopy to prevent side effects on original data)
         merged_task = {
             "train": task_data["train"],
-            "test": task_data["test"].copy(),  # Will modify test examples
+            "test": copy.deepcopy(task_data["test"]),  # Will modify test examples
         }
 
         # Merge test outputs
@@ -139,6 +139,22 @@ Example:
     )
 
     args = parser.parse_args()
+
+    # Validate input files exist before processing
+    challenges_file = Path(args.challenges)
+    solutions_file = Path(args.solutions)
+
+    if not challenges_file.exists():
+        print(
+            f"❌ Error: Challenges file not found: {args.challenges}", file=sys.stderr
+        )
+        return 1
+
+    if not solutions_file.exists():
+        print(
+            f"❌ Error: Solutions file not found: {args.solutions}", file=sys.stderr
+        )
+        return 1
 
     try:
         merge_evaluation_data(
