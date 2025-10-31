@@ -312,10 +312,18 @@ arc_prometheus/
 
 **Phase 2: Evolutionary Loop** ✅ COMPLETE
 - Fitness evaluation, Refiner agent, multi-generation evolution
-- **Current Issue**: 20% success rate → Must fix Programmer/Refiner
+- Kaggle submission formatter (pass@2 format)
 
-**Phase 3: Scaling** (Planned)
-- Solver library, Tagger, Crossover, distributed processing
+**Phase 3: AI Civilization** 🚧 IN PROGRESS
+- ✅ **Task 3.1** (October 31, 2025): Analyst agent - Pattern analysis and rule inference
+  - 21 unit tests + 9 integration tests (all passing)
+  - Real API validation: 5/5 tasks completed successfully
+  - Integration: Programmer accepts Analyst specifications (backward compatible)
+- ⏭️ **Task 3.2**: Enhanced Programmer (prompt optimization)
+- ⏭️ **Task 3.3**: Refiner with Analyst context
+- ⏭️ **Task 3.4**: Tagger agent (technique classification)
+- ⏭️ **Task 3.5**: Crossover agent (solution fusion)
+- ⏭️ **Task 3.6**: Population-based evolution
 
 ## 🧪 Technical Details
 
@@ -472,7 +480,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Session Handover
 
-### Last Updated: October 31, 2025 01:04 PM JST
+### Last Updated: October 31, 2025 10:30 PM JST
 
 #### Recently Completed
 
@@ -560,74 +568,75 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Philosophy**: We're building an AI civilization, not chasing leaderboard scores. The competition validates our hypothesis: can multi-agent evolution outperform single-agent approaches?
 
-**Phase 2.5: Competition Compatibility** (Week 1-2) - Technical fixes only, architecture stays intact:
+**See detailed plan:** [plan_20251031.md](plan_20251031.md)
 
-1. ✅ **Fix Data Pipeline** - COMPLETE (PR #33)
-   - Created `scripts/prepare_evaluation_data.py` to merge evaluation challenges + solutions
-   - Validated with all 120 evaluation tasks - preprocessing works correctly
-   - Documentation updated in README and CLAUDE.md
+**Phase 3: Complete the AI Civilization** (Days 1-3, 30-40 hours) 🧬
 
-2. ✅ **Implement pass@2 Output** - COMPLETE (PR #35)
-   - **Implementation**: Created `submission_formatter.py` with diversity selection, prediction generation, and Kaggle format validation
-   - **Diversity Strategies**: fitness-based, generation_gap, and edit_distance (placeholder)
-   - **Testing**: 22 comprehensive tests (18 unit + 4 integration), real API validation (3 tasks, 100% success)
-   - **CLI Integration**: `--generate-submission` flag in benchmark_evolution.py
-   - **Format**: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}` - Kaggle-compliant
-   - **Fallback**: Duplicates best solver with console warnings when insufficient unique solvers
-   - **Success**: ✅ Can generate valid submission.json for any number of tasks
+**Goal:** Implement all missing agents to realize the complete vision, then validate experimentally
 
-3. **Runtime Optimization** ⚠️ IMPORTANT (1 day)
-   - **Why**: 12-hour hard limit for 240 tasks (3 min/task average)
-   - **Currently**: ~2 min/task (5 generations) ✅ under budget
-   - **Risks**: Library lookups, multiple test inputs could push over limit
-   - **Approach**:
-     - Profile bottlenecks (LLM calls, sandbox execution)
-     - Add timeout safeguards per task (max 5 minutes)
-     - Implement early stopping if approaching 12-hour limit
-   - **Success**: Complete 240-task submission in <11 hours (buffer)
+**Core Implementation (Baseline):**
 
-4. **Baseline Kaggle Submission** ⭐ HIGH (1 day)
-   - **Why**: Ground truth on competitiveness vs SOTA
-   - **Approach**:
-     - Submit current system to public leaderboard (evaluation set first)
-     - Measure actual pass@2 performance on 100 validation tasks
-     - Compare against Claude (13.6%), Gemini (4.9%)
-   - **Decision Point**: If >10% → proceed Phase 3, if <5% → debug Programmer
-   - **Timeline**: Final submission deadline November 3, 2025 ⏰
-
-**Phase 3: Complete the AI Civilization** (Week 3-5) 🧬 - Original vision:
-
-5. **Analyst Agent** (2-3 days)
+1. **Analyst Agent** (Day 1, 6-8 hours)
    - **Why**: Separates pattern understanding from code generation
-   - **Approach**:
-     - Analyzes task examples to infer transformation rules
-     - Generates natural language specification
-     - Feeds spec to Programmer (collaboration!)
+   - **Approach**: Analyzes task examples, infers transformation rules in natural language, generates specification for Programmer
    - **Impact**: Abstracts reasoning from implementation
+   - **Deliverables**: `cognitive_cells/analyst.py`, 15+ tests
 
-6. **Tagger Agent** (2 days)
-   - **Why**: Enables technique-based crossover
-   - **Approach**:
-     - Classifies successful solvers by technique (rotation, fill, symmetry, pattern_matching)
-     - Tags stored in solver library
-   - **Impact**: Query "Find solvers using rotation + color fill"
+2. **Enhanced Programmer** (Day 1, 2-3 hours)
+   - **Why**: Accept Analyst specifications as guidance
+   - **Approach**: Extend to take analyst_spec parameter, generate code from specifications
+   - **Deliverables**: Updated `cognitive_cells/programmer.py`
 
-7. **Crossover Agent** (3-4 days)
-   - **Why**: The missing piece - genetic recombination!
-   - **Approach**:
-     - Select 2 solvers with complementary techniques (via tags)
-     - LLM prompt: "Fuse these capabilities into a more general solver"
-     - Test offspring against both parent tasks
-   - **Impact**: Create solutions that didn't exist in training data
+3. **Tagger Agent** (Day 2, 4-5 hours)
+   - **Why**: Classify techniques for crossover selection
+   - **Approach**: Static + LLM analysis to identify techniques (rotation, fill, symmetry, etc.)
+   - **Deliverables**: `cognitive_cells/tagger.py`, technique taxonomy, 10+ tests
 
-8. **Population-Based Evolution** (2-3 days)
+4. **Crossover Agent** (Day 2-3, 8-10 hours) ⭐ CRITICAL
+   - **Why**: The unique differentiator - fuse techniques from different solvers
+   - **Approach**: Select complementary parents, LLM-guided technique fusion, create novel solvers
+   - **Impact**: Creates solutions that didn't exist in training data
+   - **Deliverables**: `cognitive_cells/crossover.py`, parent selection strategies, 12+ tests
+
+5. **Population-Based Evolution** (Day 3, 6-8 hours)
    - **Why**: Move from single-lineage to true genetic algorithm
-   - **Approach**:
-     - Solver library (SQLite) stores population with fitness scores
-     - Selection: Tournament or roulette wheel based on fitness
-     - Breeding: Crossover between high-fitness parents
-     - Mutation: Refiner improves offspring
+   - **Approach**: Tournament selection, crossover breeding, mutation via Refiner, fitness-based survival
    - **Impact**: Parallel exploration of solution space
+   - **Deliverables**: `evolutionary_engine/population_evolution.py`, 15+ tests
+
+6. **Kaggle Baseline Submission** (Day 3, 4-6 hours)
+   - **Purpose**: Submit pure AI Civilization to competition
+   - **Expected**: 15-25% score (competitive with pure LLM approaches)
+   - **Deliverables**: `kaggle_baseline_civilization.ipynb`, leaderboard score, analysis
+
+**Experimental Variations (Optional, Days 4-5):**
+
+7. **Experiment 1: Single Model Active Inference** (4-6 hours)
+   - Distill population outputs → Gemma 2 27B
+   - Implement active inference (fine-tune on test examples at runtime)
+   - **Measure**: Value-add from active inference alone
+
+8. **Experiment 2: Multi-Agent Active Inference** (6-8 hours)
+   - Each agent does active inference separately
+   - **Measure**: Multi-agent vs single-model active inference
+
+**Research Hypothesis:**
+- H1: Multi-agent AI Civilization with crossover outperforms single-model approaches
+- H2: Active inference provides additional benefit
+- H3: Multi-agent active inference > single-model active inference
+
+**Success Criteria:**
+- [ ] All 5 agents implemented (Analyst, Programmer, Refiner, Tagger, Crossover)
+- [ ] Population-based evolution working
+- [ ] 60+ new tests passing
+- [ ] Baseline Kaggle submission: 15-25% score
+- [ ] Research question answered: Can AI Civilization solve novel problems competitively?
+
+**Competition Context:**
+- Deadline: November 3, 2025 (3 days)
+- Hardware: Kaggle L4x4 GPUs (96GB memory)
+- Constraint: 12-hour runtime, no internet access
+- Format: pass@2 submission (2 diverse attempts per test input)
 
 #### Known Issues / Blockers
 - ✅ **RESOLVED - Security**: Docker Sandbox now available for production-grade security
@@ -637,6 +646,16 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
   - **Security**: Docker provides network isolation, read-only filesystem, and resource limits
 
 #### Session Learnings (Most Recent)
+
+**From Planning Session (plan_20251031.md) - October 31, 2025 10:30 PM JST**:
+- ✅ **COMPLETE**: Comprehensive Phase 3 plan created with experimental validation strategy
+- **Core Vision Preservation**: Initial plan lost AI Civilization concept by focusing solely on SOTA techniques (single-model active inference). User correctly challenged this - project exists to validate multi-agent evolution hypothesis, not just maximize leaderboard score
+- **Experimental Design**: Baseline (pure civilization) → Exp1 (+ single-model active inference) → Exp2 (+ multi-agent active inference). Clean measurement of each component's value-add
+- **Active Inference Discovery**: Jack Cole's 34% SOTA uses fine-tuning on each test task's 3 training examples at runtime (not static pre-training). Requires example expansion (3 → 30+) via augmentation
+- **Hardware Advantage**: Kaggle L4x4 offers 96GB GPU (vs 15GB T4) - enables larger models (13B-27B) and on-the-fly fine-tuning
+- **François's Recommendation**: "Augment discrete program search with deep learning driven intuition" - our multi-agent approach aligns well (LLMs provide intuition, population evolution does search)
+- **Research First, Competition Second**: Primary goal is validating AI Civilization hypothesis. Competition provides fair benchmarks and constraints, but success = proving the approach works, not just leaderboard rank
+- **Crossover as Unique Differentiator**: Top approaches (J. Berman, E. Pang) use single models. Our Crossover agent can fuse techniques that never appeared together - true genetic innovation vs pattern matching
 
 **From Task 2 (pass@2 Submission Format) - October 31, 2025 03:28 PM JST**:
 - ✅ **COMPLETE**: Implemented pass@2 submission format for Kaggle (PR #35)
