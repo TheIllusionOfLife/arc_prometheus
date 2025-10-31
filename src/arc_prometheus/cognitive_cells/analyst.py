@@ -84,12 +84,14 @@ def parse_analysis_response(response_text: str) -> AnalysisResult:
     )
     if obs_match:
         obs_text = obs_match.group(1)
-        # Find lines starting with - or bullet points
+        # Find lines starting with -, *, or numbered lists (1., 2., etc.)
         for line in obs_text.split("\n"):
             line = line.strip()
-            if line.startswith("-"):
-                # Remove the leading dash and whitespace
-                observation = line[1:].strip()
+            # Match different bullet point styles: -, *, or numbers (1., 2., etc.)
+            match = re.match(r"[-*]\s*(.+)|(?:\d+\.\s*(.+))", line)
+            if match:
+                # Extract the observation text (from either group 1 or 2)
+                observation = (match.group(1) or match.group(2) or "").strip()
                 if observation:
                     observations.append(observation)
 
@@ -261,9 +263,26 @@ Important:
             "max_output_tokens": 2048,  # Allow detailed analysis
         }
 
+        # Check cache if enabled
+        if self.use_cache:
+            from ..utils.llm_cache import get_cache
+
+            cache = get_cache()
+            cached_response = cache.get(prompt, self.model_name, self.temperature)
+            if cached_response is not None:
+                # Parse cached response
+                return parse_analysis_response(cached_response)
+
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)
         response = model.generate_content(prompt, generation_config=generation_config)
+
+        # Store in cache if enabled
+        if self.use_cache:
+            from ..utils.llm_cache import get_cache
+
+            cache = get_cache()
+            cache.set(prompt, response.text, self.model_name, self.temperature)
 
         # Parse response
         analysis = parse_analysis_response(response.text)

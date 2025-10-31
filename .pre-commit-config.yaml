@@ -19,7 +19,7 @@ repos:
     rev: 1.8.0
     hooks:
       - id: bandit
-        args: [-r, src/, -ll]
+        args: [-ll]
         files: ^src/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
