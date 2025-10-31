@@ -53,6 +53,11 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+from arc_prometheus.evolutionary_engine.submission_formatter import (
+    format_submission_json,
+    generate_task_predictions,
+    select_diverse_solvers,
+)
 from arc_prometheus.utils.config import MODEL_NAME as DEFAULT_MODEL_NAME
 
 
@@ -216,6 +221,8 @@ def run_single_task_benchmark(
     timeout_eval: int = 5,
     timeout_llm: int = 60,
     use_cache: bool = True,
+    generate_submission: bool = False,
+    num_attempts: int = 2,
 ) -> dict:
     """Run evolution loop benchmark on a single ARC task.
 
@@ -231,6 +238,8 @@ def run_single_task_benchmark(
         timeout_eval: Sandbox execution timeout per example
         timeout_llm: LLM API call timeout
         use_cache: Whether to use LLM response cache
+        generate_submission: If True, generate pass@2 predictions
+        num_attempts: Number of diverse attempts for pass@2 (default: 2)
 
     Returns:
         Dictionary with benchmark results:
@@ -243,6 +252,7 @@ def run_single_task_benchmark(
             "total_time": float,
             "config": dict,
             "timestamp": str,
+            "predictions": list[dict] | None,  # Only if generate_submission=True
             "error": str | None  # Only present if success=False
         }
     """
@@ -317,6 +327,46 @@ def run_single_task_benchmark(
                     "total_time": total_time,
                 }
             )
+
+            # Generate pass@2 predictions if requested
+            if generate_submission:
+                try:
+                    # Select diverse solvers from generation history
+                    solver_codes = select_diverse_solvers(
+                        generations, num_attempts=num_attempts, diversity_metric="fitness"
+                    )
+
+                    # Generate predictions for all test inputs
+                    predictions = generate_task_predictions(
+                        task_json_path=tmp_task_file,
+                        solver_codes=solver_codes,
+                        timeout=timeout_eval,
+                        sandbox_mode=sandbox_mode,
+                    )
+
+                    result["predictions"] = predictions
+
+                except ValueError as e:
+                    # Not enough unique solvers - use fallback
+                    # Generate predictions with single solver (duplicate attempts)
+                    if generations:
+                        best_solver = max(
+                            generations, key=lambda g: g["fitness_result"]["fitness"]
+                        )
+                        solver_codes = [
+                            best_solver["solver_code"],
+                            best_solver["solver_code"],
+                        ]
+
+                        predictions = generate_task_predictions(
+                            task_json_path=tmp_task_file,
+                            solver_codes=solver_codes,
+                            timeout=timeout_eval,
+                            sandbox_mode=sandbox_mode,
+                        )
+
+                        result["predictions"] = predictions
+                        result["prediction_warning"] = str(e)
 
         finally:
             # Clean up temp file (check exists to avoid NameError)
@@ -594,6 +644,19 @@ def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
         "--seed", type=int, default=None, help="Random seed for reproducibility"
     )
 
+    # Submission generation (pass@2)
+    parser.add_argument(
+        "--generate-submission",
+        action="store_true",
+        help="Generate pass@2 predictions for Kaggle submission format",
+    )
+    parser.add_argument(
+        "--num-attempts",
+        type=int,
+        default=2,
+        help="Number of diverse attempts per test input (default: %(default)s for pass@2)",
+    )
+
     return parser.parse_args(args)
 
 
@@ -698,6 +761,8 @@ def main() -> int:
             timeout_eval=args.timeout_eval,
             timeout_llm=args.timeout_llm,
             use_cache=args.use_cache,
+            generate_submission=args.generate_submission,
+            num_attempts=args.num_attempts,
         )
 
         # Display result summary
@@ -744,6 +809,75 @@ def main() -> int:
         json.dump(stats, f, indent=2)
 
     print(f"\n✓ Summary saved to {output_path / 'summary.json'}")
+
+    # Generate Kaggle submission if requested
+    if args.generate_submission:
+        print("\n" + "=" * 70)
+        print(" Generating Kaggle Submission (pass@2)")
+        print("=" * 70)
+
+        # Collect predictions from successful tasks
+        task_predictions = {}
+        tasks_with_predictions = 0
+        tasks_with_warnings = 0
+
+        for result in task_results:
+            if result.get("success", False) and "predictions" in result:
+                task_predictions[result["task_id"]] = result["predictions"]
+                tasks_with_predictions += 1
+
+                if "prediction_warning" in result:
+                    tasks_with_warnings += 1
+
+        if task_predictions:
+            # Format and save submission
+            submission = format_submission_json(task_predictions)
+            submission_path = output_path / "submission.json"
+
+            with open(submission_path, "w") as f:
+                json.dump(submission, f, indent=2)
+
+            print(f"\n✓ Submission generated: {submission_path}")
+            print(f"  Tasks with predictions: {tasks_with_predictions}/{len(task_results)}")
+
+            if tasks_with_warnings:
+                print(
+                    f"  ⚠️  Warning: {tasks_with_warnings} tasks used duplicate solvers "
+                    f"(insufficient diversity)"
+                )
+
+            # Validate structure
+            print("\n  Validating submission format...")
+            try:
+                # Reload to ensure it's valid JSON
+                with open(submission_path) as f:
+                    loaded = json.load(f)
+
+                # Basic checks
+                assert isinstance(loaded, dict), "Submission must be a dict"
+
+                for task_id, predictions in loaded.items():
+                    assert isinstance(
+                        predictions, list
+                    ), f"Task {task_id} predictions must be list"
+                    for pred_idx, pred in enumerate(predictions):
+                        assert isinstance(
+                            pred, dict
+                        ), f"Task {task_id} pred {pred_idx} must be dict"
+                        assert (
+                            "attempt_1" in pred
+                        ), f"Task {task_id} pred {pred_idx} missing attempt_1"
+                        assert (
+                            "attempt_2" in pred
+                        ), f"Task {task_id} pred {pred_idx} missing attempt_2"
+
+                print("  ✅ Submission format valid!")
+
+            except (json.JSONDecodeError, AssertionError) as e:
+                print(f"  ❌ Validation failed: {e}")
+
+        else:
+            print("\n⚠️  No predictions generated (all tasks failed)")
 
     print("\n" + "=" * 70)
     print(" Benchmark Complete!")
