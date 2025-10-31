@@ -19,10 +19,22 @@ from arc_prometheus.cognitive_cells.programmer import generate_solver
 class TestAnalystProgrammerIntegration:
     """Integration tests for Analyst + Programmer workflow."""
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_end_to_end_with_analyst(self, mock_analyst_genai, mock_programmer_genai):
+    def test_end_to_end_with_analyst(
+        self,
+        mock_analyst_genai,
+        mock_programmer_genai,
+        mock_analyst_api_key,
+        mock_programmer_api_key,
+    ):
         """Test complete flow: Analyst → Programmer → executable code."""
+        # Setup API key mocks
+        mock_analyst_api_key.return_value = "test-api-key"
+        mock_programmer_api_key.return_value = "test-api-key"
+
         # Setup Analyst mock
         mock_analyst_response = Mock()
         mock_analyst_response.text = """PATTERN: Fill the entire grid with the single non-zero color

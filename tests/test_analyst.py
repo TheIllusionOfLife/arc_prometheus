@@ -172,8 +172,10 @@ CONFIDENCE: medium"""
 class TestAnalystPromptCreation:
     """Tests for Analyst prompt generation."""
 
-    def test_create_analysis_prompt_basic(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_create_analysis_prompt_basic(self, mock_get_api_key):
         """Test creating analysis prompt with simple task."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst = Analyst(model_name="gemini-2.5-flash-lite")
 
         task_json = {
@@ -200,8 +202,10 @@ class TestAnalystPromptCreation:
         assert "APPROACH" in prompt
         assert "CONFIDENCE" in prompt
 
-    def test_create_analysis_prompt_includes_all_training_pairs(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_create_analysis_prompt_includes_all_training_pairs(self, mock_get_api_key):
         """Test that prompt includes all training examples."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst = Analyst(model_name="gemini-2.5-flash-lite")
 
         task_json = {
@@ -221,9 +225,13 @@ class TestAnalystPromptCreation:
 class TestAnalystAnalyzeTask:
     """Tests for Analyst.analyze_task method."""
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_mocked_api(self, mock_genai):
+    def test_analyze_task_with_mocked_api(self, mock_genai, mock_get_api_key):
         """Test analyze_task with mocked Gemini API response."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """PATTERN: Fill grid with non-zero color
@@ -257,9 +265,12 @@ CONFIDENCE: high"""
         # Verify API was called
         mock_model.generate_content.assert_called_once()
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_temperature_setting(self, mock_genai):
+    def test_analyze_task_with_temperature_setting(self, mock_genai, mock_get_api_key):
         """Test that analyze_task uses correct temperature."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_response = Mock()
         mock_response.text = """PATTERN: Test
 
@@ -287,9 +298,12 @@ CONFIDENCE: high"""
         assert "generation_config" in call_kwargs
         assert call_kwargs["generation_config"]["temperature"] == 0.2
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_cache_disabled(self, mock_genai):
+    def test_analyze_task_with_cache_disabled(self, mock_genai, mock_get_api_key):
         """Test that analyze_task respects use_cache=False."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_response = Mock()
         mock_response.text = """PATTERN: Test
 OBSERVATIONS:
@@ -315,9 +329,12 @@ CONFIDENCE: high"""
 class TestAnalystEdgeCases:
     """Tests for edge cases and error handling."""
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_single_training_example(self, mock_genai):
+    def test_analyze_task_with_single_training_example(self, mock_genai, mock_get_api_key):
         """Test analysis with only one training example."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_response = Mock()
         mock_response.text = """PATTERN: Limited data
 
@@ -339,9 +356,12 @@ CONFIDENCE: low"""
 
         assert result.confidence == "low"
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_large_grids(self, mock_genai):
+    def test_analyze_task_with_large_grids(self, mock_genai, mock_get_api_key):
         """Test analysis with large grid inputs."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_response = Mock()
         mock_response.text = """PATTERN: Large grid transformation
 
@@ -367,9 +387,12 @@ CONFIDENCE: medium"""
         assert result is not None
         assert "Large grid" in result.pattern_description
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_handles_api_timeout(self, mock_genai):
+    def test_analyze_task_handles_api_timeout(self, mock_genai, mock_get_api_key):
         """Test that analyze_task handles API timeouts gracefully."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_model = Mock()
         mock_model.generate_content.side_effect = TimeoutError("API timeout")
         mock_genai.GenerativeModel.return_value = mock_model
@@ -380,9 +403,12 @@ CONFIDENCE: medium"""
         with pytest.raises(TimeoutError):
             analyst.analyze_task(task_json)
 
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_incomplete_llm_response(self, mock_genai):
+    def test_analyze_task_with_incomplete_llm_response(self, mock_genai, mock_get_api_key):
         """Test handling of incomplete LLM responses."""
+        mock_get_api_key.return_value = "test-api-key"
+
         mock_response = Mock()
         mock_response.text = """PATTERN: Incomplete analysis
 OBSERVATIONS:"""  # Missing required sections
@@ -406,28 +432,36 @@ OBSERVATIONS:"""  # Missing required sections
 class TestAnalystConfiguration:
     """Tests for Analyst configuration options."""
 
-    def test_analyst_default_configuration(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_analyst_default_configuration(self, mock_get_api_key):
         """Test Analyst with default configuration."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst = Analyst()
 
         assert analyst.model_name == "gemini-2.5-flash-lite"
         assert analyst.temperature == 0.3
         assert analyst.use_cache is True
 
-    def test_analyst_custom_model(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_analyst_custom_model(self, mock_get_api_key):
         """Test Analyst with custom model."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst = Analyst(model_name="gemini-1.5-pro")
 
         assert analyst.model_name == "gemini-1.5-pro"
 
-    def test_analyst_custom_temperature(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_analyst_custom_temperature(self, mock_get_api_key):
         """Test Analyst with custom temperature."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst = Analyst(temperature=0.7)
 
         assert analyst.temperature == 0.7
 
-    def test_analyst_cache_configuration(self):
+    @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
+    def test_analyst_cache_configuration(self, mock_get_api_key):
         """Test Analyst with caching enabled and disabled."""
+        mock_get_api_key.return_value = "test-api-key"
         analyst_cached = Analyst(use_cache=True)
         analyst_no_cache = Analyst(use_cache=False)
 
