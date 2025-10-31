@@ -356,9 +356,9 @@ def test_select_diverse_solvers_generation_gap() -> None:
     ]
 
     solvers = select_diverse_solvers(
-        generations,
+        generations,  # type: ignore[arg-type]
         num_attempts=2,
-        diversity_metric="generation_gap",  # type: ignore[arg-type]
+        diversity_metric="generation_gap",
     )
 
     assert len(solvers) == 2
