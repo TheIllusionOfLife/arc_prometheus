@@ -695,6 +695,41 @@ def test_generate_predictions_invalid_solver(
     assert predictions[0]["attempt_2"] == [[0, 0], [0, 0]]
 
 
+def test_format_submission_json_num_attempts_3() -> None:
+    """Test submission formatting with num_attempts=3 (regression test for hardcoded validation)."""
+    task_predictions = {
+        "00576224": [
+            {
+                "attempt_1": [[1, 2]],
+                "attempt_2": [[3, 4]],
+                "attempt_3": [[5, 6]],
+            }
+        ]
+    }
+
+    # Should validate successfully with num_attempts=3
+    submission = format_submission_json(task_predictions, num_attempts=3)
+
+    assert "00576224" in submission
+    assert len(submission["00576224"]) == 1
+    assert submission["00576224"][0]["attempt_1"] == [[1, 2]]
+    assert submission["00576224"][0]["attempt_2"] == [[3, 4]]
+    assert submission["00576224"][0]["attempt_3"] == [[5, 6]]
+
+
+def test_format_submission_json_missing_attempt_error() -> None:
+    """Test that validation fails when required attempts are missing."""
+    task_predictions = {
+        "00576224": [
+            {"attempt_1": [[1, 2]], "attempt_2": [[3, 4]]}  # Missing attempt_3
+        ]
+    }
+
+    # Should raise error when expecting 3 attempts but only 2 provided
+    with pytest.raises(ValueError, match="missing 'attempt_3'"):
+        format_submission_json(task_predictions, num_attempts=3)
+
+
 def test_select_diverse_solvers_all_zero_fitness() -> None:
     """Test diversity selection when all solvers have zero fitness."""
     generations = [

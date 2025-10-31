@@ -355,10 +355,8 @@ def run_single_task_benchmark(
                         best_solver = max(
                             generations, key=lambda g: g["fitness_result"]["fitness"]
                         )
-                        solver_codes = [
-                            best_solver["solver_code"],
-                            best_solver["solver_code"],
-                        ]
+                        # Duplicate best solver for all attempts
+                        solver_codes = [best_solver["solver_code"]] * num_attempts
 
                         predictions = generate_task_predictions(
                             task_json_path=tmp_task_file,
@@ -833,7 +831,9 @@ def main() -> int:
 
         if task_predictions:
             # Format and save submission
-            submission = format_submission_json(task_predictions)
+            submission = format_submission_json(
+                task_predictions, num_attempts=args.num_attempts
+            )
             submission_path = output_path / "submission.json"
 
             with open(submission_path, "w") as f:
@@ -868,12 +868,12 @@ def main() -> int:
                         assert isinstance(pred, dict), (
                             f"Task {task_id} pred {pred_idx} must be dict"
                         )
-                        assert "attempt_1" in pred, (
-                            f"Task {task_id} pred {pred_idx} missing attempt_1"
-                        )
-                        assert "attempt_2" in pred, (
-                            f"Task {task_id} pred {pred_idx} missing attempt_2"
-                        )
+                        # Validate all required attempts dynamically
+                        for attempt_num in range(1, args.num_attempts + 1):
+                            attempt_key = f"attempt_{attempt_num}"
+                            assert attempt_key in pred, (
+                                f"Task {task_id} pred {pred_idx} missing {attempt_key}"
+                            )
 
                 print("  ✅ Submission format valid!")
 

@@ -13,8 +13,42 @@ from typing import Literal
 import numpy as np
 
 from ..crucible.data_loader import load_task
-from ..crucible.sandbox import safe_execute
+from ..crucible.sandbox import MultiprocessSandbox
+from ..crucible.sandbox_protocol import ExecutionEnvironment
 from .evolution_loop import GenerationResult
+
+
+def _get_sandbox(sandbox_mode: str) -> ExecutionEnvironment:
+    """Factory function to create appropriate sandbox instance.
+
+    Args:
+        sandbox_mode: 'multiprocess' or 'docker'
+
+    Returns:
+        Sandbox instance implementing ExecutionEnvironment protocol
+    """
+    if sandbox_mode == "docker":
+        try:
+            from ..crucible.docker_sandbox import DockerSandbox
+
+            return DockerSandbox()
+        except ImportError as e:
+            raise RuntimeError(
+                "Docker sandbox requires docker package. "
+                "Install with: pip install -e '.[docker]'"
+            ) from e
+        except Exception as e:
+            raise RuntimeError(
+                f"Docker sandbox not available: {e}. "
+                "Build image with: docker build -t arc-prometheus-sandbox:latest "
+                "-f docker/sandbox.Dockerfile ."
+            ) from e
+    elif sandbox_mode == "multiprocess":
+        return MultiprocessSandbox()
+    else:
+        raise ValueError(
+            f"Invalid sandbox_mode: {sandbox_mode}. Must be 'multiprocess' or 'docker'"
+        )
 
 
 def select_diverse_solvers(
@@ -187,6 +221,9 @@ def generate_task_predictions(
     if not test_examples:
         return []
 
+    # Create sandbox instance
+    sandbox = _get_sandbox(sandbox_mode)
+
     predictions: list[dict[str, list[list[int]]]] = []
 
     # Process each test input
@@ -200,8 +237,8 @@ def generate_task_predictions(
         for attempt_idx, solver_code in enumerate(solver_codes, start=1):
             attempt_key = f"attempt_{attempt_idx}"
 
-            # Execute solver
-            success, result, error_detail = safe_execute(
+            # Execute solver using sandbox
+            success, result, error_detail = sandbox.execute(
                 solver_code, test_grid, timeout=timeout
             )
 
@@ -220,6 +257,7 @@ def generate_task_predictions(
 
 def format_submission_json(
     task_predictions: dict[str, list[dict[str, list[list[int]]]]],
+    num_attempts: int = 2,
 ) -> dict[str, list[dict[str, list[list[int]]]]]:
     """Format predictions into Kaggle submission JSON structure.
 
@@ -228,7 +266,8 @@ def format_submission_json(
 
     Args:
         task_predictions: Dict mapping task_id -> list of predictions
-            where each prediction is {"attempt_1": [[...]], "attempt_2": [[...]]}
+            where each prediction is {"attempt_1": [[...]], "attempt_2": [[...]], ...}
+        num_attempts: Number of attempts per test input (default: 2 for pass@2)
 
     Returns:
         Submission dict ready for json.dump(), matching sample_submission.json structure
@@ -236,8 +275,8 @@ def format_submission_json(
     Structure:
         {
             "task_id_1": [
-                {"attempt_1": [[grid]], "attempt_2": [[grid]]},  # Test input 0
-                {"attempt_1": [[grid]], "attempt_2": [[grid]]},  # Test input 1
+                {"attempt_1": [[grid]], "attempt_2": [[grid]], ...},  # Test input 0
+                {"attempt_1": [[grid]], "attempt_2": [[grid]], ...},  # Test input 1
                 ...
             ],
             "task_id_2": [...],
@@ -249,7 +288,7 @@ def format_submission_json(
         ...     "00576224": [{"attempt_1": [[0]], "attempt_2": [[1]]}],
         ...     "007bbfb7": [{"attempt_1": [[2]], "attempt_2": [[3]]}]
         ... }
-        >>> submission = format_submission_json(predictions)
+        >>> submission = format_submission_json(predictions, num_attempts=2)
         >>> submission["00576224"][0]["attempt_1"]
         [[0]]
         >>> import json
@@ -272,15 +311,13 @@ def format_submission_json(
                     f"got {type(pred)}"
                 )
 
-            # Check for attempt_1 and attempt_2
-            if "attempt_1" not in pred:
-                raise ValueError(
-                    f"Prediction {pred_idx} for task {task_id} missing 'attempt_1'"
-                )
-            if "attempt_2" not in pred:
-                raise ValueError(
-                    f"Prediction {pred_idx} for task {task_id} missing 'attempt_2'"
-                )
+            # Check for all required attempts (attempt_1, attempt_2, ..., attempt_N)
+            for attempt_num in range(1, num_attempts + 1):
+                attempt_key = f"attempt_{attempt_num}"
+                if attempt_key not in pred:
+                    raise ValueError(
+                        f"Prediction {pred_idx} for task {task_id} missing '{attempt_key}'"
+                    )
 
     # Return as-is (structure already correct)
     return task_predictions
