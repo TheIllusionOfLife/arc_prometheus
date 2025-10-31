@@ -156,6 +156,12 @@ python scripts/demo_phase2_3_evolution.py [--model MODEL] [--max-generations N]
 --timeout-llm SECONDS            # LLM API timeout (default: 60)
 ```
 
+**Kaggle Submission** (pass@2 format):
+```bash
+--generate-submission            # Enable pass@2 prediction generation
+--num-attempts N                 # Number of diverse attempts (default: 2)
+```
+
 ### Benchmarking (Real-World Testing)
 
 Run evolution loop on diverse ARC tasks to measure performance and validate Phase 2:
@@ -203,6 +209,15 @@ python scripts/benchmark_evolution.py \
   --output-dir results/multiprocess_baseline/ \
   --experiment-name "multiprocess_baseline"
 
+# Generate Kaggle submission (pass@2 format)
+python scripts/benchmark_evolution.py \
+  --random-sample 15 \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --output-dir results/submission_test/ \
+  --experiment-name "submission_test" \
+  --generate-submission \
+  --num-attempts 2
+
 # Analyze results and generate report
 python scripts/analyze_benchmark.py \
   --results-dir results/multiprocess_baseline/ \
@@ -215,12 +230,34 @@ python scripts/analyze_benchmark.py \
   --output-report docs/benchmarks/comparison.md
 ```
 
+**Pass@2 Submission Generation:**
+
+The `--generate-submission` flag enables Kaggle competition submission format:
+
+```bash
+# Generate submission for evaluation set
+python scripts/benchmark_evolution.py \
+  --random-sample 120 \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --output-dir results/kaggle_submission/ \
+  --experiment-name "kaggle_submission" \
+  --generate-submission \
+  --num-attempts 2
+```
+
+This creates `submission.json` with the required pass@2 format:
+- 2 diverse attempts per test input
+- Selects best and second-best solvers from evolution history
+- Fallback to duplicate attempts if insufficient diversity
+- Automatically validates format against Kaggle requirements
+
 **Benchmark Output Structure:**
 ```
 results/{experiment_name}/
 ├── metadata.json              # Experiment config, timestamp, git commit
 ├── task_{task_id}.json        # Individual task results
 ├── summary.json               # Aggregate statistics
+├── submission.json            # Kaggle submission (if --generate-submission used)
 ```
 
 **Phase 2 Baseline Results** (October 30, 2025):
