@@ -4,6 +4,8 @@ This module provides prompt construction for the Analyst+Programmer
 unified pipeline that analyzes ARC tasks and generates solver code.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -45,7 +47,7 @@ def _format_grid_as_ascii(grid: np.ndarray) -> str:
 
 def create_solver_prompt(
     train_pairs: list[dict[str, np.ndarray]],
-    analyst_spec: "AnalysisResult | None" = None,
+    analyst_spec: AnalysisResult | None = None,
 ) -> str:
     """Create prompt for Gemini to generate ARC solver code.
 
@@ -226,9 +228,9 @@ def create_solver_prompt(
 def create_refiner_prompt(
     failed_code: str,
     task_data: dict,
-    fitness_result: "FitnessResult",
+    fitness_result: FitnessResult,
     max_examples: int = 3,
-    error_type: "ErrorType | None" = None,
+    error_type: ErrorType | None = None,
 ) -> str:
     """Create prompt for Refiner to debug failed solver code.
 

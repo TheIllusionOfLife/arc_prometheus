@@ -13,9 +13,9 @@ rather than raw examples, improving abstraction and reasoning.
 
 import re
 from dataclasses import dataclass, field
-from typing import Any
 
 import google.generativeai as genai
+from google.generativeai.types import GenerationConfigDict
 
 from arc_prometheus.utils.config import get_gemini_api_key
 
@@ -257,8 +257,7 @@ Important:
         prompt = self._create_analysis_prompt(task_json)
 
         # Configure generation
-        # Type as Any to satisfy mypy while maintaining runtime correctness
-        generation_config: Any = {
+        generation_config: GenerationConfigDict = {
             "temperature": self.temperature,
             "max_output_tokens": 2048,  # Allow detailed analysis
         }
