@@ -1,4 +1,8 @@
-.PHONY: test lint typecheck format format-check ci clean help install
+.PHONY: test lint typecheck format format-check ci clean help install check-uv
+
+# Check if uv is installed
+check-uv:
+	@command -v uv > /dev/null 2>&1 || { echo "❌ Error: uv not found. Install with: pip install uv"; exit 1; }
 
 help:  ## Show this help message
 	@echo "Available commands:"
@@ -7,28 +11,28 @@ help:  ## Show this help message
 install:  ## Install project dependencies
 	pip install -e ".[dev]"
 
-test:  ## Run tests
+test: check-uv  ## Run tests
 	uv run pytest tests/ -v
 
-test-cov:  ## Run tests with coverage report
+test-cov: check-uv  ## Run tests with coverage report
 	uv run pytest tests/ --cov=src/arc_prometheus --cov-report=term-missing --cov-report=html
 
-lint:  ## Run linter (ruff check)
+lint: check-uv  ## Run linter (ruff check)
 	uv run ruff check src/ tests/ scripts/
 
-lint-fix:  ## Run linter with auto-fix
+lint-fix: check-uv  ## Run linter with auto-fix
 	uv run ruff check --fix src/ tests/ scripts/
 
-format:  ## Format code with ruff
+format: check-uv  ## Format code with ruff
 	uv run ruff format src/ tests/ scripts/
 
-format-check:  ## Check code formatting without changes
+format-check: check-uv  ## Check code formatting without changes
 	uv run ruff format --check src/ tests/ scripts/
 
-typecheck:  ## Run type checker (mypy)
+typecheck: check-uv  ## Run type checker (mypy)
 	uv run mypy src/arc_prometheus tests/
 
-security:  ## Run security checks (bandit)
+security: check-uv  ## Run security checks (bandit)
 	uv run bandit -r src/ -ll
 
 ci:  ## Run all CI checks (typecheck, lint, format-check, security, test)
