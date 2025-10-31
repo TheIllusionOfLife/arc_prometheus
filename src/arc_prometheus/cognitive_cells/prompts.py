@@ -226,7 +226,7 @@ def create_solver_prompt(
 def create_refiner_prompt(
     failed_code: str,
     task_data: dict,
-    fitness_result: FitnessResult,
+    fitness_result: "FitnessResult",
     max_examples: int = 3,
     error_type: "ErrorType | None" = None,
 ) -> str:
