@@ -351,6 +351,9 @@ def run_single_task_benchmark(
                 except ValueError as e:
                     # Not enough unique solvers - use fallback
                     # Generate predictions with single solver (duplicate attempts)
+                    print(f"⚠️  Warning for task {task_id}: {e}")
+                    print("   Falling back to duplicated best solver")
+
                     if generations:
                         best_solver = max(
                             generations, key=lambda g: g["fitness_result"]["fitness"]

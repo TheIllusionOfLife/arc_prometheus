@@ -129,10 +129,22 @@ def _select_by_fitness(
 
     Returns:
         List of solver code strings
+
+    Raises:
+        ValueError: If not enough valid solvers after filtering empty codes
     """
+    # Filter out empty or whitespace-only code
+    valid_gens = [g for g in generations if g["solver_code"].strip()]
+
+    if len(valid_gens) < num_attempts:
+        raise ValueError(
+            f"Not enough valid solvers: need {num_attempts}, "
+            f"have {len(valid_gens)} (after filtering empty code)"
+        )
+
     # Sort by fitness (descending)
     sorted_gens = sorted(
-        generations, key=lambda g: g["fitness_result"]["fitness"], reverse=True
+        valid_gens, key=lambda g: g["fitness_result"]["fitness"], reverse=True
     )
 
     # Select top num_attempts
@@ -157,9 +169,21 @@ def _select_by_generation_gap(
 
     Returns:
         List of solver code strings
+
+    Raises:
+        ValueError: If not enough valid solvers after filtering empty codes
     """
+    # Filter out empty or whitespace-only code
+    valid_gens = [g for g in generations if g["solver_code"].strip()]
+
+    if len(valid_gens) < num_attempts:
+        raise ValueError(
+            f"Not enough valid solvers: need {num_attempts}, "
+            f"have {len(valid_gens)} (after filtering empty code)"
+        )
+
     # Sort by generation number
-    sorted_gens = sorted(generations, key=lambda g: g["generation"])
+    sorted_gens = sorted(valid_gens, key=lambda g: g["generation"])
 
     if num_attempts == 2:
         # Select first and last
@@ -247,8 +271,9 @@ def generate_task_predictions(
                 result_list = result.tolist()
                 prediction[attempt_key] = result_list
             else:
-                # Use placeholder for failed execution
-                prediction[attempt_key] = [[0, 0], [0, 0]]
+                # Use placeholder matching input grid shape for failed execution
+                placeholder = np.zeros_like(test_grid).tolist()
+                prediction[attempt_key] = placeholder
 
         predictions.append(prediction)
 

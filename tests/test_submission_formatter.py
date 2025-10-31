@@ -312,6 +312,73 @@ def test_select_diverse_solvers_insufficient_unique() -> None:
         select_diverse_solvers(generations_only_one, num_attempts=2)
 
 
+def test_select_diverse_solvers_empty_code_filtered() -> None:
+    """Test that empty or whitespace-only solver codes are filtered out (regression test for Issue #5)."""
+    generations_with_empty: list[GenerationResult] = [
+        {
+            "generation": 0,
+            "solver_code": "def solve(grid):\n    return grid",
+            "fitness_result": {
+                "fitness": 10.0,
+                "train_correct": 3,
+                "train_total": 3,
+                "test_correct": 0,
+                "test_total": 1,
+                "train_accuracy": 1.0,
+                "test_accuracy": 0.0,
+                "execution_errors": [],
+                "error_details": [],
+                "error_summary": {},
+            },
+            "refinement_count": 0,
+            "total_time": 10.0,
+            "improvement": 0.0,
+        },
+        {
+            "generation": 1,
+            "solver_code": "",  # Empty code - should be filtered out
+            "fitness_result": {
+                "fitness": 20.0,
+                "train_correct": 3,
+                "train_total": 3,
+                "test_correct": 1,
+                "test_total": 1,
+                "train_accuracy": 1.0,
+                "test_accuracy": 1.0,
+                "execution_errors": [],
+                "error_details": [],
+                "error_summary": {},
+            },
+            "refinement_count": 1,
+            "total_time": 12.0,
+            "improvement": 10.0,
+        },
+        {
+            "generation": 2,
+            "solver_code": "   \n\t  ",  # Whitespace only - should be filtered out
+            "fitness_result": {
+                "fitness": 15.0,
+                "train_correct": 3,
+                "train_total": 3,
+                "test_correct": 1,
+                "test_total": 1,
+                "train_accuracy": 1.0,
+                "test_accuracy": 0.5,
+                "execution_errors": [],
+                "error_details": [],
+                "error_summary": {},
+            },
+            "refinement_count": 1,
+            "total_time": 11.0,
+            "improvement": 5.0,
+        },
+    ]
+
+    # Should raise error because only 1 valid solver after filtering
+    with pytest.raises(ValueError, match="Not enough valid solvers"):
+        select_diverse_solvers(generations_with_empty, num_attempts=2)
+
+
 def test_select_diverse_solvers_generation_gap() -> None:
     """Test generation gap diversity selects from early and late generations."""
     generations = [
@@ -488,6 +555,41 @@ def test_generate_task_predictions_solver_timeout(
     # Placeholder should be [[0, 0], [0, 0]]
     assert predictions[0]["attempt_1"] == [[0, 0], [0, 0]]
     assert predictions[0]["attempt_2"] == [[0, 0], [0, 0]]
+
+
+def test_generate_task_predictions_placeholder_matches_input_shape(
+    tmp_path: Path, failing_solver_code: str
+) -> None:
+    """Test that placeholder grid matches input shape (regression test for Issue #2)."""
+    # Create task with non-square grid (3x5)
+    task_data = {
+        "train": [
+            {
+                "input": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
+                "output": [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],
+            },
+        ],
+        "test": [{"input": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]]}],
+    }
+
+    task_file = tmp_path / "task.json"
+    with open(task_file, "w") as f:
+        json.dump(task_data, f)
+
+    # Use failing solver to trigger placeholder
+    solver_codes = [failing_solver_code, failing_solver_code]
+
+    predictions = generate_task_predictions(
+        task_json_path=str(task_file),
+        solver_codes=solver_codes,
+        timeout=1,
+        sandbox_mode="multiprocess",
+    )
+
+    # Placeholder should match input shape (3x5), not hardcoded 2x2
+    expected_placeholder = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
+    assert predictions[0]["attempt_1"] == expected_placeholder
+    assert predictions[0]["attempt_2"] == expected_placeholder
 
 
 def test_generate_task_predictions_diverse_solvers(
