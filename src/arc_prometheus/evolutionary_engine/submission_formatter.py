@@ -219,7 +219,7 @@ def generate_task_predictions(
 
 
 def format_submission_json(
-    task_predictions: dict[str, list[dict[str, list[list[int]]]]]
+    task_predictions: dict[str, list[dict[str, list[list[int]]]]],
 ) -> dict[str, list[dict[str, list[list[int]]]]]:
     """Format predictions into Kaggle submission JSON structure.
 

@@ -333,7 +333,9 @@ def run_single_task_benchmark(
                 try:
                     # Select diverse solvers from generation history
                     solver_codes = select_diverse_solvers(
-                        generations, num_attempts=num_attempts, diversity_metric="fitness"
+                        generations,
+                        num_attempts=num_attempts,
+                        diversity_metric="fitness",
                     )
 
                     # Generate predictions for all test inputs
@@ -838,7 +840,9 @@ def main() -> int:
                 json.dump(submission, f, indent=2)
 
             print(f"\n✓ Submission generated: {submission_path}")
-            print(f"  Tasks with predictions: {tasks_with_predictions}/{len(task_results)}")
+            print(
+                f"  Tasks with predictions: {tasks_with_predictions}/{len(task_results)}"
+            )
 
             if tasks_with_warnings:
                 print(
@@ -857,19 +861,19 @@ def main() -> int:
                 assert isinstance(loaded, dict), "Submission must be a dict"
 
                 for task_id, predictions in loaded.items():
-                    assert isinstance(
-                        predictions, list
-                    ), f"Task {task_id} predictions must be list"
+                    assert isinstance(predictions, list), (
+                        f"Task {task_id} predictions must be list"
+                    )
                     for pred_idx, pred in enumerate(predictions):
-                        assert isinstance(
-                            pred, dict
-                        ), f"Task {task_id} pred {pred_idx} must be dict"
-                        assert (
-                            "attempt_1" in pred
-                        ), f"Task {task_id} pred {pred_idx} missing attempt_1"
-                        assert (
-                            "attempt_2" in pred
-                        ), f"Task {task_id} pred {pred_idx} missing attempt_2"
+                        assert isinstance(pred, dict), (
+                            f"Task {task_id} pred {pred_idx} must be dict"
+                        )
+                        assert "attempt_1" in pred, (
+                            f"Task {task_id} pred {pred_idx} missing attempt_1"
+                        )
+                        assert "attempt_2" in pred, (
+                            f"Task {task_id} pred {pred_idx} missing attempt_2"
+                        )
 
                 print("  ✅ Submission format valid!")
 

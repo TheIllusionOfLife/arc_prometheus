@@ -189,7 +189,9 @@ def solve(grid: np.ndarray) -> np.ndarray:
 # === Diversity Selection Tests ===
 
 
-def test_select_diverse_solvers_basic(sample_generations: list[GenerationResult]) -> None:
+def test_select_diverse_solvers_basic(
+    sample_generations: list[GenerationResult],
+) -> None:
     """Test basic diversity selection returns 2 different solvers."""
     solvers = select_diverse_solvers(sample_generations, num_attempts=2)
 
@@ -354,7 +356,9 @@ def test_select_diverse_solvers_generation_gap() -> None:
     ]
 
     solvers = select_diverse_solvers(
-        generations, num_attempts=2, diversity_metric="generation_gap"  # type: ignore[arg-type]
+        generations,
+        num_attempts=2,
+        diversity_metric="generation_gap",  # type: ignore[arg-type]
     )
 
     assert len(solvers) == 2
@@ -373,7 +377,10 @@ def test_generate_task_predictions_1_test(
     with open(task_file, "w") as f:
         json.dump(sample_task_1_test, f)
 
-    solver_codes = [simple_solver_code, simple_solver_code]  # Same solver for simplicity
+    solver_codes = [
+        simple_solver_code,
+        simple_solver_code,
+    ]  # Same solver for simplicity
 
     predictions = generate_task_predictions(
         task_json_path=str(task_file),
@@ -523,9 +530,7 @@ def solve(grid: np.ndarray) -> np.ndarray:
 
 def test_format_submission_json_single_task() -> None:
     """Test submission formatting for single task."""
-    task_predictions = {
-        "00576224": [{"attempt_1": [[1, 2]], "attempt_2": [[3, 4]]}]
-    }
+    task_predictions = {"00576224": [{"attempt_1": [[1, 2]], "attempt_2": [[3, 4]]}]}
 
     submission = format_submission_json(task_predictions)
 
@@ -583,9 +588,7 @@ def test_format_submission_json_matches_sample_structure() -> None:
 
 def test_format_submission_json_serializable() -> None:
     """Test that submission is JSON serializable."""
-    task_predictions = {
-        "task1": [{"attempt_1": [[1, 2]], "attempt_2": [[3, 4]]}]
-    }
+    task_predictions = {"task1": [{"attempt_1": [[1, 2]], "attempt_2": [[3, 4]]}]}
 
     submission = format_submission_json(task_predictions)
 
@@ -642,7 +645,9 @@ def test_end_to_end_submission_generation(
 # === Edge Cases ===
 
 
-def test_generate_predictions_empty_test_list(tmp_path: Path, simple_solver_code: str) -> None:
+def test_generate_predictions_empty_test_list(
+    tmp_path: Path, simple_solver_code: str
+) -> None:
     """Test handling of task with no test inputs."""
     task_no_tests = {"train": [{"input": [[1]], "output": [[2]]}], "test": []}
 
