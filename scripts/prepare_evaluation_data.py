@@ -151,9 +151,7 @@ Example:
         return 1
 
     if not solutions_file.exists():
-        print(
-            f"❌ Error: Solutions file not found: {args.solutions}", file=sys.stderr
-        )
+        print(f"❌ Error: Solutions file not found: {args.solutions}", file=sys.stderr)
         return 1
 
     try:
