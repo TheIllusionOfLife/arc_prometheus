@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..evolutionary_engine.fitness import FitnessResult
-
 if TYPE_CHECKING:
     from ..evolutionary_engine.error_classifier import ErrorType
+    from ..evolutionary_engine.fitness import FitnessResult
+    from .analyst import AnalysisResult
 
 # Constants for prompt formatting
 MAX_ERRORS_TO_SHOW = 5  # Limit execution errors shown to prevent token overflow
@@ -43,44 +43,110 @@ def _format_grid_as_ascii(grid: np.ndarray) -> str:
     return "\n".join(rows)
 
 
-def create_solver_prompt(train_pairs: list[dict[str, np.ndarray]]) -> str:
+def create_solver_prompt(
+    train_pairs: list[dict[str, np.ndarray]],
+    analyst_spec: "AnalysisResult | None" = None
+) -> str:
     """Create prompt for Gemini to generate ARC solver code.
 
-    This prompt combines Analyst and Programmer roles:
-    1. Analyzes train examples to infer transformation rule
-    2. Generates Python code implementing the rule
+    This prompt can work in two modes:
+    1. **AI Civilization mode** (analyst_spec provided): Uses Analyst's pattern analysis
+       to guide code generation with clear specifications
+    2. **Direct mode** (analyst_spec=None): Analyzes examples and generates code in one step
 
     Args:
         train_pairs: List of {"input": np.ndarray, "output": np.ndarray}
+        analyst_spec: Optional AnalysisResult from Analyst agent containing:
+            - pattern_description: Natural language rule
+            - key_observations: List of important features
+            - suggested_approach: High-level implementation strategy
 
     Returns:
         Formatted prompt string ready for Gemini API
 
-    Prompt Structure:
+    Prompt Structure (AI Civilization mode):
+        - Analyst's pattern description and observations
+        - All train examples (input/output pairs) as ASCII art
+        - Code generation instructions based on Analyst's suggested approach
+        - Required function signature and constraints
+
+    Prompt Structure (Direct mode):
         - Task description and goals
         - All train examples (input/output pairs) as ASCII art
-        - Analysis instructions (what patterns to look for)
-        - Code generation instructions with constraints
-        - Example code structure
-        - Required function signature
+        - Analysis + code generation instructions
+        - Required function signature and constraints
 
     Example:
+        >>> # Direct mode (no Analyst)
         >>> train_pairs = [
         ...     {"input": np.array([[1, 2]]), "output": np.array([[2, 3]])}
         ... ]
         >>> prompt = create_solver_prompt(train_pairs)
         >>> "def solve(" in prompt
         True
+
+        >>> # AI Civilization mode (with Analyst)  # doctest: +SKIP
+        >>> from arc_prometheus.cognitive_cells.analyst import AnalysisResult
+        >>> analysis = AnalysisResult(
+        ...     pattern_description="Add 1 to each cell",
+        ...     key_observations=["All values increase by 1"],
+        ...     suggested_approach="Use np.add() or + operator",
+        ...     confidence="high"
+        ... )
+        >>> prompt = create_solver_prompt(train_pairs, analyst_spec=analysis)
+        >>> "Add 1 to each cell" in prompt
+        True
     """
-    prompt_parts = [
-        "You are an AI system analyzing Abstract Reasoning Corpus (ARC) puzzles.",
-        "",
-        "## Task",
-        "Analyze the input-output examples below, infer the transformation rule,",
-        "and implement it as a Python function using only numpy.",
-        "",
-        "## Examples",
-    ]
+    prompt_parts = []
+
+    if analyst_spec:
+        # AI Civilization mode: Use Analyst's analysis as specification
+        prompt_parts.extend([
+            "You are a Programmer agent in an AI civilization working to solve ARC puzzles.",
+            "",
+            "## Pattern Analysis (from Analyst Agent)",
+            f"**Transformation Rule:** {analyst_spec.pattern_description}",
+            "",
+        ])
+
+        if analyst_spec.key_observations:
+            prompt_parts.append("**Key Observations:**")
+            for obs in analyst_spec.key_observations:
+                prompt_parts.append(f"- {obs}")
+            prompt_parts.append("")
+
+        if analyst_spec.suggested_approach:
+            prompt_parts.extend([
+                "**Suggested Implementation Approach:**",
+                analyst_spec.suggested_approach,
+                "",
+            ])
+
+        if analyst_spec.confidence:
+            prompt_parts.extend([
+                f"**Analyst Confidence:** {analyst_spec.confidence}",
+                "",
+            ])
+
+        prompt_parts.extend([
+            "## Task",
+            "Implement the transformation rule described above as a Python function.",
+            "Use the training examples below to verify your understanding.",
+            "",
+            "## Training Examples (for verification)",
+        ])
+    else:
+        # Direct mode: Analyze and generate in one step
+        prompt_parts.extend([
+            "You are an AI system analyzing Abstract Reasoning Corpus (ARC) puzzles.",
+            "",
+            "## Task",
+            "Analyze the input-output examples below, infer the transformation rule,",
+            "and implement it as a Python function using only numpy.",
+            "",
+            "## Examples",
+        ])
+
 
     # Add each train pair
     for idx, pair in enumerate(train_pairs, 1):
@@ -96,9 +162,22 @@ def create_solver_prompt(train_pairs: list[dict[str, np.ndarray]]) -> str:
             ]
         )
 
-    # Add instructions
-    prompt_parts.extend(
-        [
+    # Add instructions (different for AI Civilization mode vs Direct mode)
+    if analyst_spec:
+        # AI Civilization mode: Focus on implementing the spec
+        prompt_parts.extend([
+            "",
+            "## Instructions",
+            "1. Implement the transformation rule described by the Analyst",
+            "2. Use the suggested approach as guidance for numpy operations",
+            "3. Verify your implementation matches all training examples",
+            "4. Implement with this EXACT signature:",
+            "   def solve(task_grid: np.ndarray) -> np.ndarray:",
+            "",
+        ])
+    else:
+        # Direct mode: Analysis + implementation in one step
+        prompt_parts.extend([
             "",
             "## Instructions",
             "1. Analyze the patterns: what changes between input and output?",
@@ -106,22 +185,25 @@ def create_solver_prompt(train_pairs: list[dict[str, np.ndarray]]) -> str:
             "3. Implement a function with this EXACT signature:",
             "   def solve(task_grid: np.ndarray) -> np.ndarray:",
             "",
-            "## Requirements",
-            "- Use ONLY numpy for array operations (no other libraries)",
-            "- Function must be named 'solve' (lowercase)",
-            "- Must accept one parameter: task_grid (np.ndarray)",
-            "- Must return np.ndarray (the transformed grid)",
-            "- Include 'import numpy as np' at the top",
-            "- Handle edge cases (empty grids, varying sizes if applicable)",
-            "- The output grid may have different dimensions than input",
-            "",
-            "## Output Format",
-            "Return ONLY the Python code, starting with 'import numpy as np'.",
-            "Do NOT include explanations or debugging commentary.",
-            "You may optionally wrap code in ```python blocks, but raw code is preferred.",
-            "Just the code that can be executed directly.",
-        ]
-    )
+        ])
+
+    # Requirements and output format are the same for both modes
+    prompt_parts.extend([
+        "## Requirements",
+        "- Use ONLY numpy for array operations (no other libraries)",
+        "- Function must be named 'solve' (lowercase)",
+        "- Must accept one parameter: task_grid (np.ndarray)",
+        "- Must return np.ndarray (the transformed grid)",
+        "- Include 'import numpy as np' at the top",
+        "- Handle edge cases (empty grids, varying sizes if applicable)",
+        "- The output grid may have different dimensions than input",
+        "",
+        "## Output Format",
+        "Return ONLY the Python code, starting with 'import numpy as np'.",
+        "Do NOT include explanations or debugging commentary.",
+        "You may optionally wrap code in ```python blocks, but raw code is preferred.",
+        "Just the code that can be executed directly.",
+    ])
 
     return "\n".join(prompt_parts)
 
