@@ -13,13 +13,13 @@ repos:
         additional_dependencies:
           - numpy>=2.0.0
         args: [--config-file=pyproject.toml]
-        files: ^src/
+        files: ^(src/|tests/)
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
     hooks:
       - id: bandit
-        args: [-r, src/, -ll]
+        args: [-ll]
         files: ^src/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks

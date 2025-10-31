@@ -130,11 +130,18 @@ def generate_solver(
     temperature: float | None = None,
     timeout: int = 60,
     use_cache: bool = True,
+    analyst_spec: Any = None,  # AnalysisResult | None, using Any to avoid circular import
 ) -> str:
     """Generate solver code using Gemini API.
 
     Uses gemini-2.5-flash-lite by default, Google's fastest and latest flash model.
     Optimized for cost-efficiency and high throughput with thinking capabilities.
+
+    This function supports two modes:
+    1. **AI Civilization mode** (analyst_spec provided): Uses Analyst's pattern analysis
+       to guide code generation. Part of the multi-agent pipeline.
+    2. **Direct mode** (analyst_spec=None): Analyzes examples and generates code in one step.
+       Used in Phase 2 evolution loop.
 
     Args:
         train_pairs: List of {"input": np.ndarray, "output": np.ndarray}
@@ -142,6 +149,11 @@ def generate_solver(
         temperature: LLM temperature 0.0-2.0 (default: from config.py)
         timeout: API request timeout in seconds (default: 60)
         use_cache: If True, use LLM response cache (default: True)
+        analyst_spec: Optional AnalysisResult from Analyst agent containing:
+            - pattern_description: Natural language rule
+            - key_observations: List of important features
+            - suggested_approach: High-level implementation strategy
+            If provided, enables AI Civilization mode with guided code generation.
 
     Returns:
         Python code string containing solve() function
@@ -151,6 +163,7 @@ def generate_solver(
         Exception: If Gemini API call fails
 
     Example:
+        >>> # Direct mode (Phase 2 - no Analyst)
         >>> train_pairs = [
         ...     {"input": np.array([[1, 2]]), "output": np.array([[2, 3]])}
         ... ]
@@ -158,6 +171,15 @@ def generate_solver(
         >>> "import numpy as np" in code  # doctest: +SKIP
         True
         >>> "def solve(" in code  # doctest: +SKIP
+        True
+
+        >>> # AI Civilization mode (Phase 3 - with Analyst)  # doctest: +SKIP
+        >>> from arc_prometheus.cognitive_cells.analyst import Analyst, AnalysisResult
+        >>> analyst = Analyst()
+        >>> task = {"train": train_pairs}
+        >>> analysis = analyst.analyze_task(task)
+        >>> code = generate_solver(train_pairs, analyst_spec=analysis)
+        >>> "import numpy as np" in code
         True
     """
     # Get API key (will raise ValueError if not configured)
@@ -183,8 +205,8 @@ def generate_solver(
         else PROGRAMMER_GENERATION_CONFIG["temperature"]
     )
 
-    # Create prompt
-    prompt = create_solver_prompt(train_pairs)
+    # Create prompt (with or without analyst_spec)
+    prompt = create_solver_prompt(train_pairs, analyst_spec=analyst_spec)
 
     # Check cache if enabled
     if use_cache:

@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pre-push hook - runs full CI checks before pushing to remote
+# This prevents pushing code that will fail CI
+
+set -e  # Exit on first error
+
+echo ""
+echo "🔍 Running pre-push checks..."
+echo ""
+
+# Run the full CI suite using make
+if ! make ci 2>&1; then
+    echo ""
+    echo "❌ Pre-push checks failed!"
+    echo ""
+    echo "Fix the issues above and try again."
+    echo "Or use 'git push --no-verify' to skip (not recommended)."
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-push checks passed! Pushing to remote..."
+echo ""
+
+exit 0

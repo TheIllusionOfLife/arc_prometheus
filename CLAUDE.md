@@ -67,13 +67,20 @@ Introduce selection pressure and mutation:
   - 22 new tests (151 total passing)
   - Backward compatible with config.py defaults
 
-### Phase 3: Scaling and Crossover
-Expand to full ARC dataset with genetic operations:
-- Build solver library with SQLite (later cloud database)
-- Implement Tagger for technique classification (rotation, fill, symmetry, etc.)
-- Add Crossover agent to fuse different solver capabilities
-- Deploy distributed task queue (Celery/RabbitMQ) for parallel processing
-- Prepare cloud infrastructure (Docker/Kubernetes)
+### Phase 3: AI Civilization 🚧 IN PROGRESS
+Expand to full multi-agent ecosystem with crossover:
+- ✅ **Phase 3.1 Complete** (October 31, 2025): Analyst Agent
+  - Pattern analysis and rule inference from ARC examples
+  - Structured output: pattern_description, key_observations, suggested_approach, confidence
+  - Integration with Programmer (AI Civilization mode vs Direct mode)
+  - 21 unit tests + 9 integration tests (all passing - 311 total)
+  - Real API validation: 5/5 diverse tasks completed successfully
+  - Production ready: No timeouts, truncation, or API errors
+- ⏭️ **Phase 3.2**: Enhanced Programmer with prompt optimization
+- ⏭️ **Phase 3.3**: Refiner with Analyst context for better debugging
+- ⏭️ **Phase 3.4**: Tagger for technique classification (rotation, fill, symmetry, etc.)
+- ⏭️ **Phase 3.5**: Crossover agent to fuse different solver capabilities
+- ⏭️ **Phase 3.6**: Population-based evolution with solver library (SQLite)
 
 ## Common Commands
 
@@ -87,7 +94,47 @@ pip install numpy google-generativeai
 
 # Future phases will add:
 # pip install multiprocess celery redis pytest
+
+# Install git hooks (IMPORTANT - prevents CI failures)
+./scripts/setup_hooks.sh
 ```
+
+### Development Workflow (Prevent CI Failures) ⚠️
+
+**MANDATORY FOR ALL DEVELOPMENT**: Install git hooks to catch issues before CI
+```bash
+# One-time setup
+./scripts/setup_hooks.sh
+
+# This installs:
+# - Pre-commit hooks: Fast checks (ruff, mypy, bandit) - ~5 seconds
+# - Pre-push hooks: Full CI suite (all checks + tests) - ~30-60 seconds
+```
+
+**Before Every Commit**:
+```bash
+# Option 1: Let git hooks handle it automatically
+git commit -m "feat: your changes"
+# → Pre-commit hooks run automatically
+
+# Option 2: Run all checks manually first
+make ci
+git commit -m "feat: your changes"
+```
+
+**Before Every Push**:
+```bash
+git push origin your-branch
+# → Pre-push hooks run automatically (includes full test suite)
+# → Prevents pushing code that will fail CI
+```
+
+**Why This Matters** (Lessons from PR #37):
+- PR #37 had 5+ CI failure iterations despite pre-commit config
+- Issues: ruff linting, formatting, type annotations, missing test mocks
+- Root cause: Tests not run before push, mypy only checked `src/` not `tests/`
+- Solution: Hybrid approach - fast commits, thorough pre-push validation
+- Result: Catches issues locally before wasting CI/reviewer time
 
 ### Testing
 ```bash
