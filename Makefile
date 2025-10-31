@@ -8,28 +8,28 @@ install:  ## Install project dependencies
 	pip install -e ".[dev]"
 
 test:  ## Run tests
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-cov:  ## Run tests with coverage report
-	pytest tests/ --cov=src/arc_prometheus --cov-report=term-missing --cov-report=html
+	uv run pytest tests/ --cov=src/arc_prometheus --cov-report=term-missing --cov-report=html
 
 lint:  ## Run linter (ruff check)
-	ruff check src/ tests/ scripts/
+	uv run ruff check src/ tests/ scripts/
 
 lint-fix:  ## Run linter with auto-fix
-	ruff check --fix src/ tests/ scripts/
+	uv run ruff check --fix src/ tests/ scripts/
 
 format:  ## Format code with ruff
-	ruff format src/ tests/ scripts/
+	uv run ruff format src/ tests/ scripts/
 
 format-check:  ## Check code formatting without changes
-	ruff format --check src/ tests/ scripts/
+	uv run ruff format --check src/ tests/ scripts/
 
 typecheck:  ## Run type checker (mypy)
-	mypy src/arc_prometheus tests/
+	uv run mypy src/arc_prometheus tests/
 
 security:  ## Run security checks (bandit)
-	bandit -r src/ -ll
+	uv run bandit -r src/ -ll
 
 ci:  ## Run all CI checks (typecheck, lint, format-check, security, test)
 	@echo "=== Running Type Checks ==="
