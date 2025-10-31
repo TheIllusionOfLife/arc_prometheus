@@ -8,7 +8,7 @@ This module handles:
 
 import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 
@@ -190,7 +190,7 @@ def generate_task_predictions(
     predictions: list[dict[str, list[list[int]]]] = []
 
     # Process each test input
-    for test_idx, test_example in enumerate(test_examples):
+    for test_example in test_examples:
         test_input = test_example["input"]
         test_grid = np.array(test_input, dtype=np.int64)
 

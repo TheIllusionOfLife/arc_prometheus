@@ -7,21 +7,17 @@ This module tests the pass@2 submission format generation for Kaggle:
 """
 
 import json
-import tempfile
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pytest
 
 from arc_prometheus.evolutionary_engine.evolution_loop import GenerationResult
-from arc_prometheus.evolutionary_engine.fitness import FitnessResult
 from arc_prometheus.evolutionary_engine.submission_formatter import (
     format_submission_json,
     generate_task_predictions,
     select_diverse_solvers,
 )
-
 
 # === Test Data Fixtures ===
 
@@ -358,7 +354,7 @@ def test_select_diverse_solvers_generation_gap() -> None:
     ]
 
     solvers = select_diverse_solvers(
-        generations, num_attempts=2, diversity_metric="generation_gap"
+        generations, num_attempts=2, diversity_metric="generation_gap"  # type: ignore[arg-type]
     )
 
     assert len(solvers) == 2
@@ -455,7 +451,7 @@ def test_generate_task_predictions_3_tests(
     # Should have 3 predictions (3 test inputs)
     assert len(predictions) == 3
 
-    for i, pred in enumerate(predictions):
+    for pred in predictions:
         assert "attempt_1" in pred
         assert "attempt_2" in pred
 
@@ -719,7 +715,7 @@ def test_select_diverse_solvers_all_zero_fitness() -> None:
         for i in range(5)
     ]
 
-    solvers = select_diverse_solvers(generations, num_attempts=2)
+    solvers = select_diverse_solvers(generations, num_attempts=2)  # type: ignore[arg-type]
 
     # Should still select 2 different solvers
     assert len(solvers) == 2
