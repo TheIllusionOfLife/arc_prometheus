@@ -439,24 +439,24 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 #### Recently Completed
 
-**Task 1: Fix Data Pipeline** (PR #33 - October 31, 2025):
+**Task 1: Fix Data Pipeline** ([PR #33](https://github.com/TheIllusionOfLife/arc_prometheus/pull/33) - October 31, 2025):
 - Created preprocessing script to merge evaluation challenges + solutions
 - 5 comprehensive tests (261 total passing), validated with 120 real tasks
 - **Impact**: Unblocked competition submission workflow - can now benchmark on evaluation dataset
 - See: `scripts/prepare_evaluation_data.py`
 
-**Phase 2 Benchmarking** (PR #31 - October 31, 2025):
+**Phase 2 Benchmarking** ([PR #31](https://github.com/TheIllusionOfLife/arc_prometheus/pull/31) - October 31, 2025):
 - 17 new tests (267 total passing), production-ready infrastructure
 - **Critical Discovery**: 20% success rate (3/15 tasks), 82% logic errors
 - **Impact**: Must fix Programmer/Refiner before Phase 3 (saved 6+ weeks)
 - See: [docs/benchmarks/phase2_findings.md](docs/benchmarks/phase2_findings.md)
 
-**Docker Sandbox** (PR #28 - October 30, 2025):
+**Docker Sandbox** ([PR #28](https://github.com/TheIllusionOfLife/arc_prometheus/pull/28) - October 30, 2025):
 - Production-grade security with ExecutionEnvironment protocol
 - Network disabled, read-only filesystem, resource limits
 - CLI: `--sandbox-mode docker`
 
-**Error Classification** (PR #26 - October 30, 2025):
+**Error Classification** ([PR #26](https://github.com/TheIllusionOfLife/arc_prometheus/pull/26) - October 30, 2025):
 - ErrorType enum (SYNTAX, RUNTIME, TIMEOUT, LOGIC, VALIDATION)
 - 3-tuple return: `(success, result, error_detail)`
 - Enables targeted Refiner debugging
@@ -499,7 +499,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 1. **Data Split** (Competition uses 3 separate datasets):
    - Training: 400+ tasks with solutions (for development)
-   - Evaluation: 100 tasks with solutions (for validation)
+   - Evaluation: 120 tasks with solutions (for validation)
    - Test: **240 hidden tasks** without solutions (for leaderboard)
 
 2. **Runtime Constraint**: 12-hour hard limit for 240 tasks
@@ -597,7 +597,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 #### Known Issues / Blockers
 - ✅ **RESOLVED - Security**: Docker Sandbox now available for production-grade security
-  - **Status**: Task 2.1 complete (PR #28 merged October 30, 2025)
+  - **Status**: Task 2.1 complete ([PR #28](https://github.com/TheIllusionOfLife/arc_prometheus/pull/28) merged October 30, 2025)
   - **Usage**: Use `--sandbox-mode docker` flag for production deployments
   - **Note**: Multiprocessing sandbox remains default for fast local development
   - **Security**: Docker provides network isolation, read-only filesystem, and resource limits
@@ -610,7 +610,6 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - **Deep Copy vs Shallow Copy**: When modifying nested structures (dicts with lists), use `copy.deepcopy()` to prevent side effects on original data
 - **Single-Push Multi-Commit Strategy**: Commit locally after each fix, push once at end to save CI/bot costs. Example: 3 commits addressing different feedback, 1 push triggers bots once
 - **Competition Data Format Preprocessing**: Split datasets (challenges + solutions) require preprocessing script before benchmarking. Validate data integrity with set operations first
-- **GraphQL for PR Review**: Single atomic query fetches ALL feedback (comments, reviews, line comments, CI) - prevents missing reviewer feedback from REST API 404s
 
 **From Competitive Analysis & Philosophy Clarification - October 31, 2025**:
 - **Competition as Testbed, Not Goal**: We're building an AI civilization to validate multi-agent evolution. Competition provides benchmarks and constraints, but doesn't dictate architecture. Chasing leaderboard rankings = cart before the horse.
