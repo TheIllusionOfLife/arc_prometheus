@@ -307,7 +307,7 @@ def create_refiner_prompt(
 
         if analyst_spec.confidence:
             prompt_parts.extend(
-                [f"**Analyst Confidence:** {analyst_spec.confidence}", "", ""]
+                [f"**Analyst Confidence:** {analyst_spec.confidence}", ""]
             )
 
         prompt_parts.append(

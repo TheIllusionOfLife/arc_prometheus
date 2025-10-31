@@ -17,6 +17,7 @@ Example:
 import argparse
 
 from .config import (
+    ANALYST_DEFAULT_TEMPERATURE,
     DEFAULT_TIMEOUT_SECONDS,
     MODEL_NAME,
     PROGRAMMER_GENERATION_CONFIG,
@@ -166,8 +167,8 @@ Examples:
     parser.add_argument(
         "--analyst-temperature",
         type=_validate_temperature,
-        default=0.3,
-        help="Temperature for Analyst pattern analysis (0.0-2.0, default: 0.3, only used with --use-analyst)",
+        default=ANALYST_DEFAULT_TEMPERATURE,
+        help=f"Temperature for Analyst pattern analysis (0.0-2.0, default: {ANALYST_DEFAULT_TEMPERATURE}, only used with --use-analyst)",
     )
 
     # AI Civilization mode

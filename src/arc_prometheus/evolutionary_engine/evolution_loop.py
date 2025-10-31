@@ -16,7 +16,7 @@ from ..cognitive_cells.analyst import Analyst
 from ..cognitive_cells.programmer import generate_solver
 from ..cognitive_cells.refiner import refine_solver
 from ..crucible.data_loader import load_task
-from ..utils.config import MODEL_NAME
+from ..utils.config import ANALYST_DEFAULT_TEMPERATURE, MODEL_NAME
 from .fitness import FitnessResult, calculate_fitness
 
 
@@ -134,7 +134,11 @@ def run_evolution_loop(
 
         analyst = Analyst(
             model_name=model_name or MODEL_NAME,  # Ensure string type for mypy
-            temperature=analyst_temperature if analyst_temperature is not None else 0.3,
+            temperature=(
+                analyst_temperature
+                if analyst_temperature is not None
+                else ANALYST_DEFAULT_TEMPERATURE
+            ),
             use_cache=use_cache,
         )
 
