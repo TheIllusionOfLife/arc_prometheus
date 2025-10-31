@@ -567,17 +567,14 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - Validated with all 120 evaluation tasks - preprocessing works correctly
    - Documentation updated in README and CLAUDE.md
 
-2. **Implement pass@2 Output** ⭐ CRITICAL (2-3 days)
-   - **Why**: Kaggle requires 2 attempts per test input (pass@2 metric)
-   - **Currently**: We generate 1 output, cannot submit to competition
-   - **Challenges**:
-     - Handle variable test inputs per task (most have 1, some have 2)
-     - Generate 2 diverse attempts per test input
-     - Format: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}`
-   - **Approach**:
-     - Run evolution loop twice with temperature variation (0.3 and 0.5)
-     - Or sample from generation history with diversity penalty
-   - **Success**: Can generate valid submission.json for 240 tasks
+2. ✅ **Implement pass@2 Output** - COMPLETE (PR #35)
+   - **Implementation**: Created `submission_formatter.py` with diversity selection, prediction generation, and Kaggle format validation
+   - **Diversity Strategies**: fitness-based, generation_gap, and edit_distance (placeholder)
+   - **Testing**: 22 comprehensive tests (18 unit + 4 integration), real API validation (3 tasks, 100% success)
+   - **CLI Integration**: `--generate-submission` flag in benchmark_evolution.py
+   - **Format**: `{"task_id": [{"attempt_1": [[...]], "attempt_2": [[...]]}]}` - Kaggle-compliant
+   - **Fallback**: Duplicates best solver with console warnings when insufficient unique solvers
+   - **Success**: ✅ Can generate valid submission.json for any number of tasks
 
 3. **Runtime Optimization** ⚠️ IMPORTANT (1 day)
    - **Why**: 12-hour hard limit for 240 tasks (3 min/task average)
@@ -640,6 +637,30 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
   - **Security**: Docker provides network isolation, read-only filesystem, and resource limits
 
 #### Session Learnings (Most Recent)
+
+**From Task 2 (pass@2 Submission Format) - October 31, 2025 03:28 PM JST**:
+- ✅ **COMPLETE**: Implemented pass@2 submission format for Kaggle (PR #35)
+- **Diversity Selection**: 3 strategies (fitness, generation_gap, edit_distance placeholder)
+- **Prediction Generation**: Handles variable test inputs per task (0-3), sandbox factory pattern
+- **Format Validation**: Automated validation against Kaggle structure, JSON serialization checks
+- **Fallback Behavior**: Duplicates best solver with console warnings when insufficient unique solvers
+- **Testing**: 22 comprehensive tests (18 unit + 4 integration), real API validation (3 tasks, 100% success)
+- **Quality Metrics**: 283 total tests passing, mypy clean, ruff clean, full CI passing
+- **Review Iterations**: Multiple rounds of AI-assisted review - all feedback addressed
+  - Fixed dynamic num_attempts parameter (3 HIGH bugs)
+  - Fixed sandbox_mode wiring (MEDIUM bug)
+  - Fixed hardcoded 2x2 placeholder with dynamic sizing
+  - Added console warnings for fallback
+  - Validated empty solver codes
+  - Fixed misleading docstring
+
+**Critical Learnings from PR #35**:
+- **Systematic PR Review**: Use GraphQL single query for ALL feedback sources (comments + reviews + line comments)
+- **Mandatory Verification Checklist**: 5-item checklist prevents missing feedback (count match, timestamps, author comments, review content, CI passing)
+- **Post-Fix Verification**: Always run type check + targeted test before declaring "fix complete" (30s prevents hours of CI debugging)
+- **Priority-Based Fixing**: Critical → High → Medium → Low, commit after each group, single push to save bot costs
+- **Review State ≠ Content**: APPROVED can still contain improvement suggestions - always read the actual comment body
+- **Fallback Architecture**: Raise ValueError in library function, catch and handle in caller with warnings (cleaner separation of concerns)
 
 **From Task 1: Fix Data Pipeline (PR #33) - October 31, 2025**:
 - **TDD with Real-World Validation**: Unit tests catch logic bugs, real data catches format assumptions. Always validate with production data (120 evaluation tasks) before merge
