@@ -160,6 +160,22 @@ python scripts/demo_phase2_3_evolution.py [--model MODEL] [--max-generations N]
 
 Run evolution loop on diverse ARC tasks to measure performance and validate Phase 2:
 
+#### Preparing Evaluation Dataset
+
+The evaluation dataset stores test outputs separately from challenges. Merge them before benchmarking:
+
+```bash
+# One-time setup: Merge evaluation challenges with solutions
+python scripts/prepare_evaluation_data.py \
+  --challenges data/arc-prize-2025/arc-agi_evaluation_challenges.json \
+  --solutions data/arc-prize-2025/arc-agi_evaluation_solutions.json \
+  --output data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json
+```
+
+This creates a unified format where test examples include outputs (required to measure generalization performance).
+
+#### Running Benchmarks
+
 ```bash
 # Benchmark specific tasks
 python scripts/benchmark_evolution.py \
@@ -167,12 +183,19 @@ python scripts/benchmark_evolution.py \
   --output-dir results/test_run/ \
   --experiment-name "test_run"
 
-# Random sample from training set
+# Random sample from training set (development)
 python scripts/benchmark_evolution.py \
   --random-sample 15 \
   --training-data data/arc-prize-2025/arc-agi_training_challenges.json \
   --output-dir results/baseline/ \
   --experiment-name "baseline"
+
+# Random sample from EVALUATION set (validation - measures true generalization)
+python scripts/benchmark_evolution.py \
+  --random-sample 15 \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --output-dir results/evaluation_baseline/ \
+  --experiment-name "evaluation_baseline"
 
 # Load tasks from file
 python scripts/benchmark_evolution.py \

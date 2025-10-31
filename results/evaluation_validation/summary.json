@@ -1,0 +1,16 @@
+{
+  "total_tasks": 3,
+  "successful_tasks": 3,
+  "failed_tasks": 0,
+  "success_rate": 1.0,
+  "avg_final_fitness": 0.0,
+  "median_final_fitness": 0,
+  "avg_generations": 2.0,
+  "avg_time_per_task": 17.718281189600628,
+  "total_time": 53.15484356880188,
+  "error_distribution": {
+    "validation": 15,
+    "logic": 5,
+    "syntax": 10
+  }
+}

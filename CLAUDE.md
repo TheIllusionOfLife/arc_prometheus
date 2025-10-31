@@ -115,7 +115,14 @@ Grids are 2D arrays of integers (0-9) representing colors.
 
 **IMPORTANT - ARC Evaluation Format**:
 - Training tasks (`arc-agi_training_challenges.json`) have outputs for both train AND test examples
-- Evaluation tasks (`arc-agi_evaluation_challenges.json`) have outputs for train but NOT for test examples
+- Evaluation tasks (`arc-agi_evaluation_challenges.json`) store test outputs SEPARATELY in `arc-agi_evaluation_solutions.json`
+- **Use preprocessing script before benchmarking evaluation data**:
+  ```bash
+  python scripts/prepare_evaluation_data.py \
+    --challenges data/arc-prize-2025/arc-agi_evaluation_challenges.json \
+    --solutions data/arc-prize-2025/arc-agi_evaluation_solutions.json \
+    --output data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json
+  ```
 - Code must handle missing "output" keys gracefully: `if "output" not in example: continue`
 - Always use explicit dtype casting: `np.array(example["input"], dtype=np.int64)`
 
