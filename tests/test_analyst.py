@@ -331,7 +331,9 @@ class TestAnalystEdgeCases:
 
     @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_single_training_example(self, mock_genai, mock_get_api_key):
+    def test_analyze_task_with_single_training_example(
+        self, mock_genai, mock_get_api_key
+    ):
         """Test analysis with only one training example."""
         mock_get_api_key.return_value = "test-api-key"
 
@@ -405,7 +407,9 @@ CONFIDENCE: medium"""
 
     @patch("arc_prometheus.cognitive_cells.analyst.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.analyst.genai")
-    def test_analyze_task_with_incomplete_llm_response(self, mock_genai, mock_get_api_key):
+    def test_analyze_task_with_incomplete_llm_response(
+        self, mock_genai, mock_get_api_key
+    ):
         """Test handling of incomplete LLM responses."""
         mock_get_api_key.return_value = "test-api-key"
 
