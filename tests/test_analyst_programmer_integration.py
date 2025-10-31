@@ -111,9 +111,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "Fill the entire grid" in programmer_call_args
         assert "Input contains exactly one non-zero cell" in programmer_call_args
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_programmer_without_analyst_still_works(self, mock_genai):
+    def test_programmer_without_analyst_still_works(self, mock_genai, mock_get_api_key):
         """Test backward compatibility: Programmer works without Analyst."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """```python
@@ -146,9 +150,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             or "infer the transformation" in call_args
         )
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_analyst_spec_passed_to_prompt(self, mock_genai):
+    def test_analyst_spec_passed_to_prompt(self, mock_genai, mock_get_api_key):
         """Test that Analyst specifications are correctly passed to Programmer prompt."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """```python
@@ -194,9 +202,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "Use np.rot90() with k=-1" in call_args
         assert "**Analyst Confidence:** high" in call_args
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_analyst_spec_with_medium_confidence(self, mock_genai):
+    def test_analyst_spec_with_medium_confidence(self, mock_genai, mock_get_api_key):
         """Test Programmer handles medium confidence from Analyst."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """```python
@@ -230,9 +242,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         call_args = mock_model.generate_content.call_args[0][0]
         assert "**Analyst Confidence:** medium" in call_args
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_analyst_spec_with_minimal_observations(self, mock_genai):
+    def test_analyst_spec_with_minimal_observations(self, mock_genai, mock_get_api_key):
         """Test Programmer handles Analyst result with few observations."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """```python
@@ -268,9 +284,15 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         # Should NOT have "Key Observations:" section if empty
         assert "Identity transformation" in call_args
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_multiple_observations_formatted_correctly(self, mock_genai):
+    def test_multiple_observations_formatted_correctly(
+        self, mock_genai, mock_get_api_key
+    ):
         """Test that multiple observations are formatted as bullet points."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = """```python
@@ -336,9 +358,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
 class TestPromptModeSelection:
     """Tests for AI Civilization mode vs Direct mode selection."""
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_ai_civilization_mode_with_analyst_spec(self, mock_genai):
+    def test_ai_civilization_mode_with_analyst_spec(self, mock_genai, mock_get_api_key):
         """Test that providing analyst_spec triggers AI Civilization mode."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = (
@@ -364,9 +390,13 @@ class TestPromptModeSelection:
         assert "You are a Programmer agent in an AI civilization" in prompt
         assert "Pattern Analysis (from Analyst Agent)" in prompt
 
+    @patch("arc_prometheus.cognitive_cells.programmer.get_gemini_api_key")
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
-    def test_direct_mode_without_analyst_spec(self, mock_genai):
+    def test_direct_mode_without_analyst_spec(self, mock_genai, mock_get_api_key):
         """Test that omitting analyst_spec triggers Direct mode."""
+        # Setup API key mock
+        mock_get_api_key.return_value = "test-api-key"
+
         # Setup mock
         mock_response = Mock()
         mock_response.text = (
