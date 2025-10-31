@@ -206,7 +206,7 @@ def generate_task_predictions(
     """Apply multiple solvers to all test inputs in a task.
 
     Generates pass@2 predictions by running each solver on each test input.
-    Returns placeholder [[0, 0], [0, 0]] if solver fails or times out.
+    Returns zero-filled placeholder matching input grid shape if solver fails or times out.
 
     Args:
         task_json_path: Path to ARC task JSON file
@@ -224,7 +224,7 @@ def generate_task_predictions(
 
     Note:
         - Handles variable number of test inputs per task (0-3 typically)
-        - If solver fails/times out, returns [[0, 0], [0, 0]] placeholder
+        - If solver fails/times out, returns zero-filled placeholder matching input grid shape
         - Converts numpy arrays to Python lists for JSON serialization
 
     Example:
