@@ -27,9 +27,9 @@ from arc_prometheus.crucible.sandbox import safe_execute
 
 def test_task_with_analyst(task_id: str, task_data: dict) -> dict:
     """Test task using AI Civilization mode (Analyst → Programmer)."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"Task {task_id} - AI CIVILIZATION MODE (with Analyst)")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     try:
         # Step 1: Analyst analyzes task
@@ -46,16 +46,13 @@ def test_task_with_analyst(task_id: str, task_data: dict) -> dict:
         train_pairs = [
             {
                 "input": np.array(ex["input"], dtype=np.int64),
-                "output": np.array(ex["output"], dtype=np.int64)
+                "output": np.array(ex["output"], dtype=np.int64),
             }
             for ex in task_data["train"]
         ]
 
         code = generate_solver(
-            train_pairs,
-            analyst_spec=analysis,
-            use_cache=False,
-            timeout=60
+            train_pairs, analyst_spec=analysis, use_cache=False, timeout=60
         )
 
         print(f"  ✓ Generated code ({len(code)} chars)")
@@ -70,11 +67,7 @@ def test_task_with_analyst(task_id: str, task_data: dict) -> dict:
             input_grid = np.array(example["input"], dtype=np.int64)
             expected_output = np.array(example["output"], dtype=np.int64)
 
-            success, result, error = safe_execute(
-                code,
-                input_grid,
-                timeout=5
-            )
+            success, result, error = safe_execute(code, input_grid, timeout=5)
 
             if success and result is not None:
                 if np.array_equal(result, expected_output):
@@ -83,11 +76,13 @@ def test_task_with_analyst(task_id: str, task_data: dict) -> dict:
                 else:
                     print(f"  ✗ Train example {idx + 1}: Wrong output")
             else:
-                error_msg = error.get("error_message", "Unknown") if error else "Unknown"
+                error_msg = (
+                    error.get("error_message", "Unknown") if error else "Unknown"
+                )
                 print(f"  ✗ Train example {idx + 1}: Execution failed - {error_msg}")
 
         score = train_correct / train_total if train_total > 0 else 0
-        print(f"\n  📊 Score: {train_correct}/{train_total} ({score*100:.1f}%)")
+        print(f"\n  📊 Score: {train_correct}/{train_total} ({score * 100:.1f}%)")
 
         return {
             "mode": "ai_civilization",
@@ -99,26 +94,27 @@ def test_task_with_analyst(task_id: str, task_data: dict) -> dict:
             "train_correct": train_correct,
             "train_total": train_total,
             "score": score,
-            "code": code
+            "code": code,
         }
 
     except Exception as e:
         print(f"\n  ❌ Pipeline failed: {e}")
         import traceback
+
         traceback.print_exc()
         return {
             "mode": "ai_civilization",
             "task_id": task_id,
             "success": False,
-            "error": str(e)
+            "error": str(e),
         }
 
 
 def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
     """Test task using Direct mode (Programmer only, no Analyst)."""
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print(f"Task {task_id} - DIRECT MODE (Programmer only)")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     try:
         # Step 1: Programmer generates code directly from examples
@@ -126,7 +122,7 @@ def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
         train_pairs = [
             {
                 "input": np.array(ex["input"], dtype=np.int64),
-                "output": np.array(ex["output"], dtype=np.int64)
+                "output": np.array(ex["output"], dtype=np.int64),
             }
             for ex in task_data["train"]
         ]
@@ -135,7 +131,7 @@ def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
             train_pairs,
             analyst_spec=None,  # Direct mode
             use_cache=False,
-            timeout=60
+            timeout=60,
         )
 
         print(f"  ✓ Generated code ({len(code)} chars)")
@@ -150,11 +146,7 @@ def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
             input_grid = np.array(example["input"], dtype=np.int64)
             expected_output = np.array(example["output"], dtype=np.int64)
 
-            success, result, error = safe_execute(
-                code,
-                input_grid,
-                timeout=5
-            )
+            success, result, error = safe_execute(code, input_grid, timeout=5)
 
             if success and result is not None:
                 if np.array_equal(result, expected_output):
@@ -163,11 +155,13 @@ def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
                 else:
                     print(f"  ✗ Train example {idx + 1}: Wrong output")
             else:
-                error_msg = error.get("error_message", "Unknown") if error else "Unknown"
+                error_msg = (
+                    error.get("error_message", "Unknown") if error else "Unknown"
+                )
                 print(f"  ✗ Train example {idx + 1}: Execution failed - {error_msg}")
 
         score = train_correct / train_total if train_total > 0 else 0
-        print(f"\n  📊 Score: {train_correct}/{train_total} ({score*100:.1f}%)")
+        print(f"\n  📊 Score: {train_correct}/{train_total} ({score * 100:.1f}%)")
 
         return {
             "mode": "direct",
@@ -177,19 +171,15 @@ def test_task_without_analyst(task_id: str, task_data: dict) -> dict:
             "train_correct": train_correct,
             "train_total": train_total,
             "score": score,
-            "code": code
+            "code": code,
         }
 
     except Exception as e:
         print(f"\n  ❌ Pipeline failed: {e}")
         import traceback
+
         traceback.print_exc()
-        return {
-            "mode": "direct",
-            "task_id": task_id,
-            "success": False,
-            "error": str(e)
-        }
+        return {"mode": "direct", "task_id": task_id, "success": False, "error": str(e)}
 
 
 def main():
@@ -230,10 +220,10 @@ def main():
             continue
 
         task_data = all_tasks[task_id]
-        print(f"\n\n{'#'*80}")
+        print(f"\n\n{'#' * 80}")
         print(f"# Task {task_id}: {description}")
         print(f"# Training examples: {len(task_data['train'])}")
-        print(f"{'#'*80}")
+        print(f"{'#' * 80}")
 
         # Test with Analyst (AI Civilization mode)
         result_with_analyst = test_task_with_analyst(task_id, task_data)
@@ -245,11 +235,15 @@ def main():
 
         # Compare results
         if result_with_analyst["success"] and result_without_analyst["success"]:
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print(f"COMPARISON for {task_id}")
-            print(f"{'='*80}")
-            print(f"  AI Civilization: {result_with_analyst['score']*100:.1f}% correct")
-            print(f"  Direct mode:     {result_without_analyst['score']*100:.1f}% correct")
+            print(f"{'=' * 80}")
+            print(
+                f"  AI Civilization: {result_with_analyst['score'] * 100:.1f}% correct"
+            )
+            print(
+                f"  Direct mode:     {result_without_analyst['score'] * 100:.1f}% correct"
+            )
             if result_with_analyst["score"] > result_without_analyst["score"]:
                 print("  ✅ AI Civilization performed BETTER")
             elif result_with_analyst["score"] < result_without_analyst["score"]:
@@ -268,17 +262,25 @@ def main():
     ai_civ_success = sum(1 for r in ai_civ_results if r.get("success", False))
     direct_success = sum(1 for r in direct_results if r.get("success", False))
 
-    print(f"\nAI Civilization mode: {ai_civ_success}/{len(ai_civ_results)} tasks completed")
-    print(f"Direct mode:          {direct_success}/{len(direct_results)} tasks completed")
+    print(
+        f"\nAI Civilization mode: {ai_civ_success}/{len(ai_civ_results)} tasks completed"
+    )
+    print(
+        f"Direct mode:          {direct_success}/{len(direct_results)} tasks completed"
+    )
 
     if ai_civ_success == len(ai_civ_results) and direct_success == len(direct_results):
         # Calculate average scores
-        ai_civ_avg = sum(r.get("score", 0) for r in ai_civ_results) / len(ai_civ_results)
-        direct_avg = sum(r.get("score", 0) for r in direct_results) / len(direct_results)
+        ai_civ_avg = sum(r.get("score", 0) for r in ai_civ_results) / len(
+            ai_civ_results
+        )
+        direct_avg = sum(r.get("score", 0) for r in direct_results) / len(
+            direct_results
+        )
 
         print("\nAverage train accuracy:")
-        print(f"  AI Civilization: {ai_civ_avg*100:.1f}%")
-        print(f"  Direct mode:     {direct_avg*100:.1f}%")
+        print(f"  AI Civilization: {ai_civ_avg * 100:.1f}%")
+        print(f"  Direct mode:     {direct_avg * 100:.1f}%")
 
         if ai_civ_avg > direct_avg:
             print("\n✅ AI CIVILIZATION MODE OUTPERFORMED DIRECT MODE")

@@ -65,7 +65,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         task_data = {
             "train": [
                 {"input": [[1, 0], [0, 0]], "output": [[1, 1], [1, 1]]},
-                {"input": [[0, 0], [4, 0]], "output": [[4, 4], [4, 4]]}
+                {"input": [[0, 0], [4, 0]], "output": [[4, 4], [4, 4]]},
             ]
         }
 
@@ -73,7 +73,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         analyst = Analyst(use_cache=False)
         analysis = analyst.analyze_task(task_data)
 
-        assert analysis.pattern_description == "Fill the entire grid with the single non-zero color"
+        assert (
+            analysis.pattern_description
+            == "Fill the entire grid with the single non-zero color"
+        )
         assert len(analysis.key_observations) == 3
         assert analysis.confidence == "high"
 
@@ -113,9 +116,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         mock_genai.GenerativeModel.return_value = mock_model
 
         # Generate code WITHOUT analyst_spec (Direct mode)
-        train_pairs = [
-            {"input": np.array([[1, 2]]), "output": np.array([[2, 3]])}
-        ]
+        train_pairs = [{"input": np.array([[1, 2]]), "output": np.array([[2, 3]])}]
 
         code = generate_solver(train_pairs, use_cache=False)
 
@@ -128,7 +129,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
         assert "Pattern Analysis (from Analyst Agent)" not in call_args
         assert "Transformation Rule:" not in call_args
         # Should contain Direct mode instructions
-        assert "Analyze the input-output examples" in call_args or "infer the transformation" in call_args
+        assert (
+            "Analyze the input-output examples" in call_args
+            or "infer the transformation" in call_args
+        )
 
     @patch("arc_prometheus.cognitive_cells.programmer.genai")
     def test_analyst_spec_passed_to_prompt(self, mock_genai):
@@ -152,10 +156,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             key_observations=[
                 "Top row becomes right column",
                 "Bottom row becomes left column",
-                "Grid dimensions are square"
+                "Grid dimensions are square",
             ],
             suggested_approach="Use np.rot90() with k=-1 parameter for clockwise rotation",
-            confidence="high"
+            confidence="high",
         )
 
         # Generate code with analyst_spec
@@ -199,12 +203,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             pattern_description="Mirror grid horizontally",
             key_observations=["Pattern unclear with limited examples"],
             suggested_approach="Try horizontal flip using np.fliplr()",
-            confidence="medium"
+            confidence="medium",
         )
 
-        train_pairs = [
-            {"input": np.array([[1, 2]]), "output": np.array([[2, 1]])}
-        ]
+        train_pairs = [{"input": np.array([[1, 2]]), "output": np.array([[2, 1]])}]
 
         code = generate_solver(train_pairs, analyst_spec=analysis, use_cache=False)
 
@@ -237,12 +239,10 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             pattern_description="Identity transformation",
             key_observations=[],
             suggested_approach="Return input unchanged",
-            confidence="low"
+            confidence="low",
         )
 
-        train_pairs = [
-            {"input": np.array([[1]]), "output": np.array([[1]])}
-        ]
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[1]])}]
 
         code = generate_solver(train_pairs, analyst_spec=analysis, use_cache=False)
 
@@ -280,15 +280,13 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
                 "Observation 2: Size increases",
                 "Observation 3: Pattern repeats",
                 "Observation 4: Symmetry detected",
-                "Observation 5: Edge effects"
+                "Observation 5: Edge effects",
             ],
             suggested_approach="Multi-step approach",
-            confidence="medium"
+            confidence="medium",
         )
 
-        train_pairs = [
-            {"input": np.array([[1]]), "output": np.array([[2]])}
-        ]
+        train_pairs = [{"input": np.array([[1]]), "output": np.array([[2]])}]
 
         generate_solver(train_pairs, analyst_spec=analysis, use_cache=False)
 
@@ -307,7 +305,7 @@ def solve(task_grid: np.ndarray) -> np.ndarray:
             pattern_description="Test pattern",
             key_observations=["Test obs"],
             suggested_approach="Test approach",
-            confidence="high"
+            confidence="high",
         )
 
         # Verify AnalysisResult has expected attributes
@@ -331,7 +329,9 @@ class TestPromptModeSelection:
         """Test that providing analyst_spec triggers AI Civilization mode."""
         # Setup mock
         mock_response = Mock()
-        mock_response.text = "```python\nimport numpy as np\ndef solve(x): return x\n```"
+        mock_response.text = (
+            "```python\nimport numpy as np\ndef solve(x): return x\n```"
+        )
         mock_model = Mock()
         mock_model.generate_content.return_value = mock_response
         mock_genai.GenerativeModel.return_value = mock_model
@@ -340,7 +340,7 @@ class TestPromptModeSelection:
             pattern_description="Test",
             key_observations=["Test"],
             suggested_approach="Test",
-            confidence="high"
+            confidence="high",
         )
 
         train_pairs = [{"input": np.array([[1]]), "output": np.array([[2]])}]
@@ -357,7 +357,9 @@ class TestPromptModeSelection:
         """Test that omitting analyst_spec triggers Direct mode."""
         # Setup mock
         mock_response = Mock()
-        mock_response.text = "```python\nimport numpy as np\ndef solve(x): return x\n```"
+        mock_response.text = (
+            "```python\nimport numpy as np\ndef solve(x): return x\n```"
+        )
         mock_model = Mock()
         mock_model.generate_content.return_value = mock_response
         mock_genai.GenerativeModel.return_value = mock_model
@@ -369,7 +371,10 @@ class TestPromptModeSelection:
 
         # Direct mode markers
         assert "You are an AI system analyzing Abstract Reasoning Corpus" in prompt
-        assert "Analyze the input-output examples" in prompt or "infer the transformation" in prompt
+        assert (
+            "Analyze the input-output examples" in prompt
+            or "infer the transformation" in prompt
+        )
 
         # Should NOT have AI Civilization mode markers
         assert "Pattern Analysis (from Analyst Agent)" not in prompt

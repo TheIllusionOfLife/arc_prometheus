@@ -64,7 +64,9 @@ def test_analyst_on_diverse_tasks():
             task_data = tasks[task_id]
 
             # Analyze task
-            print(f"  Analyzing task with {len(task_data['train'])} training examples...")
+            print(
+                f"  Analyzing task with {len(task_data['train'])} training examples..."
+            )
             analysis = analyst.analyze_task(task_data)
 
             # Validate output
@@ -76,7 +78,9 @@ def test_analyst_on_diverse_tasks():
                 issues.append("❌ Empty pattern description")
                 success = False
             elif len(analysis.pattern_description) < 10:
-                issues.append(f"⚠️  Very short pattern description: {len(analysis.pattern_description)} chars")
+                issues.append(
+                    f"⚠️  Very short pattern description: {len(analysis.pattern_description)} chars"
+                )
             else:
                 print(f"  ✓ Pattern: {analysis.pattern_description}")
 
@@ -104,13 +108,15 @@ def test_analyst_on_diverse_tasks():
 
             # Check for truncation (very long responses might indicate issues)
             total_length = (
-                len(analysis.pattern_description) +
-                sum(len(obs) for obs in analysis.key_observations) +
-                len(analysis.suggested_approach)
+                len(analysis.pattern_description)
+                + sum(len(obs) for obs in analysis.key_observations)
+                + len(analysis.suggested_approach)
             )
 
             if total_length < 50:
-                issues.append(f"❌ Response too short ({total_length} chars) - likely truncated or error")
+                issues.append(
+                    f"❌ Response too short ({total_length} chars) - likely truncated or error"
+                )
                 success = False
             elif total_length > 5000:
                 issues.append(f"⚠️  Response very long ({total_length} chars)")
@@ -121,13 +127,15 @@ def test_analyst_on_diverse_tasks():
                     print(f"  {issue}")
 
             # Store result
-            results.append({
-                "task_id": task_id,
-                "description": description,
-                "success": success,
-                "analysis": analysis,
-                "issues": issues
-            })
+            results.append(
+                {
+                    "task_id": task_id,
+                    "description": description,
+                    "success": success,
+                    "analysis": analysis,
+                    "issues": issues,
+                }
+            )
 
             if success:
                 print("  ✅ SUCCESS - Analysis quality verified")
@@ -136,21 +144,25 @@ def test_analyst_on_diverse_tasks():
 
         except TimeoutError as e:
             print(f"  ❌ TIMEOUT: {e}")
-            results.append({
-                "task_id": task_id,
-                "description": description,
-                "success": False,
-                "error": str(e)
-            })
+            results.append(
+                {
+                    "task_id": task_id,
+                    "description": description,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
 
         except Exception as e:
             print(f"  ❌ ERROR: {e}")
-            results.append({
-                "task_id": task_id,
-                "description": description,
-                "success": False,
-                "error": str(e)
-            })
+            results.append(
+                {
+                    "task_id": task_id,
+                    "description": description,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
 
     # Summary
     print("\n" + "=" * 80)

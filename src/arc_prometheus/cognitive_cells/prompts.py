@@ -45,7 +45,7 @@ def _format_grid_as_ascii(grid: np.ndarray) -> str:
 
 def create_solver_prompt(
     train_pairs: list[dict[str, np.ndarray]],
-    analyst_spec: "AnalysisResult | None" = None
+    analyst_spec: "AnalysisResult | None" = None,
 ) -> str:
     """Create prompt for Gemini to generate ARC solver code.
 
@@ -101,13 +101,15 @@ def create_solver_prompt(
 
     if analyst_spec:
         # AI Civilization mode: Use Analyst's analysis as specification
-        prompt_parts.extend([
-            "You are a Programmer agent in an AI civilization working to solve ARC puzzles.",
-            "",
-            "## Pattern Analysis (from Analyst Agent)",
-            f"**Transformation Rule:** {analyst_spec.pattern_description}",
-            "",
-        ])
+        prompt_parts.extend(
+            [
+                "You are a Programmer agent in an AI civilization working to solve ARC puzzles.",
+                "",
+                "## Pattern Analysis (from Analyst Agent)",
+                f"**Transformation Rule:** {analyst_spec.pattern_description}",
+                "",
+            ]
+        )
 
         if analyst_spec.key_observations:
             prompt_parts.append("**Key Observations:**")
@@ -116,37 +118,44 @@ def create_solver_prompt(
             prompt_parts.append("")
 
         if analyst_spec.suggested_approach:
-            prompt_parts.extend([
-                "**Suggested Implementation Approach:**",
-                analyst_spec.suggested_approach,
-                "",
-            ])
+            prompt_parts.extend(
+                [
+                    "**Suggested Implementation Approach:**",
+                    analyst_spec.suggested_approach,
+                    "",
+                ]
+            )
 
         if analyst_spec.confidence:
-            prompt_parts.extend([
-                f"**Analyst Confidence:** {analyst_spec.confidence}",
-                "",
-            ])
+            prompt_parts.extend(
+                [
+                    f"**Analyst Confidence:** {analyst_spec.confidence}",
+                    "",
+                ]
+            )
 
-        prompt_parts.extend([
-            "## Task",
-            "Implement the transformation rule described above as a Python function.",
-            "Use the training examples below to verify your understanding.",
-            "",
-            "## Training Examples (for verification)",
-        ])
+        prompt_parts.extend(
+            [
+                "## Task",
+                "Implement the transformation rule described above as a Python function.",
+                "Use the training examples below to verify your understanding.",
+                "",
+                "## Training Examples (for verification)",
+            ]
+        )
     else:
         # Direct mode: Analyze and generate in one step
-        prompt_parts.extend([
-            "You are an AI system analyzing Abstract Reasoning Corpus (ARC) puzzles.",
-            "",
-            "## Task",
-            "Analyze the input-output examples below, infer the transformation rule,",
-            "and implement it as a Python function using only numpy.",
-            "",
-            "## Examples",
-        ])
-
+        prompt_parts.extend(
+            [
+                "You are an AI system analyzing Abstract Reasoning Corpus (ARC) puzzles.",
+                "",
+                "## Task",
+                "Analyze the input-output examples below, infer the transformation rule,",
+                "and implement it as a Python function using only numpy.",
+                "",
+                "## Examples",
+            ]
+        )
 
     # Add each train pair
     for idx, pair in enumerate(train_pairs, 1):
@@ -165,45 +174,51 @@ def create_solver_prompt(
     # Add instructions (different for AI Civilization mode vs Direct mode)
     if analyst_spec:
         # AI Civilization mode: Focus on implementing the spec
-        prompt_parts.extend([
-            "",
-            "## Instructions",
-            "1. Implement the transformation rule described by the Analyst",
-            "2. Use the suggested approach as guidance for numpy operations",
-            "3. Verify your implementation matches all training examples",
-            "4. Implement with this EXACT signature:",
-            "   def solve(task_grid: np.ndarray) -> np.ndarray:",
-            "",
-        ])
+        prompt_parts.extend(
+            [
+                "",
+                "## Instructions",
+                "1. Implement the transformation rule described by the Analyst",
+                "2. Use the suggested approach as guidance for numpy operations",
+                "3. Verify your implementation matches all training examples",
+                "4. Implement with this EXACT signature:",
+                "   def solve(task_grid: np.ndarray) -> np.ndarray:",
+                "",
+            ]
+        )
     else:
         # Direct mode: Analysis + implementation in one step
-        prompt_parts.extend([
-            "",
-            "## Instructions",
-            "1. Analyze the patterns: what changes between input and output?",
-            "2. Consider: rotations, reflections, color changes, shape detection, filling patterns, etc.",
-            "3. Implement a function with this EXACT signature:",
-            "   def solve(task_grid: np.ndarray) -> np.ndarray:",
-            "",
-        ])
+        prompt_parts.extend(
+            [
+                "",
+                "## Instructions",
+                "1. Analyze the patterns: what changes between input and output?",
+                "2. Consider: rotations, reflections, color changes, shape detection, filling patterns, etc.",
+                "3. Implement a function with this EXACT signature:",
+                "   def solve(task_grid: np.ndarray) -> np.ndarray:",
+                "",
+            ]
+        )
 
     # Requirements and output format are the same for both modes
-    prompt_parts.extend([
-        "## Requirements",
-        "- Use ONLY numpy for array operations (no other libraries)",
-        "- Function must be named 'solve' (lowercase)",
-        "- Must accept one parameter: task_grid (np.ndarray)",
-        "- Must return np.ndarray (the transformed grid)",
-        "- Include 'import numpy as np' at the top",
-        "- Handle edge cases (empty grids, varying sizes if applicable)",
-        "- The output grid may have different dimensions than input",
-        "",
-        "## Output Format",
-        "Return ONLY the Python code, starting with 'import numpy as np'.",
-        "Do NOT include explanations or debugging commentary.",
-        "You may optionally wrap code in ```python blocks, but raw code is preferred.",
-        "Just the code that can be executed directly.",
-    ])
+    prompt_parts.extend(
+        [
+            "## Requirements",
+            "- Use ONLY numpy for array operations (no other libraries)",
+            "- Function must be named 'solve' (lowercase)",
+            "- Must accept one parameter: task_grid (np.ndarray)",
+            "- Must return np.ndarray (the transformed grid)",
+            "- Include 'import numpy as np' at the top",
+            "- Handle edge cases (empty grids, varying sizes if applicable)",
+            "- The output grid may have different dimensions than input",
+            "",
+            "## Output Format",
+            "Return ONLY the Python code, starting with 'import numpy as np'.",
+            "Do NOT include explanations or debugging commentary.",
+            "You may optionally wrap code in ```python blocks, but raw code is preferred.",
+            "Just the code that can be executed directly.",
+        ]
+    )
 
     return "\n".join(prompt_parts)
 

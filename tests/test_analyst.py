@@ -32,10 +32,10 @@ class TestAnalysisResult:
             pattern_description="Fill the grid with the non-zero color",
             key_observations=[
                 "Input has one non-zero cell",
-                "Output fills entire grid with that color"
+                "Output fills entire grid with that color",
             ],
             suggested_approach="Find non-zero value, create grid filled with it",
-            confidence="high"
+            confidence="high",
         )
 
         assert result.pattern_description == "Fill the grid with the non-zero color"
@@ -49,7 +49,7 @@ class TestAnalysisResult:
             pattern_description="Rotate and fill pattern",
             key_observations=["Rotation detected", "Color change detected"],
             suggested_approach="Apply rotation then fill",
-            confidence="medium"
+            confidence="medium",
         )
 
         assert result.confidence == "medium"
@@ -60,7 +60,7 @@ class TestAnalysisResult:
             pattern_description="Complex multi-step transformation",
             key_observations=["Pattern unclear from limited examples"],
             suggested_approach="Try multiple approaches",
-            confidence="low"
+            confidence="low",
         )
 
         assert result.confidence == "low"
@@ -179,14 +179,16 @@ class TestAnalystPromptCreation:
         task_json = {
             "train": [
                 {"input": [[1, 0], [0, 0]], "output": [[1, 1], [1, 1]]},
-                {"input": [[0, 0], [4, 0]], "output": [[4, 4], [4, 4]]}
+                {"input": [[0, 0], [4, 0]], "output": [[4, 4], [4, 4]]},
             ]
         }
 
         prompt = analyst._create_analysis_prompt(task_json)
 
         # Should include training examples
-        assert "training example" in prompt.lower() or "training pairs" in prompt.lower()
+        assert (
+            "training example" in prompt.lower() or "training pairs" in prompt.lower()
+        )
 
         # Should include instructions
         assert "pattern" in prompt.lower()
@@ -206,7 +208,7 @@ class TestAnalystPromptCreation:
             "train": [
                 {"input": [[1]], "output": [[2]]},
                 {"input": [[3]], "output": [[4]]},
-                {"input": [[5]], "output": [[6]]}
+                {"input": [[5]], "output": [[6]]},
             ]
         }
 
@@ -241,11 +243,7 @@ CONFIDENCE: high"""
         # Create analyst and run analysis
         analyst = Analyst(model_name="gemini-2.5-flash-lite", use_cache=False)
 
-        task_json = {
-            "train": [
-                {"input": [[1, 0]], "output": [[1, 1]]}
-            ]
-        }
+        task_json = {"train": [{"input": [[1, 0]], "output": [[1, 1]]}]}
 
         result = analyst.analyze_task(task_json)
 
@@ -277,9 +275,7 @@ CONFIDENCE: high"""
         mock_genai.GenerativeModel.return_value = mock_model
 
         analyst = Analyst(
-            model_name="gemini-2.5-flash-lite",
-            temperature=0.2,
-            use_cache=False
+            model_name="gemini-2.5-flash-lite", temperature=0.2, use_cache=False
         )
 
         task_json = {"train": [{"input": [[1]], "output": [[2]]}]}
@@ -364,11 +360,7 @@ CONFIDENCE: medium"""
 
         # Create 30x30 grid
         large_grid = np.zeros((30, 30), dtype=int).tolist()
-        task_json = {
-            "train": [
-                {"input": large_grid, "output": large_grid}
-            ]
-        }
+        task_json = {"train": [{"input": large_grid, "output": large_grid}]}
 
         result = analyst.analyze_task(task_json)
 

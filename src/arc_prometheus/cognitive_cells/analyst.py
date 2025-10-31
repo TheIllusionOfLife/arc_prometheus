@@ -71,7 +71,7 @@ def parse_analysis_response(response_text: str) -> AnalysisResult:
     pattern_match = re.search(
         r"PATTERN:\s*(.+?)(?=\n\s*OBSERVATIONS:|\n\s*APPROACH:|\n\s*CONFIDENCE:|$)",
         text,
-        re.IGNORECASE | re.DOTALL
+        re.IGNORECASE | re.DOTALL,
     )
     pattern = pattern_match.group(1).strip() if pattern_match else ""
 
@@ -80,7 +80,7 @@ def parse_analysis_response(response_text: str) -> AnalysisResult:
     obs_match = re.search(
         r"OBSERVATIONS:\s*(.+?)(?=\n\s*APPROACH:|\n\s*CONFIDENCE:|$)",
         text,
-        re.IGNORECASE | re.DOTALL
+        re.IGNORECASE | re.DOTALL,
     )
     if obs_match:
         obs_text = obs_match.group(1)
@@ -95,25 +95,19 @@ def parse_analysis_response(response_text: str) -> AnalysisResult:
 
     # Extract approach (everything after APPROACH: until next section or end)
     approach_match = re.search(
-        r"APPROACH:\s*(.+?)(?=\n\s*CONFIDENCE:|$)",
-        text,
-        re.IGNORECASE | re.DOTALL
+        r"APPROACH:\s*(.+?)(?=\n\s*CONFIDENCE:|$)", text, re.IGNORECASE | re.DOTALL
     )
     approach = approach_match.group(1).strip() if approach_match else ""
 
     # Extract confidence (should be single word: high/medium/low)
-    confidence_match = re.search(
-        r"CONFIDENCE:\s*(\w+)",
-        text,
-        re.IGNORECASE
-    )
+    confidence_match = re.search(r"CONFIDENCE:\s*(\w+)", text, re.IGNORECASE)
     confidence = confidence_match.group(1).lower() if confidence_match else ""
 
     return AnalysisResult(
         pattern_description=pattern,
         key_observations=observations,
         suggested_approach=approach,
-        confidence=confidence
+        confidence=confidence,
     )
 
 
@@ -269,10 +263,7 @@ Important:
 
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)
-        response = model.generate_content(
-            prompt,
-            generation_config=generation_config
-        )
+        response = model.generate_content(prompt, generation_config=generation_config)
 
         # Parse response
         analysis = parse_analysis_response(response.text)
