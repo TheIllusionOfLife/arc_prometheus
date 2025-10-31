@@ -17,7 +17,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.cognitive_cells.analyst import Analyst
-from arc_prometheus.crucible.data_loader import load_task
 
 
 def test_analyst_on_diverse_tasks():
@@ -54,7 +53,7 @@ def test_analyst_on_diverse_tasks():
 
         try:
             # Load task
-            task_path = f"data/arc-prize-2025/arc-agi_training_challenges.json"
+            task_path = "data/arc-prize-2025/arc-agi_training_challenges.json"
             with open(task_path) as f:
                 tasks = json.load(f)
 
@@ -62,7 +61,6 @@ def test_analyst_on_diverse_tasks():
                 print(f"  ⚠️  Task {task_id} not found, skipping...")
                 continue
 
-            task = {task_id: tasks[task_id]}
             task_data = tasks[task_id]
 
             # Analyze task
@@ -132,9 +130,9 @@ def test_analyst_on_diverse_tasks():
             })
 
             if success:
-                print(f"  ✅ SUCCESS - Analysis quality verified")
+                print("  ✅ SUCCESS - Analysis quality verified")
             else:
-                print(f"  ❌ FAILED - See issues above")
+                print("  ❌ FAILED - See issues above")
 
         except TimeoutError as e:
             print(f"  ❌ TIMEOUT: {e}")

@@ -276,7 +276,7 @@ def main():
         ai_civ_avg = sum(r.get("score", 0) for r in ai_civ_results) / len(ai_civ_results)
         direct_avg = sum(r.get("score", 0) for r in direct_results) / len(direct_results)
 
-        print(f"\nAverage train accuracy:")
+        print("\nAverage train accuracy:")
         print(f"  AI Civilization: {ai_civ_avg*100:.1f}%")
         print(f"  Direct mode:     {direct_avg*100:.1f}%")
 
