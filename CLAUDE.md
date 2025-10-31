@@ -262,6 +262,71 @@ Modern deep learning fails at ARC because it requires millions of examples, whil
 - **Phase 2**: Improve test accuracy across generations
 - **Phase 3**: Cross-task solver generalization (solver trained on task A solves task B)
 
+## Kaggle Submission (pass@2 Format)
+
+### Overview
+The pass@2 submission format is required for the ARC Prize 2025 competition on Kaggle. It submits 2 diverse attempts per test input, and the score is 1 if at least one matches the ground truth.
+
+### Implementation (Phase 2.5 - October 31, 2025)
+
+**Module**: `src/arc_prometheus/evolutionary_engine/submission_formatter.py`
+
+**Core Functions**:
+1. `select_diverse_solvers(generations, num_attempts=2, diversity_metric="fitness")`:
+   - Selects diverse solvers from evolution generation history
+   - Removes duplicate code before selection
+   - Default: fitness-based (best + second-best solver)
+   - Alternative: generation_gap (early + late generation)
+   - Raises `ValueError` if insufficient unique solvers
+
+2. `generate_task_predictions(task_json_path, solver_codes, timeout=5, sandbox_mode="multiprocess")`:
+   - Applies each solver to all test inputs in the task
+   - Handles variable test input counts (0-3 per task)
+   - Returns `[[0, 0], [0, 0]]` placeholder for failed solvers
+   - Converts numpy arrays to Python lists for JSON serialization
+
+3. `format_submission_json(task_predictions)`:
+   - Validates structure matches Kaggle requirements
+   - Returns submission dict ready for json.dump()
+
+**Usage via Benchmark Script**:
+```bash
+python scripts/benchmark_evolution.py \
+  --random-sample 120 \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --output-dir results/kaggle_submission/ \
+  --experiment-name "kaggle_submission" \
+  --generate-submission \
+  --num-attempts 2
+```
+
+**Output Format** (matches `sample_submission.json`):
+```json
+{
+  "task_id": [
+    {"attempt_1": [[grid]], "attempt_2": [[grid]]},  // Test input 0
+    {"attempt_1": [[grid]], "attempt_2": [[grid]]},  // Test input 1 (if exists)
+    ...
+  ]
+}
+```
+
+**Diversity Strategy**:
+- Primary: Select best fitness and second-best fitness solvers
+- Fallback: If <2 unique solvers exist, duplicate the best solver (with warning)
+- This handles cases where evolution produces nearly identical code
+
+**Validation**:
+- Automatic format validation in benchmark script
+- Checks: dict structure, list per task, attempt_1/attempt_2 keys, JSON serializable
+- Test coverage: 18 unit tests in `tests/test_submission_formatter.py`
+
+**Real API Testing** (October 31, 2025):
+- Tested with 3 tasks using Gemini API
+- Results: 3/3 successful, submission.json generated, format validated ✅
+- No timeouts, truncation, or invalid values ✅
+- Diversity: 2/3 tasks had different attempts, 1/3 identical (expected)
+
 ## GitHub Actions
 
 This repository has Claude Code integrated via GitHub Actions:
