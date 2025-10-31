@@ -435,9 +435,15 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Session Handover
 
-### Last Updated: October 31, 2025 12:29 AM JST
+### Last Updated: October 31, 2025 01:04 PM JST
 
 #### Recently Completed
+
+**Task 1: Fix Data Pipeline** (PR #33 - October 31, 2025):
+- Created preprocessing script to merge evaluation challenges + solutions
+- 5 comprehensive tests (261 total passing), validated with 120 real tasks
+- **Impact**: Unblocked competition submission workflow - can now benchmark on evaluation dataset
+- See: `scripts/prepare_evaluation_data.py`
 
 **Phase 2 Benchmarking** (PR #31 - October 31, 2025):
 - 17 new tests (267 total passing), production-ready infrastructure
@@ -519,14 +525,10 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Phase 2.5: Competition Compatibility** (Week 1-2) - Technical fixes only, architecture stays intact:
 
-1. **Fix Data Pipeline** ⭐ CRITICAL (1 day)
-   - **Why**: Using WRONG data files - training_challenges has no test outputs by design
-   - **Currently**: PR #31 benchmarked training set (can't measure test performance)
-   - **Correct Setup**:
-     - Development: `training_challenges.json` + `training_solutions.json` (400+ tasks)
-     - Validation: `evaluation_challenges.json` + `evaluation_solutions.json` (100 tasks)
-     - Submission: `test_challenges.json` (240 hidden tasks, no solutions)
-   - **Success**: Benchmark on evaluation set with proper test outputs
+1. ✅ **Fix Data Pipeline** - COMPLETE (PR #33)
+   - Created `scripts/prepare_evaluation_data.py` to merge evaluation challenges + solutions
+   - Validated with all 120 evaluation tasks - preprocessing works correctly
+   - Documentation updated in README and CLAUDE.md
 
 2. **Implement pass@2 Output** ⭐ CRITICAL (2-3 days)
    - **Why**: Kaggle requires 2 attempts per test input (pass@2 metric)
@@ -601,6 +603,14 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
   - **Security**: Docker provides network isolation, read-only filesystem, and resource limits
 
 #### Session Learnings (Most Recent)
+
+**From Task 1: Fix Data Pipeline (PR #33) - October 31, 2025**:
+- **TDD with Real-World Validation**: Unit tests catch logic bugs, real data catches format assumptions. Always validate with production data (120 evaluation tasks) before merge
+- **Set Operations for Efficient Validation**: Use `set(challenges) - set(solutions)` instead of nested loops - cleaner code, better performance (O(N) vs O(N²))
+- **Deep Copy vs Shallow Copy**: When modifying nested structures (dicts with lists), use `copy.deepcopy()` to prevent side effects on original data
+- **Single-Push Multi-Commit Strategy**: Commit locally after each fix, push once at end to save CI/bot costs. Example: 3 commits addressing different feedback, 1 push triggers bots once
+- **Competition Data Format Preprocessing**: Split datasets (challenges + solutions) require preprocessing script before benchmarking. Validate data integrity with set operations first
+- **GraphQL for PR Review**: Single atomic query fetches ALL feedback (comments, reviews, line comments, CI) - prevents missing reviewer feedback from REST API 404s
 
 **From Competitive Analysis & Philosophy Clarification - October 31, 2025**:
 - **Competition as Testbed, Not Goal**: We're building an AI civilization to validate multi-agent evolution. Competition provides benchmarks and constraints, but doesn't dictate architecture. Chasing leaderboard rankings = cart before the horse.
