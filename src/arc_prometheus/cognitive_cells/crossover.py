@@ -238,7 +238,7 @@ REQUIREMENTS:
 - Output ONLY the solve() function (you may include helper functions if needed)
 
 Begin your analysis and fusion:
-"""  # noqa: S608 # nosec B608  # This is not SQL, it's an LLM prompt
+"""
 
         return prompt
 

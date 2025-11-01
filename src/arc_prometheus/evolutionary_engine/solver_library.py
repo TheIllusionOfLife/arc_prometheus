@@ -89,9 +89,19 @@ class SolverLibrary:
         """Get database file path."""
         return self._db_path
 
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get database connection with foreign keys enabled.
+
+        Returns:
+            Database connection with PRAGMA foreign_keys=ON
+        """
+        conn = sqlite3.connect(self._db_path)
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
     def _init_database(self) -> None:
         """Create database schema if not exists."""
-        conn = sqlite3.connect(self._db_path)
+        conn = self._get_connection()
 
         # Enable WAL mode for concurrent access (like llm_cache.py)
         conn.execute("PRAGMA journal_mode=WAL")
@@ -137,9 +147,15 @@ class SolverLibrary:
             solver_id of added solver
 
         Raises:
-            ValueError: If solver_id already exists
+            ValueError: If solver_id already exists or code_str is invalid
         """
-        conn = sqlite3.connect(self._db_path)
+        # Validate code is not empty and contains solve function
+        if not solver.code_str or not solver.code_str.strip():
+            raise ValueError("Solver code_str cannot be empty")
+        if "def solve" not in solver.code_str:
+            raise ValueError("Solver code_str must contain 'def solve' function")
+
+        conn = self._get_connection()
 
         try:
             # Check for duplicate
@@ -187,7 +203,7 @@ class SolverLibrary:
         Returns:
             SolverRecord if found, None otherwise
         """
-        conn = sqlite3.connect(self._db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
 
         try:
@@ -217,7 +233,7 @@ class SolverLibrary:
         Returns:
             List of SolverRecords sorted by fitness (highest first)
         """
-        conn = sqlite3.connect(self._db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
 
         try:
@@ -301,7 +317,7 @@ class SolverLibrary:
         Args:
             task_id: ARC task identifier
         """
-        conn = sqlite3.connect(self._db_path)
+        conn = self._get_connection()
 
         try:
             conn.execute("DELETE FROM solvers WHERE task_id = ?", (task_id,))
