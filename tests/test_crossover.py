@@ -780,8 +780,12 @@ def solve(grid): return grid
 class TestCrossoverCompatibility:
     """Test LLM-based compatibility assessment parsing."""
 
-    def test_parse_compatibility_assessment(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_compatibility_assessment(self, mock_genai, mock_get_api_key):
         """Test parsing compatibility assessment from LLM response."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 COMPATIBILITY: High - geometric transforms and color operations are complementary
@@ -797,8 +801,12 @@ def solve(grid): return grid
         assert "geometric transforms and color operations" in compatibility.lower()
         assert confidence == "high"
 
-    def test_parse_compatibility_medium_confidence(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_compatibility_medium_confidence(self, mock_genai, mock_get_api_key):
         """Test parsing medium confidence assessment."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 COMPATIBILITY: Moderate compatibility
@@ -814,8 +822,12 @@ def solve(grid): return grid
         assert "moderate" in compatibility.lower()
         assert confidence == "medium"
 
-    def test_parse_compatibility_defaults_to_medium(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_compatibility_defaults_to_medium(self, mock_genai, mock_get_api_key):
         """Test parsing defaults to medium confidence if not specified."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 COMPATIBILITY: Some compatibility exists
