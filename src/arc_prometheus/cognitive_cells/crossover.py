@@ -16,12 +16,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import google.generativeai as genai
 
-from ..evolutionary_engine.solver_library import SolverRecord
 from ..utils.config import get_gemini_api_key
+
+if TYPE_CHECKING:
+    from ..evolutionary_engine.solver_library import SolverRecord
 
 
 @dataclass
