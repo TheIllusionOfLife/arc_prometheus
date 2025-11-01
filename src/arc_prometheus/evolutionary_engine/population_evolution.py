@@ -50,6 +50,8 @@ class PopulationMember:
     fitness_score: float
     train_correct: int
     test_correct: int
+    train_total: int  # Total number of train examples in task
+    test_total: int  # Total number of test examples in task
     generation: int
     parent_ids: list[str]
     tags: list[str]
@@ -90,7 +92,6 @@ class PopulationEvolution:
     def __init__(
         self,
         population_size: int = 10,
-        selection_pressure: float = 0.3,
         mutation_rate: float = 0.2,
         crossover_rate: float = 0.5,
         max_generations: int = 10,
@@ -131,7 +132,6 @@ class PopulationEvolution:
             raise ValueError("Population size must be at least 1")
 
         self.population_size = population_size
-        self.selection_pressure = selection_pressure
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.max_generations = max_generations
@@ -327,6 +327,8 @@ class PopulationEvolution:
                 fitness_score=0.0,  # Not evaluated yet
                 train_correct=0,
                 test_correct=0,
+                train_total=len(task_json.get("train", [])),
+                test_total=len(task_json.get("test", [])),
                 generation=0,
                 parent_ids=[],
                 tags=[],
@@ -356,6 +358,8 @@ class PopulationEvolution:
             member.fitness_score = fitness_result["fitness"]
             member.train_correct = fitness_result["train_correct"]
             member.test_correct = fitness_result["test_correct"]
+            member.train_total = fitness_result["train_total"]
+            member.test_total = fitness_result["test_total"]
 
             evaluated.append(member)
 
@@ -429,10 +433,18 @@ class PopulationEvolution:
                     "fitness": parent.fitness_score,
                     "train_correct": parent.train_correct,
                     "test_correct": parent.test_correct,
-                    "train_total": 3,  # Standard ARC task size
-                    "test_total": 1,
-                    "train_accuracy": parent.train_correct / 3.0,
-                    "test_accuracy": float(parent.test_correct),
+                    "train_total": parent.train_total,
+                    "test_total": parent.test_total,
+                    "train_accuracy": (
+                        parent.train_correct / parent.train_total
+                        if parent.train_total > 0
+                        else 0.0
+                    ),
+                    "test_accuracy": (
+                        parent.test_correct / parent.test_total
+                        if parent.test_total > 0
+                        else 0.0
+                    ),
                     "execution_errors": [],
                     "error_details": [],
                     "error_summary": {},
@@ -468,6 +480,10 @@ class PopulationEvolution:
         offspring = []
         task_id = Path(task_json_path).stem
 
+        # Get task totals for offspring
+        train_total = len(task_json.get("train", []))
+        test_total = len(task_json.get("test", []))
+
         for _i, code_str in enumerate(offspring_codes):
             # Tag solver
             tagging_result = self.tagger.tag_solver(code_str, task_json)
@@ -481,6 +497,8 @@ class PopulationEvolution:
                 fitness_score=0.0,  # Not evaluated yet
                 train_correct=0,
                 test_correct=0,
+                train_total=train_total,
+                test_total=test_total,
                 generation=1,  # Placeholder (will be updated)
                 parent_ids=[],  # Placeholder
                 tags=tags,
@@ -544,7 +562,11 @@ class PopulationEvolution:
     ) -> GenerationStats:
         """Compute statistics for current generation."""
         best_fitness = max((s.fitness_score for s in population), default=0.0)
-        average_fitness = sum(s.fitness_score for s in population) / len(population)
+        average_fitness = (
+            sum(s.fitness_score for s in population) / len(population)
+            if population
+            else 0.0
+        )
 
         # Diversity: unique tags / total solvers
         all_tags = {tag for solver in population for tag in solver.tags}

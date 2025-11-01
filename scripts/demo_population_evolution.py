@@ -136,11 +136,25 @@ def main():
         print("Best Solver:")
         print(f"  ID: {result.best_solver.solver_id}")
         print(f"  Fitness: {result.best_solver.fitness_score}")
-        print(
-            f"  Train: {result.best_solver.train_correct}/3 ({result.best_solver.train_correct / 3 * 100:.1f}%)"
+
+        # Calculate train accuracy
+        train_pct = (
+            (result.best_solver.train_correct / result.best_solver.train_total * 100)
+            if result.best_solver.train_total > 0
+            else 0.0
         )
         print(
-            f"  Test: {result.best_solver.test_correct}/1 ({result.best_solver.test_correct * 100:.1f}%)"
+            f"  Train: {result.best_solver.train_correct}/{result.best_solver.train_total} ({train_pct:.1f}%)"
+        )
+
+        # Calculate test accuracy
+        test_pct = (
+            (result.best_solver.test_correct / result.best_solver.test_total * 100)
+            if result.best_solver.test_total > 0
+            else 0.0
+        )
+        print(
+            f"  Test: {result.best_solver.test_correct}/{result.best_solver.test_total} ({test_pct:.1f}%)"
         )
         print(
             f"  Techniques: {', '.join(result.best_solver.tags) if result.best_solver.tags else 'None identified'}"
