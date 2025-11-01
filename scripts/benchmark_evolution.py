@@ -223,6 +223,12 @@ def run_single_task_benchmark(
     use_cache: bool = True,
     generate_submission: bool = False,
     num_attempts: int = 2,
+    use_analyst: bool = False,
+    analyst_temperature: float | None = None,
+    use_tagger: bool = False,
+    tagger_temperature: float | None = None,
+    use_crossover: bool = False,
+    crossover_temperature: float | None = None,
 ) -> dict:
     """Run evolution loop benchmark on a single ARC task.
 
@@ -240,6 +246,12 @@ def run_single_task_benchmark(
         use_cache: Whether to use LLM response cache
         generate_submission: If True, generate pass@2 predictions
         num_attempts: Number of diverse attempts for pass@2 (default: 2)
+        use_analyst: Enable Analyst agent for pattern analysis
+        analyst_temperature: Temperature for Analyst agent
+        use_tagger: Enable Tagger agent for technique classification
+        tagger_temperature: Temperature for Tagger agent
+        use_crossover: Enable Crossover agent for technique fusion
+        crossover_temperature: Temperature for Crossover agent
 
     Returns:
         Dictionary with benchmark results:
@@ -272,6 +284,12 @@ def run_single_task_benchmark(
             "timeout_eval": timeout_eval,
             "timeout_llm": timeout_llm,
             "use_cache": use_cache,
+            "use_analyst": use_analyst,
+            "analyst_temperature": analyst_temperature,
+            "use_tagger": use_tagger,
+            "tagger_temperature": tagger_temperature,
+            "use_crossover": use_crossover,
+            "crossover_temperature": crossover_temperature,
         },
     }
 
@@ -312,6 +330,12 @@ def run_single_task_benchmark(
                 programmer_temperature=programmer_temperature,
                 refiner_temperature=refiner_temperature,
                 use_cache=use_cache,
+                use_analyst=use_analyst,
+                analyst_temperature=analyst_temperature,
+                use_tagger=use_tagger,
+                tagger_temperature=tagger_temperature,
+                use_crossover=use_crossover,
+                crossover_temperature=crossover_temperature,
             )
 
             # Calculate metrics
@@ -660,6 +684,44 @@ def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Number of diverse attempts per test input (default: %(default)s for pass@2)",
     )
 
+    # AI Civilization configuration (Phase 3)
+    parser.add_argument(
+        "--use-analyst",
+        action="store_true",
+        default=False,
+        help="Enable Analyst agent for pattern analysis before code generation",
+    )
+    parser.add_argument(
+        "--analyst-temperature",
+        type=float,
+        default=None,
+        help="Temperature for Analyst agent (default: uses config.py default)",
+    )
+    parser.add_argument(
+        "--use-tagger",
+        action="store_true",
+        default=False,
+        help="Enable Tagger agent for technique classification",
+    )
+    parser.add_argument(
+        "--tagger-temperature",
+        type=float,
+        default=None,
+        help="Temperature for Tagger agent (default: uses config.py default)",
+    )
+    parser.add_argument(
+        "--use-crossover",
+        action="store_true",
+        default=False,
+        help="Enable Crossover agent for technique fusion (requires --use-tagger)",
+    )
+    parser.add_argument(
+        "--crossover-temperature",
+        type=float,
+        default=None,
+        help="Temperature for Crossover agent (default: uses config.py default)",
+    )
+
     return parser.parse_args(args)
 
 
@@ -716,6 +778,24 @@ def main() -> int:
     print(f"  LLM Timeout: {args.timeout_llm}s")
     print(f"  Cache Enabled: {args.use_cache}")
 
+    # Display AI Civilization mode if enabled
+    ai_civ_features = []
+    if args.use_analyst:
+        ai_civ_features.append(
+            f"Analyst (temp={args.analyst_temperature or 'default'})"
+        )
+    if args.use_tagger:
+        ai_civ_features.append(f"Tagger (temp={args.tagger_temperature or 'default'})")
+    if args.use_crossover:
+        ai_civ_features.append(
+            f"Crossover (temp={args.crossover_temperature or 'default'})"
+        )
+
+    if ai_civ_features:
+        print(f"  AI Civilization: {', '.join(ai_civ_features)}")
+    else:
+        print("  AI Civilization: Disabled (Direct Mode)")
+
     # Generate and save experiment metadata
     config = {
         "model": args.model,
@@ -728,6 +808,12 @@ def main() -> int:
         "timeout_llm": args.timeout_llm,
         "use_cache": args.use_cache,
         "seed": args.seed,
+        "use_analyst": args.use_analyst,
+        "analyst_temperature": args.analyst_temperature,
+        "use_tagger": args.use_tagger,
+        "tagger_temperature": args.tagger_temperature,
+        "use_crossover": args.use_crossover,
+        "crossover_temperature": args.crossover_temperature,
     }
 
     metadata = generate_experiment_metadata(args.experiment_name, task_ids, config)
@@ -766,6 +852,12 @@ def main() -> int:
             use_cache=args.use_cache,
             generate_submission=args.generate_submission,
             num_attempts=args.num_attempts,
+            use_analyst=args.use_analyst,
+            analyst_temperature=args.analyst_temperature,
+            use_tagger=args.use_tagger,
+            tagger_temperature=args.tagger_temperature,
+            use_crossover=args.use_crossover,
+            crossover_temperature=args.crossover_temperature,
         )
 
         # Display result summary
