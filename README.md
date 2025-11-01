@@ -733,9 +733,16 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Philosophy**: We're building an AI civilization, not chasing leaderboard scores. The competition validates our hypothesis: can multi-agent evolution outperform single-agent approaches?
 
-**See detailed plan:** [plan_20251031.md](plan_20251031.md)
+**⚠️ CRITICAL: Kaggle Offline Constraint**
+- Kaggle is a **CODE COMPETITION** (notebook-based, NOT CSV submission)
+- **NO INTERNET ACCESS** during inference on private test set
+- Cannot call Gemini/GPT/Claude APIs
+- Must use local models (Code Gemma 7B-27B)
+- Notebook must be self-contained and run offline
 
-**Phase 3: Complete the AI Civilization** (Days 1-3, 30-40 hours) 🧬
+**See detailed plan:** [plan_20251101.md](plan_20251101.md) (corrects plan_20251031.md offline constraint error)
+
+**Phase 3: Complete the AI Civilization** ✅ COMPLETE (November 1, 2025)
 
 **Goal:** Implement all missing agents to realize the complete vision, then validate experimentally
 
@@ -773,21 +780,47 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - Diversity tracking across generations
    - 19 tests passing (data structures, functionality, breeding, dynamics, edge cases)
 
-7. **Kaggle Baseline Submission** (Next, 4-6 hours)
-   - **Purpose**: Submit pure AI Civilization to competition
-   - **Expected**: 15-25% score (competitive with pure LLM approaches)
-   - **Deliverables**: `kaggle_baseline_civilization.ipynb`, leaderboard score, analysis
+**Phase 4: Kaggle Offline Inference** (Next, 3-4 days) 🚀
 
-**Experimental Variations (Optional, Days 4-5):**
+7. **Task 4.1: Standalone Kaggle Notebook** (6-8 hours) ⭐ IN PROGRESS
+   - **Purpose**: Create self-contained offline notebook with local Code Gemma 7B
+   - **Strategy**: Reimplement AI Civilization workflow without internet access
+   - **Structure**: 6 cells (setup, load model, helpers, agents, inference, submission)
+   - **No src/ dependencies**: All code inline in notebook
+   - **Deliverables**: `notebooks/kaggle_submission.ipynb`
 
-8. **Experiment 1: Single Model Active Inference** (4-6 hours)
-   - Distill population outputs → Gemma 2 27B
-   - Implement active inference (fine-tune on test examples at runtime)
-   - **Measure**: Value-add from active inference alone
+8. **Task 4.2: Model Preparation** (2-3 hours)
+   - Download Code Gemma 7B from HuggingFace (~7GB)
+   - Upload to Kaggle dataset for offline access
+   - Test model loading in notebook
 
-9. **Experiment 2: Multi-Agent Active Inference** (6-8 hours)
-   - Each agent does active inference separately
-   - **Measure**: Multi-agent vs single-model active inference
+9. **Task 4.3: Local Testing** (4-6 hours)
+   - Test on evaluation set (10 tasks)
+   - Validate submission format
+   - Ensure runtime < 3 min/task average
+   - No internet calls, no crashes
+
+10. **Task 4.4: Kaggle Submission** (2-3 hours)
+    - Upload notebook and model to Kaggle
+    - Run on private test set (240 tasks)
+    - Submit to competition
+    - **Expected**: 10-20% baseline score (raw Code Gemma, no fine-tuning)
+
+**Experimental Variations (After Baseline Works, Optional):**
+
+11. **Phase 4b: Knowledge Distillation** (3-4 days)
+    - Collect Gemini outputs on 400 training tasks
+    - Fine-tune Code Gemma to mimic Gemini behavior
+    - **Expected**: +5-10% improvement over baseline
+
+12. **Phase 4c: Active Inference** (2-3 days)
+    - Augment training examples (3 → 30+ examples)
+    - Fine-tune model per task at runtime
+    - **Expected**: +5-10% improvement
+
+13. **Phase 4d: Multi-Agent Active Inference** (2-3 days)
+    - Each agent (Analyst, Programmer, Refiner) fine-tunes separately
+    - **Expected**: +2-5% over single-model active inference
 
 **Research Hypothesis:**
 - H1: Multi-agent AI Civilization with crossover outperforms single-model approaches
@@ -798,11 +831,16 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - [x] All 5 agents implemented (Analyst, Programmer, Refiner, Tagger, Crossover) ✅
 - [x] Population-based evolution working (COMPLETE - PR #45) ✅
 - [x] 100+ new tests passing (423 total tests passing) ✅
-- [ ] Baseline Kaggle submission: 15-25% score
+- [ ] Task 4.1-4.4 Complete: Offline Kaggle notebook working
+- [ ] Baseline submission: 10-20% score (validates workflow)
+- [ ] Optimized submission: 20-30% score (distillation + active inference)
 - [ ] Research question answered: Can AI Civilization solve novel problems competitively?
 
-**Competition Context:**
-- Deadline: November 3, 2025 (3 days)
-- Hardware: Kaggle L4x4 GPUs (96GB memory)
-- Constraint: 12-hour runtime, no internet access
-- Format: pass@2 submission (2 diverse attempts per test input)
+**Competition Context (Corrected Understanding):**
+- **Submission Type**: Kaggle Notebook (CODE COMPETITION, not CSV)
+- **Internet**: ❌ NO ACCESS during inference (must use local models)
+- **Deadline**: November 3, 2025
+- **Hardware**: L4x4 GPUs (96GB VRAM) - can run 13B-27B models
+- **Runtime**: 12-hour max for 240 tasks (~3 min/task)
+- **Format**: pass@2 submission (2 diverse attempts per test input)
+- **Private Test**: Inference runs on unseen test data (no outputs provided)
