@@ -149,28 +149,46 @@ class TestCrossoverResult:
 class TestCrossoverInitialization:
     """Test Crossover agent initialization and configuration."""
 
-    def test_crossover_default_initialization(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_crossover_default_initialization(self, mock_genai, mock_get_api_key):
         """Test Crossover with default parameters."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
 
         assert crossover.model_name == "gemini-2.5-flash-lite"
         assert crossover.temperature == 0.5  # Default from config
         assert crossover.use_cache is True
+        mock_get_api_key.assert_called_once()
+        mock_genai.configure.assert_called_once_with(api_key="fake-api-key")
 
-    def test_crossover_custom_model(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_crossover_custom_model(self, mock_genai, mock_get_api_key):
         """Test Crossover with custom model name."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover(model_name="gemini-2.0-flash-thinking-exp")
 
         assert crossover.model_name == "gemini-2.0-flash-thinking-exp"
 
-    def test_crossover_custom_temperature(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_crossover_custom_temperature(self, mock_genai, mock_get_api_key):
         """Test Crossover with custom temperature."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover(temperature=0.7)
 
         assert crossover.temperature == 0.7
 
-    def test_crossover_cache_disabled(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_crossover_cache_disabled(self, mock_genai, mock_get_api_key):
         """Test Crossover with caching disabled."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover(use_cache=False)
 
         assert crossover.use_cache is False
@@ -184,10 +202,19 @@ class TestCrossoverInitialization:
 class TestCrossoverPromptConstruction:
     """Test prompt construction for LLM fusion."""
 
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
     def test_prompt_includes_parent_codes(
-        self, sample_solver_record_1, sample_solver_record_2, sample_task_json
+        self,
+        mock_genai,
+        mock_get_api_key,
+        sample_solver_record_1,
+        sample_solver_record_2,
+        sample_task_json,
     ):
         """Test prompt includes both parent solver codes."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         prompt = crossover._create_fusion_prompt(
             [sample_solver_record_1, sample_solver_record_2], sample_task_json
@@ -196,10 +223,19 @@ class TestCrossoverPromptConstruction:
         assert "np.rot90" in prompt  # From parent 1
         assert "result[result == 0] = 3" in prompt  # From parent 2
 
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
     def test_prompt_includes_parent_techniques(
-        self, sample_solver_record_1, sample_solver_record_2, sample_task_json
+        self,
+        mock_genai,
+        mock_get_api_key,
+        sample_solver_record_1,
+        sample_solver_record_2,
+        sample_task_json,
     ):
         """Test prompt includes technique tags from both parents."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         prompt = crossover._create_fusion_prompt(
             [sample_solver_record_1, sample_solver_record_2], sample_task_json
@@ -210,10 +246,19 @@ class TestCrossoverPromptConstruction:
         assert "color_fill" in prompt
         assert "grid_partition" in prompt
 
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
     def test_prompt_includes_fitness_scores(
-        self, sample_solver_record_1, sample_solver_record_2, sample_task_json
+        self,
+        mock_genai,
+        mock_get_api_key,
+        sample_solver_record_1,
+        sample_solver_record_2,
+        sample_task_json,
     ):
         """Test prompt includes parent fitness scores."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         prompt = crossover._create_fusion_prompt(
             [sample_solver_record_1, sample_solver_record_2], sample_task_json
@@ -222,10 +267,19 @@ class TestCrossoverPromptConstruction:
         assert "15.0" in prompt  # Fitness of parent 1
         assert "12.0" in prompt  # Fitness of parent 2
 
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
     def test_prompt_includes_task_context(
-        self, sample_solver_record_1, sample_solver_record_2, sample_task_json
+        self,
+        mock_genai,
+        mock_get_api_key,
+        sample_solver_record_1,
+        sample_solver_record_2,
+        sample_task_json,
     ):
         """Test prompt includes ARC task examples for context."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         prompt = crossover._create_fusion_prompt(
             [sample_solver_record_1, sample_solver_record_2], sample_task_json
@@ -234,11 +288,20 @@ class TestCrossoverPromptConstruction:
         # Should include task dimensions
         assert "2x2" in prompt or "2" in prompt  # Grid dimensions
 
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
     def test_prompt_with_analyst_spec(
-        self, sample_solver_record_1, sample_solver_record_2, sample_task_json
+        self,
+        mock_genai,
+        mock_get_api_key,
+        sample_solver_record_1,
+        sample_solver_record_2,
+        sample_task_json,
     ):
         """Test prompt includes analyst specification when provided."""
         from arc_prometheus.cognitive_cells.analyst import AnalysisResult
+
+        mock_get_api_key.return_value = "fake-api-key"
 
         analyst_spec = AnalysisResult(
             pattern_description="Rotate grid and fill background",
@@ -266,8 +329,12 @@ class TestCrossoverPromptConstruction:
 class TestCrossoverCodeParsing:
     """Test parsing LLM-generated fused code."""
 
-    def test_parse_code_with_markdown_block(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_code_with_markdown_block(self, mock_genai, mock_get_api_key):
         """Test parsing code wrapped in markdown ```python blocks."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 Here's the fused solver:
@@ -286,8 +353,12 @@ This combines rotation from parent 1 with parent 2's approach.
         assert "np.rot90" in code
         assert "```" not in code  # Markdown removed
 
-    def test_parse_code_without_markdown(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_code_without_markdown(self, mock_genai, mock_get_api_key):
         """Test parsing raw code without markdown delimiters."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 def solve(grid):
@@ -299,8 +370,12 @@ def solve(grid):
         assert "def solve(grid):" in code
         assert "grid * 2" in code
 
-    def test_parse_code_with_multiple_functions(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_code_with_multiple_functions(self, mock_genai, mock_get_api_key):
         """Test parsing when LLM returns multiple functions (extract solve)."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 ```python
@@ -317,8 +392,12 @@ def solve(grid):
         # Should extract the solve function and its dependencies
         assert "def solve(grid):" in code
 
-    def test_parse_code_strips_whitespace(self):
+    @patch("arc_prometheus.cognitive_cells.crossover.get_gemini_api_key")
+    @patch("arc_prometheus.cognitive_cells.crossover.genai")
+    def test_parse_code_strips_whitespace(self, mock_genai, mock_get_api_key):
         """Test parsing strips leading/trailing whitespace."""
+        mock_get_api_key.return_value = "fake-api-key"
+
         crossover = Crossover()
         llm_response = """
 
