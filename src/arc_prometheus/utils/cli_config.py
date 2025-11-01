@@ -18,6 +18,7 @@ import argparse
 
 from .config import (
     ANALYST_DEFAULT_TEMPERATURE,
+    CROSSOVER_DEFAULT_TEMPERATURE,
     DEFAULT_TIMEOUT_SECONDS,
     MODEL_NAME,
     PROGRAMMER_GENERATION_CONFIG,
@@ -91,6 +92,8 @@ def parse_evolution_args(args: list[str] | None = None) -> argparse.Namespace:
         - use_analyst: Enable AI Civilization mode (Analyst analyzes pattern first)
         - tagger_temperature: Temperature for Tagger (only used with use_tagger=True)
         - use_tagger: Enable Tagger agent for technique classification
+        - crossover_temperature: Temperature for Crossover (only used with use_crossover=True)
+        - use_crossover: Enable Crossover agent for technique fusion (population-based evolution)
         - timeout_llm: LLM API call timeout in seconds
         - timeout_eval: Sandbox execution timeout in seconds
         - max_generations: Maximum evolution generations
@@ -196,6 +199,19 @@ Examples:
         "--use-tagger",
         action="store_true",
         help="Enable Tagger agent for technique classification (tags successful solvers for crossover in Phase 3.4, default: disabled)",
+    )
+
+    parser.add_argument(
+        "--crossover-temperature",
+        type=_validate_temperature,
+        default=CROSSOVER_DEFAULT_TEMPERATURE,
+        help=f"Temperature for Crossover technique fusion (0.0-2.0, default: {CROSSOVER_DEFAULT_TEMPERATURE}, only used with --use-crossover)",
+    )
+
+    parser.add_argument(
+        "--use-crossover",
+        action="store_true",
+        help="Enable Crossover agent for technique fusion (population-based evolution with genetic innovation, Phase 3.4, default: disabled)",
     )
 
     # Timeout controls

@@ -1,28 +1,38 @@
-"""Multi-generation evolution loop - iterative solver improvement (Phase 2.3).
+"""Multi-generation evolution loop - iterative solver improvement (Phase 2.3/3.4/3.5).
 
 This module implements the complete evolutionary cycle:
 1. Generate initial solver (Programmer)
 2. Evaluate fitness
-3. Refine if below target (Refiner - Mutation)
+3. Refine if below target (Refiner - Mutation OR Crossover - Genetic Innovation)
 4. Track improvement across generations
 5. Terminate when target fitness reached or max generations hit
+
+Phase 3.4/3.5 adds population-based crossover evolution:
+- Solver Library: Persistent storage of successful solvers
+- Crossover Agent: LLM-based technique fusion from diverse parents
+- Hybrid strategy: Crossover when 2+ diverse solvers exist, else Refiner
 """
 
 import json
 import time
+import uuid
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from ..cognitive_cells.analyst import Analyst
+from ..cognitive_cells.crossover import Crossover
 from ..cognitive_cells.programmer import generate_solver
 from ..cognitive_cells.refiner import refine_solver
 from ..cognitive_cells.tagger import Tagger
 from ..crucible.data_loader import load_task
 from ..utils.config import (
     ANALYST_DEFAULT_TEMPERATURE,
+    CROSSOVER_DEFAULT_TEMPERATURE,
     MODEL_NAME,
     TAGGER_DEFAULT_TEMPERATURE,
 )
 from .fitness import FitnessResult, calculate_fitness
+from .solver_library import SolverLibrary, SolverRecord
 
 
 class GenerationResult(TypedDict, total=False):
@@ -36,6 +46,9 @@ class GenerationResult(TypedDict, total=False):
         total_time: Time taken for this generation in seconds
         improvement: Fitness improvement from previous generation
         tags: List of technique tags (only present when use_tagger=True)
+        solver_id: Unique solver identifier (UUID, Phase 3.5)
+        parent_solver_id: Parent solver ID for lineage tracking (Phase 3.5)
+        crossover_used: Whether crossover was used this generation (Phase 3.4)
     """
 
     generation: int
@@ -45,6 +58,9 @@ class GenerationResult(TypedDict, total=False):
     total_time: float
     improvement: float
     tags: list[str]  # Optional field, only present when use_tagger=True
+    solver_id: str  # Optional field, Phase 3.5
+    parent_solver_id: str | None  # Optional field, Phase 3.5
+    crossover_used: bool  # Optional field, Phase 3.4
 
 
 def run_evolution_loop(
@@ -63,6 +79,9 @@ def run_evolution_loop(
     analyst_temperature: float | None = None,
     use_tagger: bool = False,
     tagger_temperature: float | None = None,
+    use_crossover: bool = False,
+    crossover_temperature: float | None = None,
+    solver_library: SolverLibrary | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -90,6 +109,9 @@ def run_evolution_loop(
         analyst_temperature: Temperature for Analyst (default: 0.3, only used if use_analyst=True)
         use_tagger: If True, use Tagger agent for technique classification (Phase 3.3) (default: False)
         tagger_temperature: Temperature for Tagger (default: 0.4, only used if use_tagger=True)
+        use_crossover: If True, use Crossover agent for technique fusion (Phase 3.4) (default: False)
+        crossover_temperature: Temperature for Crossover (default: 0.5, only used if use_crossover=True)
+        solver_library: SolverLibrary instance for population tracking (Phase 3.5) (default: None = create new)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -135,8 +157,40 @@ def run_evolution_loop(
     previous_fitness: float = 0.0
     analyst_spec: Any = None  # Store analyst result for reuse
     tagger: Tagger | None = None  # Store tagger instance for reuse
+    crossover_agent: Crossover | None = None  # Store crossover instance for reuse
+    library: SolverLibrary = (
+        solver_library or SolverLibrary()
+    )  # Use provided or create new
+    current_solver_id: str | None = None  # Track current solver ID for lineage
+    task_id: str = task_json_path.split("/")[-1].replace(".json", "")  # Extract task ID
 
-    # Phase 0: Initialize Tagger (if enabled)
+    # Phase 0a: Initialize Solver Library (if crossover enabled)
+    if use_crossover and verbose:
+        print(f"\n{'=' * 70}")
+        print(" Solver Library: Population Tracking")
+        print(f"{'=' * 70}")
+        print(f"✅ Solver library initialized (DB: {library.db_path})")
+
+    # Phase 0b: Initialize Crossover (if enabled)
+    if use_crossover:
+        crossover_agent = Crossover(
+            model_name=model_name or MODEL_NAME,
+            temperature=(
+                crossover_temperature
+                if crossover_temperature is not None
+                else CROSSOVER_DEFAULT_TEMPERATURE
+            ),
+            use_cache=use_cache,
+        )
+        if verbose:
+            print(f"\n{'=' * 70}")
+            print(" Crossover Agent: Technique Fusion")
+            print(f"{'=' * 70}")
+            print(
+                "✅ Crossover initialized (fusion will be used when 2+ diverse solvers exist)"
+            )
+
+    # Phase 0c: Initialize Tagger (if enabled)
     if use_tagger:
         tagger = Tagger(
             model_name=model_name or MODEL_NAME,
@@ -155,7 +209,7 @@ def run_evolution_loop(
                 "✅ Tagger initialized (tags will be generated for successful solvers)"
             )
 
-    # Phase 1: Analyst analysis (AI Civilization mode only)
+    # Phase 0d: Analyst analysis (AI Civilization mode only)
     if use_analyst:
         if verbose:
             print(f"\n{'=' * 70}")
@@ -230,27 +284,76 @@ def run_evolution_loop(
                     print("Evolution complete!")
                 break
 
-            # Refine code
-            if verbose:
-                print(
-                    f"\n🔧 Refining solver (fitness {previous_fitness:.1f} < target {target_fitness if target_fitness else 'N/A'})..."
+            # DECISION: Crossover vs Mutation (Refiner)
+            crossover_used = False
+
+            # Check if crossover is available and feasible
+            if crossover_agent is not None:
+                # Get diverse parent solvers from library
+                diverse_solvers = library.get_diverse_solvers(task_id, num_solvers=2)
+
+                if len(diverse_solvers) >= 2:
+                    # USE CROSSOVER: Fusion of diverse techniques
+                    if verbose:
+                        print(
+                            f"\n🧬 Crossover: Fusing {len(diverse_solvers)} diverse solvers..."
+                        )
+                        parent_techniques = [
+                            ", ".join(s.tags) if s.tags else "none"
+                            for s in diverse_solvers
+                        ]
+                        for i, (solver, techniques) in enumerate(
+                            zip(diverse_solvers, parent_techniques, strict=True), 1
+                        ):
+                            print(
+                                f"  Parent {i} (fitness {solver.fitness_score:.1f}): {techniques}"
+                            )
+
+                    # Load task JSON for crossover context
+                    with open(task_json_path) as f:
+                        task_json = json.load(f)
+
+                    crossover_result = crossover_agent.fuse_solvers(
+                        diverse_solvers, task_json, analyst_spec=analyst_spec
+                    )
+                    current_code = crossover_result.fused_code
+                    crossover_used = True
+
+                    if verbose:
+                        print(
+                            f"✅ Solvers fused ({len(current_code)} characters) - {crossover_result.compatibility_assessment[:50]}..."
+                        )
+                        print(f"   Confidence: {crossover_result.confidence}")
+
+                else:
+                    # Fall back to mutation - insufficient diverse solvers
+                    if verbose:
+                        print(
+                            f"\n🔧 Mutation: Refining solver (only {len(diverse_solvers)} diverse solver(s) available)..."
+                        )
+
+            # USE MUTATION (Refiner) - either crossover not enabled or not feasible
+            if not crossover_used:
+                if verbose and crossover_agent is None:
+                    print(
+                        f"\n🔧 Mutation: Refining solver (fitness {previous_fitness:.1f} < target {target_fitness if target_fitness else 'N/A'})..."
+                    )
+
+                # Get previous fitness result for refiner context
+                prev_result = results[-1]["fitness_result"]
+                current_code = refine_solver(
+                    current_code,
+                    task_json_path,
+                    prev_result,
+                    model_name=model_name,
+                    temperature=refiner_temperature,
+                    timeout=timeout_per_llm,
+                    use_cache=use_cache,
+                    analyst_spec=analyst_spec,  # Pass analyst result to Refiner
                 )
 
-            # Get previous fitness result for refiner context
-            prev_result = results[-1]["fitness_result"]
-            current_code = refine_solver(
-                current_code,
-                task_json_path,
-                prev_result,
-                model_name=model_name,
-                temperature=refiner_temperature,
-                timeout=timeout_per_llm,
-                use_cache=use_cache,
-                analyst_spec=analyst_spec,  # Pass analyst result to Refiner
-            )
-
-            if verbose:
-                print(f"✅ Solver refined ({len(current_code)} characters)")
+                if verbose:
+                    print(f"✅ Solver refined ({len(current_code)} characters)")
 
             refinement_count = 1
 
@@ -302,6 +405,25 @@ def run_evolution_loop(
                 else:
                     print("  No specific techniques identified")
 
+        # Store solver in library (Phase 3.5)
+        parent_solver_id: str | None = current_solver_id  # Previous generation's solver
+        new_solver_id = str(uuid.uuid4())
+
+        solver_record = SolverRecord(
+            solver_id=new_solver_id,
+            task_id=task_id,
+            generation=generation,
+            code_str=current_code,
+            fitness_score=current_fitness,
+            train_correct=fitness_result["train_correct"],
+            test_correct=fitness_result["test_correct"],
+            parent_solver_id=parent_solver_id if generation > 0 else None,
+            tags=tags,
+            created_at=datetime.now(UTC).isoformat(),
+        )
+        library.add_solver(solver_record)
+        current_solver_id = new_solver_id  # Update for next generation
+
         # Calculate metrics
         gen_total_time = time.time() - gen_start_time
         improvement = (
@@ -316,11 +438,17 @@ def run_evolution_loop(
             "refinement_count": refinement_count,
             "total_time": gen_total_time,
             "improvement": improvement,
+            "solver_id": new_solver_id,  # Phase 3.5
+            "parent_solver_id": parent_solver_id,  # Phase 3.5
         }
 
         # Add tags if generated
         if tags:
             generation_result["tags"] = tags
+
+        # Add crossover flag if used (Phase 3.4)
+        if generation > 0:
+            generation_result["crossover_used"] = crossover_used
 
         results.append(generation_result)
 

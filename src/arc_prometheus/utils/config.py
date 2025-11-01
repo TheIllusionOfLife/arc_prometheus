@@ -94,3 +94,6 @@ ANALYST_DEFAULT_TEMPERATURE = 0.3
 
 # Tagger temperature (moderate for balanced technique detection)
 TAGGER_DEFAULT_TEMPERATURE = 0.4
+
+# Crossover temperature (balanced for creative technique fusion)
+CROSSOVER_DEFAULT_TEMPERATURE = 0.5
