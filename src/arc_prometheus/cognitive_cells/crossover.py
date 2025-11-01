@@ -78,6 +78,10 @@ class Crossover:
         self.temperature = temperature
         self.use_cache = use_cache
 
+        # Configure Gemini API once during initialization
+        api_key = get_gemini_api_key()
+        genai.configure(api_key=api_key)
+
     def fuse_solvers(
         self,
         parent_solvers: list[SolverRecord],
@@ -96,8 +100,15 @@ class Crossover:
             CrossoverResult with fused code, parent info, and assessment
 
         Raises:
+            ValueError: If fewer than 2 parent solvers provided
             Exception: If LLM API call fails
         """
+        # 0. Validate minimum 2 parents
+        if len(parent_solvers) < 2:
+            raise ValueError(
+                f"Crossover requires at least 2 parent solvers, got {len(parent_solvers)}"
+            )
+
         # 1. Create fusion prompt
         prompt = self._create_fusion_prompt(parent_solvers, task_json, analyst_spec)
 
@@ -110,10 +121,7 @@ class Crossover:
             if cached_response:
                 return self._parse_response(cached_response, parent_solvers)
 
-        # 3. Call LLM
-        api_key = get_gemini_api_key()
-        genai.configure(api_key=api_key)
-
+        # 3. Call LLM (API already configured in __init__)
         model = genai.GenerativeModel(
             model_name=self.model_name,
             generation_config={
@@ -154,9 +162,16 @@ class Crossover:
         for i, example in enumerate(train_examples):
             input_grid = example["input"]
             output_grid = example["output"]
+
+            # Robust grid shape calculation (handles empty grids/rows)
+            input_rows = len(input_grid)
+            input_cols = len(input_grid[0]) if input_grid and input_grid[0] else 0
+            output_rows = len(output_grid)
+            output_cols = len(output_grid[0]) if output_grid and output_grid[0] else 0
+
             task_context += f"\nExample {i + 1}:\n"
-            task_context += f"  Input shape: {len(input_grid)}x{len(input_grid[0]) if input_grid else 0}\n"
-            task_context += f"  Output shape: {len(output_grid)}x{len(output_grid[0]) if output_grid else 0}\n"
+            task_context += f"  Input shape: {input_rows}x{input_cols}\n"
+            task_context += f"  Output shape: {output_rows}x{output_cols}\n"
 
         # Format analyst specification if provided
         analyst_context = ""

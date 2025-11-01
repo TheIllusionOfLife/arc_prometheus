@@ -17,6 +17,7 @@ import json
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, TypedDict
 
 from ..cognitive_cells.analyst import Analyst
@@ -145,12 +146,17 @@ def run_evolution_loop(
         - When use_analyst=True, Analyst runs once in Generation 0 and its output
           is reused for Programmer and Refiner (pattern analysis is task-specific, not code-specific)
     """
-    # Load task once (used for prompt creation)
+    # Load task once (used for prompt creation and LLM context)
     task_data = load_task(task_json_path)
     train_pairs = task_data.get("train", [])
 
     if not train_pairs:
         raise ValueError(f"Task {task_json_path} has no train examples")
+
+    # Load raw JSON once for LLM agents (Analyst, Crossover, Tagger)
+    # They need raw dict with lists, not numpy arrays
+    with open(task_json_path) as f:
+        task_json = json.load(f)
 
     results: list[GenerationResult] = []
     current_code: str = ""
@@ -162,7 +168,7 @@ def run_evolution_loop(
         solver_library or SolverLibrary()
     )  # Use provided or create new
     current_solver_id: str | None = None  # Track current solver ID for lineage
-    task_id: str = task_json_path.split("/")[-1].replace(".json", "")  # Extract task ID
+    task_id: str = Path(task_json_path).stem  # Extract task ID (cross-platform)
 
     # Phase 0a: Initialize Solver Library (if crossover enabled)
     if use_crossover and verbose:
@@ -227,10 +233,7 @@ def run_evolution_loop(
             use_cache=use_cache,
         )
 
-        # Load full task for Analyst
-        with open(task_json_path) as f:
-            task_json = json.load(f)
-
+        # Analyze task pattern (task_json loaded once at function start)
         analyst_spec = analyst.analyze_task(task_json)
 
         if verbose:
@@ -309,10 +312,7 @@ def run_evolution_loop(
                                 f"  Parent {i} (fitness {solver.fitness_score:.1f}): {techniques}"
                             )
 
-                    # Load task JSON for crossover context
-                    with open(task_json_path) as f:
-                        task_json = json.load(f)
-
+                    # Fuse solvers (task_json loaded once at function start)
                     crossover_result = crossover_agent.fuse_solvers(
                         diverse_solvers, task_json, analyst_spec=analyst_spec
                     )
@@ -391,10 +391,7 @@ def run_evolution_loop(
             if verbose:
                 print("\n🏷️  Tagging solver techniques...")
 
-            # Load task JSON for Tagger context
-            with open(task_json_path) as f:
-                task_json = json.load(f)
-
+            # Tag solver with techniques (task_json loaded once at function start)
             tagging_result = tagger.tag_solver(current_code, task_json)
             tags = tagging_result.tags
 
