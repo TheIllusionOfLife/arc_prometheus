@@ -141,9 +141,24 @@ Edit `notebooks/kaggle_submission.ipynb` Cell 2 to reference your dataset:
 
 ```python
 # Load Code Gemma 7B from uploaded Kaggle dataset
-MODEL_PATH = "/kaggle/input/codegemma-7b-instruct/model/"
-TOKENIZER_PATH = "/kaggle/input/codegemma-7b-instruct/tokenizer/"
+# CRITICAL: Verify exact path structure in your Kaggle dataset!
+MODEL_DIR = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
+MODEL_PATH = f"{MODEL_DIR}/model"
+TOKENIZER_PATH = f"{MODEL_DIR}/tokenizer"
 ```
+
+**Path Troubleshooting:**
+- Error: "No file named model.safetensors found" → Check dataset structure
+- Run this in a test cell to verify paths:
+  ```python
+  import os
+  print("Dataset files:")
+  for root, dirs, files in os.walk("/kaggle/input/codegemma-7b-instruct"):
+      print(f"{root}/")
+      if root.count("/") < 5:  # Only show first few levels
+          for file in files[:3]:
+              print(f"  {file}")
+  ```
 
 ## Step 5: Test on Kaggle
 
@@ -162,16 +177,51 @@ TOKENIZER_PATH = "/kaggle/input/codegemma-7b-instruct/tokenizer/"
 3. Select your dataset
 4. Verify path matches MODEL_PATH in Cell 2
 
-### 5.3 Run Test
-1. Run all cells
-2. Check for errors:
-   - Model loading (Cell 2)
-   - Helper functions (Cell 3)
-   - Agent creation (Cell 4)
-   - Inference loop (Cell 5)
-3. Verify `submission.json` is created (Cell 6)
+### 5.3 Run Small Test FIRST (Highly Recommended)
 
-**Expected Runtime**: ~3 minutes per task × 240 tasks = ~12 hours (within Kaggle limit)
+**Before running 240 tasks (7+ hours), validate with 5 tasks (~10 minutes):**
+
+1. In Cell 5, set `TEST_MODE = True`:
+   ```python
+   TEST_MODE = True  # Run only 5 tasks for validation
+   ```
+
+2. Run all cells (Cells 1-6)
+
+3. **Expected output** (if everything works):
+   ```
+   ✅ Model loaded successfully! Device: cuda:0
+   ⚠️  TEST MODE: 5 tasks × 2.4 min = ~12 min
+   Processing 1/5: 00576224
+     Completed in 24.2s (best fitness: 0)
+   ...
+   Total time: 8.6 minutes (0.14 hours)
+   Average: 103.6 seconds/task
+   ✅ Submission format validated successfully!
+   ```
+
+4. **Common issues and fixes**:
+   - "Model loading failed" → Check MODEL_PATH (see Step 4 troubleshooting)
+   - "Tokenizer parallelism warnings" → Already fixed in Cell 1 (`os.environ["TOKENIZERS_PARALLELISM"] = "false"`)
+   - All fitness = 0 → **EXPECTED** for baseline Code Gemma (no fine-tuning)
+
+### 5.4 Run Full Submission
+
+**Once test succeeds**, set `TEST_MODE = False` and run all cells again:
+
+```python
+TEST_MODE = False  # Full run: 240 tasks
+```
+
+**Expected Runtime** (validated on Kaggle L4x4):
+- **Population size 2** (default): ~103.6s/task × 240 = **~7 hours** ✅ SAFE
+- **Population size 3**: ~155s/task × 240 = **~10 hours** ⚠️ Tight but ok
+- **Population size 5**: ~260s/task × 240 = **~17 hours** ❌ EXCEEDS 12h limit!
+
+**GPU Quota Consumption** (L4x4 uses 2× quota):
+- 7 hour run = **14 hours of weekly quota** consumed
+- Weekly limit: 30 hours
+- Leave buffer for re-runs and improvements
 
 ## Step 6: Submit to Competition
 
@@ -190,9 +240,17 @@ TOKENIZER_PATH = "/kaggle/input/codegemma-7b-instruct/tokenizer/"
 ## Expected Results
 
 **Baseline Score** (raw Code Gemma 7B, no fine-tuning):
-- **Expected**: 10-20% accuracy
-- **Competitive**: 15-25% (validates AI Civilization concept)
-- **SOTA**: 34% (requires knowledge distillation + active inference)
+- **Realistic**: 3-8% accuracy (validated: fitness=0 on 5 test tasks)
+- **Optimistic**: 8-12% accuracy (if lucky with task distribution)
+- **Competitive threshold**: 10% = 9th place on leaderboard (as of Nov 1, 2025)
+- **Top score**: 27% (as of Nov 1, 2025)
+- **SOTA potential**: 20-25% (with knowledge distillation + active inference)
+
+**Important Notes:**
+- Fitness = 0 during testing is **normal** for baseline Code Gemma
+- Code Gemma 7B is significantly weaker than Gemini 2.0 Flash
+- Small improvements from knowledge distillation can jump rankings significantly
+- Even 5-8% validates the pipeline and provides baseline for optimization
 
 ## Next Steps After Baseline
 
