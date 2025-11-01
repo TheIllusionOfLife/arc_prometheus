@@ -184,6 +184,67 @@ class TestBenchmarkExecution:
         assert "error" in result
         assert "LLM API timeout" in result["error"]
 
+    @patch("scripts.benchmark_evolution.run_evolution_loop")
+    def test_run_single_task_benchmark_passes_ai_civilization_params(
+        self, mock_run_loop, tmp_path
+    ):
+        """Test that AI Civilization parameters are passed to run_evolution_loop."""
+        from scripts.benchmark_evolution import run_single_task_benchmark
+
+        # Mock evolution loop results
+        mock_run_loop.return_value = [
+            {
+                "generation": 0,
+                "solver_code": "def solve(x): return x",
+                "fitness_result": {
+                    "fitness": 5.0,
+                    "train_correct": 2,
+                    "train_total": 3,
+                    "test_correct": 0,
+                    "test_total": 1,
+                    "train_accuracy": 0.67,
+                    "test_accuracy": 0.0,
+                    "execution_errors": [],
+                    "error_details": [],
+                    "error_summary": {},
+                },
+                "refinement_count": 0,
+                "total_time": 2.5,
+                "improvement": 0.0,
+            }
+        ]
+
+        # Create mock task file
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+        training_file = tmp_path / "training.json"
+        training_file.write_text(json.dumps({"00576224": task_data}))
+
+        # Call with AI Civilization parameters
+        run_single_task_benchmark(
+            task_id="00576224",
+            training_challenges_path=str(training_file),
+            max_generations=5,
+            sandbox_mode="multiprocess",
+            use_analyst=True,
+            analyst_temperature=0.4,
+            use_tagger=True,
+            tagger_temperature=0.5,
+            use_crossover=True,
+            crossover_temperature=0.6,
+        )
+
+        # Verify run_evolution_loop was called with AI Civilization params
+        call_kwargs = mock_run_loop.call_args.kwargs
+        assert call_kwargs["use_analyst"] is True
+        assert call_kwargs["analyst_temperature"] == 0.4
+        assert call_kwargs["use_tagger"] is True
+        assert call_kwargs["tagger_temperature"] == 0.5
+        assert call_kwargs["use_crossover"] is True
+        assert call_kwargs["crossover_temperature"] == 0.6
+
     def test_save_task_result_to_json(self, tmp_path):
         """Test saving individual task result to JSON file."""
         from scripts.benchmark_evolution import save_task_result
@@ -378,6 +439,122 @@ class TestCLIArgumentParsing:
 
         assert args.random_sample == 10
         assert args.training_data == "data/training.json"
+
+    def test_parse_benchmark_args_ai_civilization_defaults(self):
+        """Test AI Civilization flags default to False."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+            ]
+        )
+
+        assert args.use_analyst is False
+        assert args.analyst_temperature is None
+        assert args.use_tagger is False
+        assert args.tagger_temperature is None
+        assert args.use_crossover is False
+        assert args.crossover_temperature is None
+
+    def test_parse_benchmark_args_with_analyst(self):
+        """Test parsing with Analyst agent enabled."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--use-analyst",
+                "--analyst-temperature",
+                "0.5",
+            ]
+        )
+
+        assert args.use_analyst is True
+        assert args.analyst_temperature == 0.5
+
+    def test_parse_benchmark_args_with_tagger(self):
+        """Test parsing with Tagger agent enabled."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--use-tagger",
+                "--tagger-temperature",
+                "0.6",
+            ]
+        )
+
+        assert args.use_tagger is True
+        assert args.tagger_temperature == 0.6
+
+    def test_parse_benchmark_args_with_crossover(self):
+        """Test parsing with Crossover agent enabled."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--use-crossover",
+                "--crossover-temperature",
+                "0.7",
+            ]
+        )
+
+        assert args.use_crossover is True
+        assert args.crossover_temperature == 0.7
+
+    def test_parse_benchmark_args_with_full_ai_civilization(self):
+        """Test parsing with full AI Civilization mode enabled."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--use-analyst",
+                "--analyst-temperature",
+                "0.4",
+                "--use-tagger",
+                "--tagger-temperature",
+                "0.5",
+                "--use-crossover",
+                "--crossover-temperature",
+                "0.6",
+            ]
+        )
+
+        assert args.use_analyst is True
+        assert args.analyst_temperature == 0.4
+        assert args.use_tagger is True
+        assert args.tagger_temperature == 0.5
+        assert args.use_crossover is True
+        assert args.crossover_temperature == 0.6
 
 
 class TestResumeCapability:
