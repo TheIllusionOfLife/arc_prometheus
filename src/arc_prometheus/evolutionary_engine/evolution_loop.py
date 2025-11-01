@@ -405,24 +405,28 @@ def run_evolution_loop(
                 else:
                     print("  No specific techniques identified")
 
-        # Store solver in library (Phase 3.5)
-        parent_solver_id: str | None = current_solver_id  # Previous generation's solver
-        new_solver_id = str(uuid.uuid4())
+        # Store solver in library (Phase 3.5 - only when crossover enabled)
+        new_solver_id: str | None = None
+        parent_solver_id: str | None = None
 
-        solver_record = SolverRecord(
-            solver_id=new_solver_id,
-            task_id=task_id,
-            generation=generation,
-            code_str=current_code,
-            fitness_score=current_fitness,
-            train_correct=fitness_result["train_correct"],
-            test_correct=fitness_result["test_correct"],
-            parent_solver_id=parent_solver_id if generation > 0 else None,
-            tags=tags,
-            created_at=datetime.now(UTC).isoformat(),
-        )
-        library.add_solver(solver_record)
-        current_solver_id = new_solver_id  # Update for next generation
+        if use_crossover:
+            parent_solver_id = current_solver_id  # Previous generation's solver
+            new_solver_id = str(uuid.uuid4())
+
+            solver_record = SolverRecord(
+                solver_id=new_solver_id,
+                task_id=task_id,
+                generation=generation,
+                code_str=current_code,
+                fitness_score=current_fitness,
+                train_correct=fitness_result["train_correct"],
+                test_correct=fitness_result["test_correct"],
+                parent_solver_id=parent_solver_id if generation > 0 else None,
+                tags=tags,
+                created_at=datetime.now(UTC).isoformat(),
+            )
+            library.add_solver(solver_record)
+            current_solver_id = new_solver_id  # Update for next generation
 
         # Calculate metrics
         gen_total_time = time.time() - gen_start_time
@@ -438,16 +442,19 @@ def run_evolution_loop(
             "refinement_count": refinement_count,
             "total_time": gen_total_time,
             "improvement": improvement,
-            "solver_id": new_solver_id,  # Phase 3.5
-            "parent_solver_id": parent_solver_id,  # Phase 3.5
         }
+
+        # Add solver tracking fields (only when crossover enabled)
+        if use_crossover and new_solver_id is not None:
+            generation_result["solver_id"] = new_solver_id
+            generation_result["parent_solver_id"] = parent_solver_id
 
         # Add tags if generated
         if tags:
             generation_result["tags"] = tags
 
         # Add crossover flag if used (Phase 3.4)
-        if generation > 0:
+        if generation > 0 and use_crossover:
             generation_result["crossover_used"] = crossover_used
 
         results.append(generation_result)
