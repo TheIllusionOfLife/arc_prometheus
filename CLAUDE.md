@@ -93,8 +93,22 @@ Expand to full multi-agent ecosystem with crossover:
   - Production ready: No timeouts, truncation, or formatting issues
   - Only tags successful solvers (fitness > 0) to optimize API usage
   - CI configuration: Fixed mypy duplicate module errors with proper package base configuration
-- ⏭️ **Phase 3.4**: Crossover agent to fuse different solver capabilities
-- ⏭️ **Phase 3.5**: Population-based evolution with solver library (SQLite)
+- ✅ **Phase 3.4 Complete** (November 1, 2025): Crossover Agent
+  - LLM-based technique fusion for population-based evolution
+  - Hybrid strategy: Crossover when 2+ diverse solvers exist, else Refiner (mutation)
+  - Compatibility assessment and confidence scoring
+  - CLI support via `--use-crossover` and `--crossover-temperature` flags (default: 0.5)
+  - 27 tests (all passing - 381 total)
+  - Backward compatible: default behavior unchanged (use_crossover=False)
+  - Integration with Analyst for context-aware fusion
+- ✅ **Phase 3.5 Complete** (November 1, 2025): Solver Library
+  - SQLite-based persistent storage for solver population
+  - Thread-safe WAL mode for concurrent access
+  - Diverse solver selection algorithm (greedy tag diversity)
+  - UUID-based solver tracking with lineage (parent_solver_id)
+  - 23 tests (all passing - 404 total)
+  - Integration with evolution loop: automatic storage when crossover enabled
+  - Database: ~/.arc_prometheus/solver_library.db
 
 ## Common Commands
 
