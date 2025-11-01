@@ -239,6 +239,49 @@ python scripts/analyze_benchmark.py \
   --output-report docs/benchmarks/comparison.md
 ```
 
+#### Phase 1: Baseline Validation (Validation-First Strategy)
+
+Before committing to expensive optimization like knowledge distillation, validate the baseline performance:
+
+```bash
+# Step 1: Quick test (10 tasks, ~5-10 minutes)
+python scripts/benchmark_evolution.py \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --random-sample 10 \
+  --seed 42 \
+  --output-dir results/gemini_baseline_quick/ \
+  --experiment-name "gemini_baseline_10tasks" \
+  --max-generations 3
+
+# Step 2: Analyze quick test results and calculate optimal sample size
+python scripts/analyze_baseline.py results/gemini_baseline_quick/ --sample-size
+
+# Step 3: Run full validation (40 tasks, ~1 hour)
+python scripts/benchmark_evolution.py \
+  --training-data data/arc-prize-2025/arc-agi_evaluation_challenges_merged.json \
+  --random-sample 40 \
+  --seed 42 \
+  --output-dir results/gemini_baseline_validation/ \
+  --experiment-name "gemini_baseline_40tasks" \
+  --max-generations 3
+
+# Step 4: Analyze results and get decision recommendation
+python scripts/analyze_baseline.py results/gemini_baseline_validation/
+
+# Step 5: Compare experiments (e.g., baseline vs Active Inference)
+python scripts/analyze_baseline.py \
+  results/gemini_baseline_validation/ \
+  results/gemini_active_inference/ \
+  --compare
+```
+
+**Decision Gates** (from `analyze_baseline.py`):
+- **Score ≥8%**: Proceed to Active Inference testing (Phase 2a)
+- **Score 5-8%**: Optimize hyperparameters first (Phase 2b)
+- **Score <5%**: Fundamental rethink needed (analyze failures, improve prompts)
+
+See `plan_phase4_validation_first.md` for complete validation strategy.
+
 **Pass@2 Submission Generation:**
 
 The `--generate-submission` flag enables Kaggle competition submission format:
@@ -553,7 +596,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Tests**: 423 passing ✅ | **Phase 3 Complete** ✅ | **Next**: Phase 4 Benchmarking & Optimization
+**Tests**: 442 passing ✅ | **Phase 3 Complete** ✅ | **Next**: Phase 4 Baseline Validation
 
 ---
 
