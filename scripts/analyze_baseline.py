@@ -26,6 +26,11 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
+# Decision gate thresholds for test accuracy
+HIGH_SCORE_THRESHOLD = 8.0  # ≥8%: Proceed to Active Inference (Phase 2a)
+MEDIUM_SCORE_THRESHOLD = 5.0  # 5-8%: Optimize hyperparameters (Phase 2b)
+# <5%: Fundamental rethink needed
+
 
 def load_summary(experiment_dir: str) -> dict[str, Any]:
     """
@@ -47,7 +52,7 @@ def load_summary(experiment_dir: str) -> dict[str, Any]:
             "Run benchmark_evolution.py first."
         )
 
-    with open(summary_path) as f:
+    with open(summary_path, encoding="utf-8") as f:
         result: dict[str, Any] = json.load(f)
         return result
 
@@ -101,14 +106,14 @@ def get_decision(summary: dict[str, Any]) -> dict[str, Any]:
     """
     score = summary.get("test_accuracy_pct", 0.0)
 
-    if score >= 8.0:
+    if score >= HIGH_SCORE_THRESHOLD:
         return {
             "category": "high",
             "next_phase": "Phase 2a (Active Inference)",
             "reasoning": "8% baseline + 5% Active Inference = 13% (competitive threshold)",
             "action": "Test Active Inference on same task sample",
         }
-    elif score >= 5.0:
+    elif score >= MEDIUM_SCORE_THRESHOLD:
         return {
             "category": "medium",
             "next_phase": "Phase 2b (Hyperparameter Tuning)",
@@ -150,9 +155,8 @@ def format_statistics(summary: dict[str, Any]) -> str:
     total_tasks = summary.get("total_tasks", 0)
     tasks_solved = summary.get("tasks_with_positive_fitness", 0)
     perfect_solvers = summary.get("perfect_solvers", 0)
-    lines.append(
-        f"Tasks Solved:       {tasks_solved:>3}/{total_tasks:<3} ({tasks_solved / total_tasks * 100:.1f}%)"
-    )
+    pct = (tasks_solved / total_tasks * 100) if total_tasks > 0 else 0.0
+    lines.append(f"Tasks Solved:       {tasks_solved:>3}/{total_tasks:<3} ({pct:.1f}%)")
     lines.append(
         f"Perfect Solvers:    {perfect_solvers:>3}/{total_tasks:<3} (fitness=13)"
     )
@@ -383,11 +387,17 @@ Examples:
 
     # Validate arguments
     if args.compare and len(args.experiment_dir) != 2:
-        print("❌ Error: --compare requires exactly 2 experiment directories")
+        print(
+            "❌ Error: --compare requires exactly 2 experiment directories",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if args.sample_size and len(args.experiment_dir) != 1:
-        print("❌ Error: --sample-size requires exactly 1 experiment directory")
+        print(
+            "❌ Error: --sample-size requires exactly 1 experiment directory",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     try:
@@ -451,13 +461,13 @@ Examples:
             print("=" * 60)
 
     except FileNotFoundError as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error: {e}", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as e:
-        print(f"❌ Error: Invalid JSON in summary file: {e}")
+        print(f"❌ Error: Invalid JSON in summary file: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"❌ Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

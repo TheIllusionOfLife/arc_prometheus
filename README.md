@@ -596,7 +596,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Tests**: 442 passing ✅ | **Phase 3 Complete** ✅ | **Next**: Phase 4 Baseline Validation
+**Tests**: 444 total (442 passed, 2 skipped) ✅ | **Phase 3 Complete** ✅ | **Next**: Phase 4 Baseline Validation
 
 ---
 

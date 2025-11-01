@@ -355,6 +355,27 @@ class TestAnalyzeBaseline:
         assert "10.5" in captured.out  # improved score
         assert "Δ" in captured.out or "delta" in captured.out.lower()
 
+    def test_cli_sample_size_mode(self, mock_quick_test_summary, capsys):
+        """Test CLI with --sample-size flag."""
+        import sys
+
+        from scripts.analyze_baseline import main
+
+        sys.argv = [
+            "analyze_baseline.py",
+            str(mock_quick_test_summary),
+            "--sample-size",
+        ]
+
+        main()
+        captured = capsys.readouterr()
+
+        # Check sample size calculation output
+        assert "SAMPLE SIZE CALCULATION" in captured.out
+        assert "Sample Size:" in captured.out
+        assert "Estimated Time:" in captured.out
+        assert "Target Duration:" in captured.out
+
     def test_quick_test_analysis_workflow(self, mock_quick_test_summary, capsys):
         """Integration test: Full quick test analysis workflow."""
         from scripts.analyze_baseline import (
@@ -420,3 +441,29 @@ class TestAnalyzeBaseline:
         sample_size, estimated_time = calculate_sample_size(loaded)
         assert sample_size == 50  # Max cap
         assert estimated_time == 0.0
+
+    def test_format_statistics_zero_tasks(self, tmp_path):
+        """Test format_statistics with zero total tasks to prevent division by zero."""
+        from scripts.analyze_baseline import format_statistics, load_summary
+
+        summary = {
+            "total_tasks": 0,
+            "tasks_with_positive_fitness": 0,
+            "test_accuracy_pct": 0.0,
+            "train_accuracy_pct": 0.0,
+            "avg_final_fitness": 0.0,
+            "median_final_fitness": 0.0,
+            "avg_generations": 0.0,
+            "avg_time_per_task": 0.0,
+            "total_time": 0.0,
+            "perfect_solvers": 0,
+        }
+        summary_file = tmp_path / "summary.json"
+        with open(summary_file, "w") as f:
+            json.dump(summary, f)
+
+        loaded = load_summary(str(tmp_path))
+        # This should not raise ZeroDivisionError after the fix
+        output = format_statistics(loaded)
+        assert "0/0" in output
+        assert "0.0%" in output  # Should show 0.0% not crash
