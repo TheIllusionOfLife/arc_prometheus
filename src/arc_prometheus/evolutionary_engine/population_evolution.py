@@ -112,7 +112,6 @@ class PopulationEvolution:
 
         Args:
             population_size: Number of solvers in population
-            selection_pressure: Tournament selection pressure (0.0-1.0)
             mutation_rate: Probability of mutation (0.0-1.0)
             crossover_rate: Probability of crossover (0.0-1.0)
             max_generations: Maximum evolution generations
@@ -178,7 +177,8 @@ class PopulationEvolution:
             use_cache=use_cache,
         )
 
-        # Initialize solver library
+        # Initialize solver library (currently in-memory only; persistence
+        # will be added in future PR for cross-task solver reuse)
         self.solver_library = SolverLibrary()
 
     def evolve_population(
