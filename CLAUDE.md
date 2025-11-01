@@ -109,6 +109,15 @@ Expand to full multi-agent ecosystem with crossover:
   - 23 tests (all passing - 404 total)
   - Integration with evolution loop: automatic storage when crossover enabled
   - Database: ~/.arc_prometheus/solver_library.db
+- ✅ **Phase 3.6 Complete** (November 1, 2025): Population-Based Evolution
+  - Complete genetic algorithm for multi-solver evolution
+  - Tournament selection (k=3) for parent breeding
+  - Hybrid breeding: Crossover when 2+ diverse parents (30% technique diversity), else mutation via Refiner
+  - Elitism (top 20%) + fitness-proportionate selection for survivors
+  - Diversity tracking: unique techniques per solver across generations
+  - 19 tests (all passing - 423 total)
+  - Demo script: `scripts/demo_population_evolution.py` with full CLI configuration
+  - **Phase 3 AI Civilization COMPLETE** - all 6 tasks done
 
 ## Common Commands
 
@@ -208,6 +217,38 @@ uv run python scripts/demo_phase2_3_evolution.py \
 uv run python scripts/demo_phase2_3_evolution.py --cache-stats  # View stats
 uv run python scripts/demo_phase2_3_evolution.py --clear-cache  # Clear all
 uv run python scripts/demo_phase2_3_evolution.py --no-cache     # Disable
+```
+
+### Population Evolution CLI (Phase 3.6)
+```bash
+# Basic usage (5 solvers, 3 generations)
+uv run python scripts/demo_population_evolution.py
+
+# Custom population parameters
+uv run python scripts/demo_population_evolution.py \
+  --population-size 10 \
+  --max-generations 5 \
+  --crossover-rate 0.6 \
+  --mutation-rate 0.3
+
+# Specific task
+uv run python scripts/demo_population_evolution.py \
+  data/arc-prize-2025/arc-agi_training_challenges.json
+
+# Full configuration
+uv run python scripts/demo_population_evolution.py \
+  --population-size 10 \
+  --max-generations 10 \
+  --crossover-rate 0.5 \
+  --mutation-rate 0.2 \
+  --target-fitness 13.0 \
+  --model gemini-2.0-flash-thinking-exp \
+  --no-cache
+
+# Results include:
+# - Best solver (ID, fitness, train/test accuracy, techniques, generation)
+# - Population statistics (size, generations completed, total time)
+# - Generation history (fitness trends, diversity scores, breeding events)
 ```
 
 ### Data Format
