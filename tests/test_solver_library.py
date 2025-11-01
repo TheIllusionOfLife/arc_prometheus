@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -53,7 +53,7 @@ def sample_solver_record():
         test_correct=1,
         parent_solver_id=None,
         tags=["rotation", "flip"],
-        created_at=datetime.utcnow().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
     )
 
 
@@ -85,7 +85,7 @@ class TestSolverRecord:
             test_correct=1,
             parent_solver_id="parent-solver-001",
             tags=["rotation"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         assert record.parent_solver_id == "parent-solver-001"
 
@@ -101,7 +101,7 @@ class TestSolverRecord:
             test_correct=0,
             parent_solver_id=None,
             tags=[],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         assert record.tags == []
 
@@ -143,7 +143,7 @@ class TestSolverLibraryInitialization:
             test_correct=1,
             parent_solver_id=None,
             tags=["rotation"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         library1.add_solver(record)
 
@@ -206,7 +206,7 @@ class TestSolverLibraryCRUD:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["rotation"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             solver_library.add_solver(record)
 
@@ -221,7 +221,7 @@ class TestSolverLibraryCRUD:
             test_correct=0,
             parent_solver_id=None,
             tags=[],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         solver_library.add_solver(other_task_record)
 
@@ -259,7 +259,7 @@ class TestSolverLibraryQueries:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["rotation"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             solver_library.add_solver(record)
 
@@ -281,7 +281,7 @@ class TestSolverLibraryQueries:
                 test_correct=i // 2,
                 parent_solver_id=None,
                 tags=["rotation"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             solver_library.add_solver(record)
 
@@ -307,7 +307,7 @@ class TestSolverLibraryQueries:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["rotation"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             solver_library.add_solver(record)
 
@@ -342,7 +342,7 @@ class TestDiverseSolverSelection:
             test_correct=1,
             parent_solver_id=None,
             tags=["rotation", "flip"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
 
         # Solver 2: color_fill, grid_partition
@@ -356,7 +356,7 @@ class TestDiverseSolverSelection:
             test_correct=1,
             parent_solver_id=None,
             tags=["color_fill", "grid_partition"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
 
         solver_library.add_solver(solver1)
@@ -385,7 +385,7 @@ class TestDiverseSolverSelection:
                 test_correct=0,
                 parent_solver_id=None,
                 tags=["rotation"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             ),
             SolverRecord(
                 solver_id="high-fitness",
@@ -397,7 +397,7 @@ class TestDiverseSolverSelection:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["color_fill"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             ),
             SolverRecord(
                 solver_id="medium-fitness",
@@ -409,7 +409,7 @@ class TestDiverseSolverSelection:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["symmetry"],
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             ),
         ]
 
@@ -437,7 +437,7 @@ class TestDiverseSolverSelection:
             test_correct=1,
             parent_solver_id=None,
             tags=["rotation"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         solver_library.add_solver(solver)
 
@@ -464,7 +464,7 @@ class TestDiverseSolverSelection:
                 test_correct=1,
                 parent_solver_id=None,
                 tags=["rotation", "flip"],  # All same tags
-                created_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             solver_library.add_solver(solver)
 
@@ -496,7 +496,7 @@ class TestSolverLibraryEdgeCases:
             test_correct=1,
             parent_solver_id=None,
             tags=["rotation"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         solver_id = solver_library.add_solver(record)
         assert solver_id == "root-solver"
@@ -519,7 +519,7 @@ class TestSolverLibraryEdgeCases:
             test_correct=1,
             parent_solver_id=None,
             tags=["rotation"],
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         solver_library.add_solver(record)
 
@@ -538,7 +538,7 @@ class TestSolverLibraryEdgeCases:
             test_correct=0,
             parent_solver_id=None,
             tags=[],  # No tags for failed solver
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
         )
         solver_library.add_solver(record)
 
