@@ -426,8 +426,8 @@ def solve(grid):
             confidence="high",
         )
 
-        # Execute
-        crossover = Crossover()
+        # Execute (disable cache to ensure LLM is called for verification)
+        crossover = Crossover(use_cache=False)
         crossover.fuse_solvers(
             [sample_solver_record_1, sample_solver_record_2],
             sample_task_json,
@@ -630,9 +630,10 @@ def solve(grid): return grid
         mock_model.generate_content.side_effect = Exception("API timeout")
         mock_genai.GenerativeModel.return_value = mock_model
 
-        crossover = Crossover()
+        # Disable cache to ensure LLM is called (and error is raised)
+        crossover = Crossover(use_cache=False)
 
-        # Should raise or return fallback result
+        # Should raise exception when LLM fails
         with pytest.raises(Exception, match="API timeout"):
             crossover.fuse_solvers(
                 [sample_solver_record_1, sample_solver_record_2], sample_task_json
