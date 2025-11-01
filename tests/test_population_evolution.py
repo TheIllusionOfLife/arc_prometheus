@@ -20,6 +20,30 @@ from arc_prometheus.evolutionary_engine.population_evolution import (
 # ============================================================================
 
 
+@pytest.fixture(autouse=True)
+def mock_all_api_keys():
+    """Auto-mock all get_gemini_api_key calls for all tests."""
+    with (
+        patch(
+            "arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key",
+            return_value="test_key",
+        ),
+        patch(
+            "arc_prometheus.cognitive_cells.analyst.get_gemini_api_key",
+            return_value="test_key",
+        ),
+        patch(
+            "arc_prometheus.cognitive_cells.tagger.get_gemini_api_key",
+            return_value="test_key",
+        ),
+        patch(
+            "arc_prometheus.cognitive_cells.crossover.get_gemini_api_key",
+            return_value="test_key",
+        ),
+    ):
+        yield
+
+
 @pytest.fixture
 def sample_task_json():
     """Sample ARC task for testing."""
@@ -180,14 +204,8 @@ class TestDataStructures:
 class TestPopulationEvolutionBasics:
     """Test basic population evolution functionality."""
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
-    def test_population_initialization(
-        self, mock_genai, mock_get_api_key, sample_task_file, sample_task_json
-    ):
+    def test_population_initialization(self, sample_task_file, sample_task_json):
         """Test initial population is generated with N diverse solvers."""
-        mock_get_api_key.return_value = "test_key"
-
         pop_evo = PopulationEvolution(
             population_size=5,
             model_name="gemini-2.5-flash-lite",
@@ -210,20 +228,15 @@ class TestPopulationEvolutionBasics:
         assert all(member.generation == 0 for member in population)
         assert all(member.parent_ids == [] for member in population)
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_population_evaluation(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
         mock_fitness_result_partial,
     ):
         """Test fitness calculation for all population members."""
-        mock_get_api_key.return_value = "test_key"
         mock_calc_fitness.side_effect = [
             mock_fitness_result_perfect,
             mock_fitness_result_partial,
@@ -256,11 +269,8 @@ class TestPopulationEvolutionBasics:
         assert evaluated[2].fitness_score == 13.0
         assert mock_calc_fitness.call_count == 3
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
-    def test_tournament_selection(self, mock_genai, mock_get_api_key):
+    def test_tournament_selection(self):
         """Test tournament selection chooses winner from k=3 tournament."""
-        mock_get_api_key.return_value = "test_key"
 
         pop_evo = PopulationEvolution(population_size=10, use_cache=False)
 
@@ -294,11 +304,8 @@ class TestPopulationEvolutionBasics:
         )
         assert avg_parent_fitness >= avg_population_fitness
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
-    def test_survivor_selection_elitism(self, mock_genai, mock_get_api_key):
+    def test_survivor_selection_elitism(self):
         """Test survivor selection keeps top N by fitness with elitism."""
-        mock_get_api_key.return_value = "test_key"
 
         pop_evo = PopulationEvolution(population_size=10, use_cache=False)
 
@@ -328,19 +335,15 @@ class TestPopulationEvolutionBasics:
         survivor_ids = {s.solver_id for s in survivors}
         assert elite_ids.issubset(survivor_ids)
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_evolve_population_returns_valid_result(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
     ):
         """Test evolve_population returns valid PopulationResult structure."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(
@@ -356,6 +359,16 @@ class TestPopulationEvolutionBasics:
             patch(
                 "arc_prometheus.evolutionary_engine.population_evolution.refine_solver",
                 return_value="def solve(g): return g",
+            ),
+            patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
             ),
             patch.object(
                 pop_evo.tagger, "tag_solver", return_value=Mock(tags=["rotation"])
@@ -387,20 +400,16 @@ class TestPopulationEvolutionBasics:
 class TestCrossoverAndMutation:
     """Test crossover and mutation mechanisms."""
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_crossover_when_diverse_parents_available(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         sample_task_json,
         mock_fitness_result_perfect,
     ):
         """Test crossover is used when 2+ diverse parents available."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(
@@ -449,20 +458,16 @@ class TestCrossoverAndMutation:
         assert crossover_called, "Crossover should be called with diverse parents"
         assert len(offspring) > 0
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_mutation_when_no_diverse_parents(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         sample_task_json,
         mock_fitness_result_partial,
     ):
         """Test mutation (Refiner) is used when no diverse parents available."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_partial
 
         pop_evo = PopulationEvolution(
@@ -511,13 +516,8 @@ class TestCrossoverAndMutation:
         assert refiner_called, "Refiner should be called when parents not diverse"
         assert len(offspring) > 0
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
-    def test_hybrid_breeding_strategy(
-        self, mock_genai, mock_get_api_key, sample_task_file, sample_task_json
-    ):
+    def test_hybrid_breeding_strategy(self, sample_task_file, sample_task_json):
         """Test breeding uses mix of crossover and mutation based on rates."""
-        mock_get_api_key.return_value = "test_key"
 
         pop_evo = PopulationEvolution(
             population_size=10, crossover_rate=0.5, mutation_rate=0.5, use_cache=False
@@ -569,19 +569,15 @@ class TestCrossoverAndMutation:
         # At least one breeding event should occur
         assert (crossover_calls + mutation_calls) > 0
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_offspring_tagged_correctly(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
     ):
         """Test offspring are tagged with techniques after breeding."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(population_size=2, use_cache=False)
@@ -610,20 +606,15 @@ class TestCrossoverAndMutation:
 class TestPopulationDynamics:
     """Test population diversity and fitness improvement over generations."""
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_fitness_improvement_over_generations(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_partial,
         mock_fitness_result_perfect,
     ):
         """Test best fitness improves over generations."""
-        mock_get_api_key.return_value = "test_key"
 
         # Generation 0: partial fitness, Generation 1+: perfect fitness
         # Need enough for: Gen 0 (5) + Gen 1-3 offspring (5 each = 15) = 20 total
@@ -644,6 +635,16 @@ class TestPopulationDynamics:
                 return_value="def solve(g): return g",
             ),
             patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
+            ),
+            patch.object(
                 pop_evo.tagger, "tag_solver", return_value=Mock(tags=["rotation"])
             ),
             patch.object(
@@ -661,19 +662,15 @@ class TestPopulationDynamics:
         for i in range(1, len(gen_fitnesses)):
             assert gen_fitnesses[i] >= gen_fitnesses[i - 1]
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_diversity_maintenance(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
     ):
         """Test population maintains diversity (doesn't converge to clones)."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(population_size=5, use_cache=False)
@@ -694,6 +691,16 @@ class TestPopulationDynamics:
             patch(
                 "arc_prometheus.evolutionary_engine.population_evolution.refine_solver",
                 return_value="def solve(g): return g",
+            ),
+            patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
             ),
             patch.object(
                 pop_evo.tagger,
@@ -719,19 +726,15 @@ class TestPopulationDynamics:
                 # Generation 1+ should have diverse tags
                 assert stats.diversity_score > 0.0
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_early_termination_on_target_fitness(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
     ):
         """Test evolution stops when target fitness is reached."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(population_size=3, use_cache=False)
@@ -744,6 +747,16 @@ class TestPopulationDynamics:
             patch(
                 "arc_prometheus.evolutionary_engine.population_evolution.refine_solver",
                 return_value="def solve(g): return g",
+            ),
+            patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
             ),
             patch.object(
                 pop_evo.tagger, "tag_solver", return_value=Mock(tags=["rotation"])
@@ -774,19 +787,15 @@ class TestPopulationDynamics:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_small_population_graceful_degradation(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_perfect,
     ):
         """Test handles population_size=2 gracefully."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_perfect
 
         pop_evo = PopulationEvolution(population_size=2, use_cache=False)
@@ -799,6 +808,16 @@ class TestEdgeCases:
             patch(
                 "arc_prometheus.evolutionary_engine.population_evolution.refine_solver",
                 return_value="def solve(g): return g",
+            ),
+            patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
             ),
             patch.object(
                 pop_evo.tagger, "tag_solver", return_value=Mock(tags=["rotation"])
@@ -817,19 +836,15 @@ class TestEdgeCases:
         assert len(result.final_population) == 2
         assert result.best_solver.fitness_score >= 0.0
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.calculate_fitness")
     def test_all_solvers_fail_fitness_zero(
         self,
         mock_calc_fitness,
-        mock_genai,
-        mock_get_api_key,
         sample_task_file,
         mock_fitness_result_zero,
     ):
         """Test doesn't crash when all solvers have fitness=0."""
-        mock_get_api_key.return_value = "test_key"
+
         mock_calc_fitness.return_value = mock_fitness_result_zero
 
         pop_evo = PopulationEvolution(population_size=3, use_cache=False)
@@ -842,6 +857,16 @@ class TestEdgeCases:
             patch(
                 "arc_prometheus.evolutionary_engine.population_evolution.refine_solver",
                 return_value="def solve(g): return g",
+            ),
+            patch.object(
+                pop_evo.analyst,
+                "analyze_task",
+                return_value=Mock(
+                    pattern_description="Test pattern",
+                    key_observations=["obs1"],
+                    suggested_approach="Test approach",
+                    confidence="high",
+                ),
             ),
             patch.object(pop_evo.tagger, "tag_solver", return_value=Mock(tags=[])),
             patch.object(
@@ -858,13 +883,8 @@ class TestEdgeCases:
         assert result.best_solver.fitness_score == 0.0
         assert len(result.final_population) == 3
 
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
-    @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
-    def test_empty_initial_population_handling(
-        self, mock_genai, mock_get_api_key, sample_task_file
-    ):
+    def test_empty_initial_population_handling(self, sample_task_file):
         """Test robust error handling for empty initial population."""
-        mock_get_api_key.return_value = "test_key"
 
         # Error should be raised at initialization time
         with pytest.raises(ValueError, match="Population size must be at least 1"):
