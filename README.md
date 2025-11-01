@@ -597,7 +597,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **From PR #41 (Tagger Agent Implementation) - November 01, 2025 09:52 AM JST**:
 - ✅ **COMPLETE**: Phase 3.3 - Tagger Agent successfully implemented and merged
-- **CI Fix Workflow Mastery**: Encountered mypy duplicate module error ("Source file found twice"). Fixed by configuring `mypy_path = "src"` and `explicit_package_bases = true` in pyproject.toml, plus limiting scope to `mypy src/package_name` instead of checking tests/scripts
+- **CI Fix Workflow Mastery**: Encountered mypy duplicate module error ("Source file found twice"). Fixed by configuring `mypy_path = "src"` and `explicit_package_bases = true` in pyproject.toml, plus limiting scope to `mypy src/arc_prometheus` instead of checking tests/scripts
 - **Dual Linter Suppression**: Security linters (ruff + bandit) require different suppression syntax for the same false positive. Used `# noqa: S608 # nosec B608` to suppress both - ruff for pre-commit hooks, bandit for CI
 - **PEP 561 Compliance**: Created `src/arc_prometheus/py.typed` marker file for proper mypy type checking of installed packages
 - **TDD Discipline**: Wrote all 37 tests (28 unit + 9 integration) BEFORE implementing Tagger, then implemented code to pass tests. Caught multiple issues early (fitness=0 handling, mock responses, type annotations)
