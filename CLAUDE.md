@@ -84,7 +84,14 @@ Expand to full multi-agent ecosystem with crossover:
   - 21 tests (4 new Analyst integration + 17 existing all passing - 315 total)
   - Backward compatible: default behavior unchanged (use_analyst=False)
   - Real API validated: both modes work correctly, no errors/timeouts
-- ⏭️ **Phase 3.3**: Tagger for technique classification (rotation, fill, symmetry, etc.)
+- ✅ **Phase 3.3 Complete** (November 1, 2025): Tagger Agent
+  - Technique classification via hybrid static + LLM analysis
+  - 12 predefined techniques: rotation, flip, transpose, color_fill, pattern_copy, symmetry, grid_partition, object_detection, counting, conditional_logic, array_manipulation, neighborhood_analysis
+  - CLI support via `--use-tagger` and `--tagger-temperature` flags
+  - 37 tests (28 unit + 9 integration tests, all passing - 352 total)
+  - Real API validated: 5/5 techniques detected with high confidence
+  - Production ready: No timeouts, truncation, or formatting issues
+  - Only tags successful solvers (fitness > 0) to optimize API usage
 - ⏭️ **Phase 3.4**: Crossover agent to fuse different solver capabilities
 - ⏭️ **Phase 3.5**: Population-based evolution with solver library (SQLite)
 
@@ -154,7 +161,7 @@ uv run pytest tests/test_evolution_loop.py -v
 uv run pytest tests/ --cov=src/arc_prometheus
 ```
 
-### Evolution Loop CLI (Phase 2.3 + Phase 3.2)
+### Evolution Loop CLI (Phase 2.3 + Phase 3.2 + Phase 3.3)
 ```bash
 # Direct mode (Phase 2 - without Analyst)
 uv run python scripts/demo_phase2_3_evolution.py
@@ -162,15 +169,23 @@ uv run python scripts/demo_phase2_3_evolution.py
 # AI Civilization mode (Phase 3 - with Analyst)
 uv run python scripts/demo_phase2_3_evolution.py --use-analyst
 
+# With Tagger for technique classification (Phase 3.3)
+uv run python scripts/demo_phase2_3_evolution.py --use-tagger
+
+# Full AI Civilization: Analyst + Tagger
+uv run python scripts/demo_phase2_3_evolution.py --use-analyst --use-tagger
+
 # Customize temperatures
 uv run python scripts/demo_phase2_3_evolution.py \
   --programmer-temperature 0.5 \
   --refiner-temperature 0.6 \
-  --analyst-temperature 0.4  # Only used with --use-analyst
+  --analyst-temperature 0.4 \
+  --tagger-temperature 0.5  # Only used with --use-tagger
 
 # Longer evolution runs
 uv run python scripts/demo_phase2_3_evolution.py \
   --use-analyst \
+  --use-tagger \
   --max-generations 10 \
   --model gemini-2.0-flash-thinking-exp
 
