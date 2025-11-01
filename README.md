@@ -84,7 +84,7 @@ cp .env.example .env
 6. **(Optional) Download Code Gemma for Local Testing**:
 ```bash
 # For Kaggle offline notebook development (15.93 GB)
-python scripts/download_codegemma.py
+uv run python scripts/download_codegemma.py
 
 # Models are stored in: models/codegemma-7b/
 # Note: models/ is gitignored (too large for version control)
