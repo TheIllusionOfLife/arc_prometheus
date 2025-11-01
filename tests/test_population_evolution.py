@@ -183,7 +183,7 @@ class TestPopulationEvolutionBasics:
     @patch("arc_prometheus.evolutionary_engine.population_evolution.get_gemini_api_key")
     @patch("arc_prometheus.evolutionary_engine.population_evolution.genai")
     def test_population_initialization(
-        self, mock_genai, mock_get_api_key, sample_task_file
+        self, mock_genai, mock_get_api_key, sample_task_file, sample_task_json
     ):
         """Test initial population is generated with N diverse solvers."""
         mock_get_api_key.return_value = "test_key"
