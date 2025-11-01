@@ -35,12 +35,12 @@ Runs full AI Civilization pipeline (Analyst → Programmer → Refiner) on train
 """
 import json
 import argparse
+import tempfile
+import logging
 from pathlib import Path
 from tqdm import tqdm
 
-from arc_prometheus.cognitive_cells import Analyst, Programmer, Refiner
 from arc_prometheus.evolutionary_engine import run_evolution_loop
-from arc_prometheus.crucible import load_task
 
 def collect_training_data(
     training_data_path: str,
@@ -77,22 +77,33 @@ def collect_training_data(
     with open(training_data_path) as f:
         tasks = json.load(f)
 
+    if len(tasks) == 0:
+        print("❌ No tasks found in training data!")
+        return []
+
     distillation_dataset = []
     successful_tasks = 0
+    failures = []
 
     for task_id, task_data in tqdm(tasks.items(), desc="Collecting training data"):
+        # Create temporary task file for run_evolution_loop
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+            json.dump({task_id: task_data}, tmp)
+            tmp_path = tmp.name
+
         try:
             # Run evolution loop
             result = run_evolution_loop(
-                task_json_path=f"temp_{task_id}.json",  # Temp file
+                task_json_path=tmp_path,
                 max_generations=max_generations,
                 target_fitness=13.0,  # Perfect score
                 use_analyst=use_analyst,
                 verbose=False
             )
 
-            # Get best solver from final generation
-            best_solver = result["generations"][-1]
+            # Get final generation and select best solver by fitness
+            final_generation = result["generations"][-1]
+            best_solver = max(final_generation, key=lambda s: s["fitness"])
 
             # Only include successful solvers (fitness > min_fitness)
             if best_solver["fitness"] >= min_fitness:
@@ -112,14 +123,32 @@ def collect_training_data(
                 if verbose:
                     print(f"❌ {task_id}: fitness={best_solver['fitness']:.1f} (below threshold)")
 
+        except KeyboardInterrupt:
+            logging.warning(f"Interrupted by user at task {task_id}")
+            break
         except Exception as e:
+            logging.error(f"Task {task_id} failed: {e}", exc_info=True)
+            failures.append({"task_id": task_id, "error": str(e)})
             if verbose:
                 print(f"❌ {task_id}: ERROR - {e}")
             continue
+        finally:
+            # Clean up temporary file
+            Path(tmp_path).unlink(missing_ok=True)
 
-    # Save dataset
+            # Save partial results every 10 tasks
+            if len(distillation_dataset) % 10 == 0 and len(distillation_dataset) > 0:
+                with open(f"{output_path}.partial", 'w') as f:
+                    json.dump(distillation_dataset, f, indent=2)
+
+    # Save final dataset
     with open(output_path, "w") as f:
         json.dump(distillation_dataset, f, indent=2)
+
+    # Save failure report
+    if failures:
+        with open(f"{output_path}.failures.json", 'w') as f:
+            json.dump(failures, f, indent=2)
 
     print(f"\n✅ Collection complete!")
     print(f"Successful tasks: {successful_tasks}/{len(tasks)} ({successful_tasks/len(tasks)*100:.1f}%)")
@@ -168,23 +197,54 @@ python scripts/collect_distillation_data.py \
 Convert distillation dataset to Hugging Face fine-tuning format.
 """
 import json
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 
-def convert_to_instruction_format(distillation_dataset: list) -> list:
+def format_task_examples(task_data: dict) -> str:
+    """
+    Format ARC task examples as readable text for LLM prompt.
+
+    Args:
+        task_data: Task dict with 'train' and 'test' keys
+
+    Returns:
+        Formatted string representation of task examples
+    """
+    formatted = []
+
+    for i, example in enumerate(task_data.get("train", []), 1):
+        formatted.append(f"Train Example {i}:")
+        formatted.append(f"Input: {example['input']}")
+        formatted.append(f"Output: {example['output']}")
+        formatted.append("")
+
+    return "\n".join(formatted)
+
+def convert_to_instruction_format(distillation_dataset: list, tasks_path: str) -> list:
     """
     Convert to instruction-response pairs for fine-tuning.
 
     Format:
         Instruction: "Analyze and solve this ARC puzzle: [task examples]"
         Response: "[Analyst spec]\n\n[Solver code]"
+
+    Args:
+        distillation_dataset: List of successful solver entries
+        tasks_path: Path to original training tasks JSON (for task examples)
     """
+    # Load original tasks for example formatting
+    with open(tasks_path) as f:
+        tasks = json.load(f)
+
     formatted_data = []
 
     for entry in distillation_dataset:
+        task_id = entry["task_id"]
+        task_data = tasks.get(task_id, {})
+
         instruction = f"""Analyze and solve this ARC puzzle.
 
 Training examples:
-[Format task examples here]
+{format_task_examples(task_data)}
 
 Provide:
 1. Analysis of the transformation pattern
@@ -209,13 +269,25 @@ if __name__ == "__main__":
     with open("data/distillation_dataset.json") as f:
         dataset = json.load(f)
 
-    formatted = convert_to_instruction_format(dataset)
+    formatted = convert_to_instruction_format(
+        dataset,
+        tasks_path="data/arc-prize-2025/arc-agi_training_challenges.json"
+    )
 
-    # Save as Hugging Face dataset
+    # Create dataset and split into train/validation (80/20)
     hf_dataset = Dataset.from_list(formatted)
-    hf_dataset.save_to_disk("data/distillation_hf_dataset")
+    train_test = hf_dataset.train_test_split(test_size=0.2, seed=42)
 
-    print(f"✅ Fine-tuning dataset prepared: {len(formatted)} examples")
+    # Save as DatasetDict with train and validation splits
+    dataset_dict = DatasetDict({
+        'train': train_test['train'],
+        'validation': train_test['test']
+    })
+    dataset_dict.save_to_disk("data/distillation_hf_dataset")
+
+    print(f"✅ Fine-tuning dataset prepared:")
+    print(f"   Train: {len(train_test['train'])} examples")
+    print(f"   Validation: {len(train_test['test'])} examples")
 ```
 
 **Success Criteria for Task 4b.1:**
@@ -367,11 +439,20 @@ def finetune_codegemma(
     print("🚀 Starting fine-tuning...")
     trainer.train()
 
-    # Save final model
-    trainer.save_model(f"{output_dir}/final")
+    # Save LoRA adapters
+    trainer.save_model(f"{output_dir}/lora_adapters")
+
+    # Merge LoRA adapters back into base model for standalone deployment
+    print("🔄 Merging LoRA adapters into base model...")
+    model = model.merge_and_unload()
+
+    # Save final merged model
+    model.save_pretrained(f"{output_dir}/final")
     tokenizer.save_pretrained(f"{output_dir}/final")
 
-    print(f"✅ Fine-tuning complete! Model saved to: {output_dir}/final")
+    print(f"✅ Fine-tuning complete!")
+    print(f"   LoRA adapters saved to: {output_dir}/lora_adapters")
+    print(f"   Merged model saved to: {output_dir}/final")
 
 if __name__ == "__main__":
     import argparse
