@@ -550,7 +550,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Session Handover
 
-### Last Updated: November 01, 2025 2:00 PM JST
+### Last Updated: November 01, 2025 4:27 PM JST
 
 #### Recently Completed
 
@@ -621,6 +621,17 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - ✅ Error Classification ([PR #26](https://github.com/TheIllusionOfLife/arc_prometheus/pull/26))
 
 #### Session Learnings (Most Recent)
+
+**From PR #45 Fix Session (Systematic PR Review) - November 01, 2025 4:27 PM JST**:
+- ✅ **COMPLETE**: PR #45 merged successfully after addressing all review feedback
+- **GraphQL-Based PR Review Workflow**: Used `/fix_pr_graphql` to systematically address all feedback from 4 reviewers (coderabbitai, gemini-code-assist, claude, chatgpt-codex-connector). Single GraphQL query fetched all sources: PR comments, reviews, line comments, CI annotations
+- **Post-Commit Review Detection**: Discovered NEW feedback from coderabbitai at 05:33:38Z AFTER pushing commit at 05:28:58Z. Always check timestamps vs last commit to catch post-push reviews
+- **Three-Source Extraction Discipline**: For EVERY reviewer, extracted all three sources (issue comments + review bodies + line comments), even when review body looked like "just a summary". Line comments often contain specific actionable items
+- **Critical vs Nitpick Triage**: Addressed CRITICAL issues first (hardcoded task sizes, test mocks, zero division), then nitpicks (docstring cleanup, SolverLibrary comment). Deferred MEDIUM suggestions (parent lineage tracking) to future PR as discussed in original review
+- **Verification Checklist Pattern**: Before declaring PR complete, verified: (1) Feedback count matches what was READ, (2) Timestamps checked vs last commit, (3) PR author comments reviewed, (4) Review CONTENT read not just states, (5) CI PASSING not just complete
+- **Sed for Bulk Test Updates**: When adding required fields to dataclass (train_total, test_total), used `sed -i '' 's/generation=/train_total=3,\n                test_total=1,\n                generation=/g'` to update all 19 test PopulationMember creations simultaneously. Pre-commit hooks auto-formatted
+- **Commit Strategy**: Commit frequently for logical milestones (critical fixes → nitpicks), but push ONCE to save bot costs. Each push triggers expensive automated reviews (CodeRabbit, gemini-code-assist)
+- **AI Reviewer Verification**: Always verify factual claims from AI reviewers. In this session, all claims were correct, but past sessions had false positives (e.g., invalid package versions that actually existed)
 
 **From PR #43 (Crossover Agent & Solver Library) - November 01, 2025 12:25 PM JST**:
 - ✅ **COMPLETE**: Phase 3.4 & 3.5 - Crossover Agent and Solver Library successfully implemented and merged
