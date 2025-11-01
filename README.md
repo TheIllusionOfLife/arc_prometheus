@@ -568,11 +568,15 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - Expected: 3-8% baseline score (validates pipeline before optimization)
 - Next: Submit to ARC Prize 2025 competition once complete
 
-**Phase 4b: Knowledge Distillation:** READY FOR EXECUTION
-- Detailed implementation plan: `plan_phase4b_distillation.md` (613 lines)
-- All scripts designed and documented
-- Expected: +5-10% improvement over baseline
-- Waiting for: Task 4.4 completion to proceed
+**Phase 4: Validation-First Optimization:** READY FOR EXECUTION
+- **NEW APPROACH:** Validate Gemini baseline BEFORE distillation (smarter!)
+- Detailed plan: `plan_phase4_validation_first.md` (694 lines)
+- Phase 1: Gemini baseline validation (1-2 hours, $5-10)
+- Phase 2a: Active Inference testing (2-3 hours, if baseline ≥8%)
+- Phase 2b: Hyperparameter tuning (if needed)
+- Phase 3: Knowledge distillation (only if Gemini performs well)
+- **Why better:** Validates assumptions early, quick iteration, decision gates
+- **Fallback plan:** `plan_phase4b_distillation.md` (if skipping validation)
 
 #### Recently Completed
 
