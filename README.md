@@ -81,7 +81,16 @@ cp .env.example .env
 # Edit .env and add your GEMINI_API_KEY
 ```
 
-5. **Download and place ARC dataset**:
+6. **(Optional) Download Code Gemma for Local Testing**:
+```bash
+# For Kaggle offline notebook development (15.93 GB)
+uv run python scripts/download_codegemma.py
+
+# Models are stored in: models/codegemma-7b/
+# Note: models/ is gitignored (too large for version control)
+```
+
+7. **Download and place ARC dataset**:
 ```bash
 # Download from: https://www.kaggle.com/competitions/arc-prize-2025/data
 # Extract and place in: data/arc-prize-2025/
@@ -96,7 +105,7 @@ cp .env.example .env
 #   └── sample_submission.json
 ```
 
-6. **Verify installation**:
+8. **Verify installation**:
 ```bash
 python -m pytest tests/ -v
 ```
