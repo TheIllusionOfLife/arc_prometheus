@@ -821,7 +821,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - Run on all 240 tasks with population_size=2 (validated safe for 12h limit)
    - Submit notebook to ARC Prize 2025 competition
    - **Expected**: 3-8% baseline score (realistic for untrained Code Gemma 7B)
-   - **Competitive Context**: 10% = 9th place on leaderboard (as of Nov 1, 2025)
+   - **Competitive Context**: 10% historically placed in top 10 (reference Oct-Nov 2025 leaderboard)
    - **Source**: User request, validates pipeline before optimization
    - **Approach**: Follow `docs/kaggle_model_setup.md` step-by-step guide
 
