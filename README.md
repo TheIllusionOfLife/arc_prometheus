@@ -789,9 +789,10 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - **No src/ dependencies**: All code inline in notebook
    - **Deliverables**: `notebooks/kaggle_submission.ipynb`
 
-8. **Task 4.2: Model Preparation** (2-3 hours)
+8. **Task 4.2: Model Preparation** (2-3 hours) ⭐ IN PROGRESS
    - Download Code Gemma 7B from HuggingFace (~7GB)
    - Upload to Kaggle dataset for offline access
+   - **Documentation**: See [docs/kaggle_model_setup.md](docs/kaggle_model_setup.md) for complete setup guide
    - Test model loading in notebook
 
 9. **Task 4.3: Local Testing** (4-6 hours)
