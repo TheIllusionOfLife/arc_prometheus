@@ -15,12 +15,17 @@ from typing import Any, TypedDict
 from ..cognitive_cells.analyst import Analyst
 from ..cognitive_cells.programmer import generate_solver
 from ..cognitive_cells.refiner import refine_solver
+from ..cognitive_cells.tagger import Tagger
 from ..crucible.data_loader import load_task
-from ..utils.config import ANALYST_DEFAULT_TEMPERATURE, MODEL_NAME
+from ..utils.config import (
+    ANALYST_DEFAULT_TEMPERATURE,
+    MODEL_NAME,
+    TAGGER_DEFAULT_TEMPERATURE,
+)
 from .fitness import FitnessResult, calculate_fitness
 
 
-class GenerationResult(TypedDict):
+class GenerationResult(TypedDict, total=False):
     """Result from a single evolution generation.
 
     Attributes:
@@ -30,6 +35,7 @@ class GenerationResult(TypedDict):
         refinement_count: Number of refinements applied this generation (0 or 1)
         total_time: Time taken for this generation in seconds
         improvement: Fitness improvement from previous generation
+        tags: List of technique tags (only present when use_tagger=True)
     """
 
     generation: int
@@ -38,6 +44,7 @@ class GenerationResult(TypedDict):
     refinement_count: int
     total_time: float
     improvement: float
+    tags: list[str]  # Optional field, only present when use_tagger=True
 
 
 def run_evolution_loop(
@@ -54,6 +61,8 @@ def run_evolution_loop(
     use_cache: bool = True,
     use_analyst: bool = False,
     analyst_temperature: float | None = None,
+    use_tagger: bool = False,
+    tagger_temperature: float | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -79,6 +88,8 @@ def run_evolution_loop(
         use_cache: If True, use LLM response cache (default: True)
         use_analyst: If True, use Analyst agent for pattern analysis (AI Civilization mode) (default: False)
         analyst_temperature: Temperature for Analyst (default: 0.3, only used if use_analyst=True)
+        use_tagger: If True, use Tagger agent for technique classification (Phase 3.3) (default: False)
+        tagger_temperature: Temperature for Tagger (default: 0.4, only used if use_tagger=True)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -123,6 +134,26 @@ def run_evolution_loop(
     current_code: str = ""
     previous_fitness: float = 0.0
     analyst_spec: Any = None  # Store analyst result for reuse
+    tagger: Tagger | None = None  # Store tagger instance for reuse
+
+    # Phase 0: Initialize Tagger (if enabled)
+    if use_tagger:
+        tagger = Tagger(
+            model_name=model_name or MODEL_NAME,
+            temperature=(
+                tagger_temperature
+                if tagger_temperature is not None
+                else TAGGER_DEFAULT_TEMPERATURE
+            ),
+            use_cache=use_cache,
+        )
+        if verbose:
+            print(f"\n{'=' * 70}")
+            print(" Tagger Agent: Technique Classification")
+            print(f"{'=' * 70}")
+            print(
+                "✅ Tagger initialized (tags will be generated for successful solvers)"
+            )
 
     # Phase 1: Analyst analysis (AI Civilization mode only)
     if use_analyst:
@@ -251,6 +282,26 @@ def run_evolution_loop(
                 improvement = current_fitness - previous_fitness
                 print(f"  Improvement: {improvement:+.1f}")
 
+        # Tag solver techniques (if Tagger enabled and fitness > 0)
+        tags: list[str] = []
+        if tagger is not None and current_fitness > 0:
+            if verbose:
+                print("\n🏷️  Tagging solver techniques...")
+
+            # Load task JSON for Tagger context
+            with open(task_json_path) as f:
+                task_json = json.load(f)
+
+            tagging_result = tagger.tag_solver(current_code, task_json)
+            tags = tagging_result.tags
+
+            if verbose:
+                if tags:
+                    print(f"✅ Techniques identified: {', '.join(tags)}")
+                    print(f"   Confidence: {tagging_result.confidence}")
+                else:
+                    print("  No specific techniques identified")
+
         # Calculate metrics
         gen_total_time = time.time() - gen_start_time
         improvement = (
@@ -266,6 +317,10 @@ def run_evolution_loop(
             "total_time": gen_total_time,
             "improvement": improvement,
         }
+
+        # Add tags if generated
+        if tags:
+            generation_result["tags"] = tags
 
         results.append(generation_result)
 

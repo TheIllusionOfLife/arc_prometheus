@@ -22,6 +22,7 @@ from .config import (
     MODEL_NAME,
     PROGRAMMER_GENERATION_CONFIG,
     REFINER_GENERATION_CONFIG,
+    TAGGER_DEFAULT_TEMPERATURE,
 )
 
 
@@ -88,6 +89,8 @@ def parse_evolution_args(args: list[str] | None = None) -> argparse.Namespace:
         - refiner_temperature: Temperature for debugging
         - analyst_temperature: Temperature for Analyst (only used with use_analyst=True)
         - use_analyst: Enable AI Civilization mode (Analyst analyzes pattern first)
+        - tagger_temperature: Temperature for Tagger (only used with use_tagger=True)
+        - use_tagger: Enable Tagger agent for technique classification
         - timeout_llm: LLM API call timeout in seconds
         - timeout_eval: Sandbox execution timeout in seconds
         - max_generations: Maximum evolution generations
@@ -125,6 +128,10 @@ Examples:
   # AI Civilization mode (use Analyst agent)
   %(prog)s --use-analyst              # Enable AI Civilization mode
   %(prog)s --use-analyst --analyst-temperature 0.5
+
+  # Technique tagging (use Tagger agent for Phase 3.4 crossover)
+  %(prog)s --use-tagger               # Enable Tagger agent
+  %(prog)s --use-tagger --tagger-temperature 0.5
 
   # Sandbox mode (production-grade security)
   %(prog)s --sandbox-mode docker      # Use Docker sandbox (secure)
@@ -176,6 +183,19 @@ Examples:
         "--use-analyst",
         action="store_true",
         help="Enable AI Civilization mode: use Analyst agent for pattern analysis before Programmer (default: disabled, Direct mode)",
+    )
+
+    parser.add_argument(
+        "--tagger-temperature",
+        type=_validate_temperature,
+        default=TAGGER_DEFAULT_TEMPERATURE,
+        help=f"Temperature for Tagger technique classification (0.0-2.0, default: {TAGGER_DEFAULT_TEMPERATURE}, only used with --use-tagger)",
+    )
+
+    parser.add_argument(
+        "--use-tagger",
+        action="store_true",
+        help="Enable Tagger agent for technique classification (tags successful solvers for crossover in Phase 3.4, default: disabled)",
     )
 
     # Timeout controls
