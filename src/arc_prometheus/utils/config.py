@@ -91,3 +91,6 @@ REFINER_GENERATION_CONFIG: Any = {
 
 # Analyst temperature (lower for consistent pattern analysis)
 ANALYST_DEFAULT_TEMPERATURE = 0.3
+
+# Tagger temperature (moderate for balanced technique detection)
+TAGGER_DEFAULT_TEMPERATURE = 0.4

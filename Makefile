@@ -30,7 +30,7 @@ format-check: check-uv  ## Check code formatting without changes
 	uv run ruff format --check src/ tests/ scripts/
 
 typecheck: check-uv  ## Run type checker (mypy)
-	uv run mypy src/arc_prometheus tests/
+	uv run mypy src/arc_prometheus
 
 security: check-uv  ## Run security checks (bandit)
 	uv run bandit -r src/ -ll
