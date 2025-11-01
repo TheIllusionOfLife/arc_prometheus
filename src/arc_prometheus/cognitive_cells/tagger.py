@@ -285,7 +285,7 @@ TECHNIQUES: technique1, technique2, technique3
 CONFIDENCE: high/medium/low
 
 Only list techniques you are confident are actually used.
-"""  # noqa: S608  # This is not SQL, it's an LLM prompt
+"""  # noqa: S608 # nosec B608  # This is not SQL, it's an LLM prompt
         return prompt
 
     def _parse_llm_response(self, response_text: str) -> list[str]:
