@@ -550,9 +550,22 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Session Handover
 
-### Last Updated: November 01, 2025 4:27 PM JST
+### Last Updated: November 01, 2025 11:44 PM JST
 
 #### Recently Completed
+
+**Phase 4a: Kaggle Offline Inference Notebook** ([PR #47](https://github.com/TheIllusionOfLife/arc_prometheus/pull/47) - November 01, 2025):
+- Implemented self-contained Kaggle notebook for offline inference (no internet, local Code Gemma 7B)
+- Complete AI Civilization workflow: OfflineAnalyst → OfflineProgrammer → SimplifiedEvolution
+- Critical fixes: MODEL_PATH subdirectory configuration, tokenizer parallelism suppression, TEST_MODE validation
+- Performance validated: 103.6s/task average (population_size=2) → 7 hours for 240 tasks ✅ Safe for 12h limit
+- Documentation: `docs/kaggle_model_setup.md` (318 lines) - complete setup guide with troubleshooting
+- Documentation: `docs/kaggle_testing_learnings.md` (274 lines) - session validation learnings
+- Model download automation: `scripts/download_codegemma.py` (Code Gemma 7B, 15.93 GB)
+- Local testing: `scripts/test_kaggle_notebook_local.py` for mock-mode validation
+- Baseline expectations: 3-8% realistic (fitness=0 on 5 test tasks), competitive threshold 10% = 9th place
+- **Impact**: Kaggle submission workflow complete - notebook validated on real hardware, ready for 240-task run
+- **Key Learning**: L4x4 GPU quota consumption (2× rate) critical for planning - 7h run = 14h quota
 
 **Phase 3.6: Population-Based Evolution** ([PR #45](https://github.com/TheIllusionOfLife/arc_prometheus/pull/45) - November 01, 2025):
 - Implemented PopulationEvolution - complete genetic algorithm for ARC solving
@@ -621,6 +634,19 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - ✅ Error Classification ([PR #26](https://github.com/TheIllusionOfLife/arc_prometheus/pull/26))
 
 #### Session Learnings (Most Recent)
+
+**From PR #47 (Kaggle Offline Notebook Validation) - November 01, 2025 11:44 PM JST**:
+- ✅ **COMPLETE**: Phase 4a - Kaggle offline inference notebook validated and merged
+- **Real Hardware Validation Pattern**: Always run quick validation tests on target hardware BEFORE committing to long runs. 5-task test (8.6 min) revealed all critical issues without wasting 7 hours
+- **Model Path Configuration**: `AutoModelForCausalLM.from_pretrained()` expects model weight files DIRECTLY in specified directory. Must point to `model/` subdirectory (contains `.safetensors`), not parent directory
+- **Tokenizer Parallelism Spam**: `os.environ["TOKENIZERS_PARALLELISM"] = "false"` BEFORE transformers import prevents multiprocessing fork warnings from spamming logs (hundreds of lines)
+- **TEST_MODE Flag Pattern**: For long-running notebooks, add conditional logic: `TEST_MODE = True` runs subset (5 tasks), `False` runs full set (240 tasks). Enables rapid validation without code duplication
+- **GPU Quota Math**: Kaggle L4x4 consumes quota at 2× rate (7 hour real time = 14 hours quota). Always calculate: real_time × 2 + existing_usage < weekly_limit (30h) before starting runs
+- **Baseline Expectation Calibration**: Fitness=0 on test tasks is EXPECTED for untrained baseline models. Don't panic - proceed with full run. Real competition score emerges from aggregate performance across 240 tasks
+- **Performance Scaling Validation**: Test with different population sizes to find optimal: pop=2 (103.6s/task, 7h) ✅ safe, pop=3 (~155s/task, 10h) ⚠️ tight, pop=5 (~260s/task, 17h) ❌ exceeds 12h limit
+- **Fallback Grid Dimensions**: Use `input_grid.tolist()` not hardcoded `[[0,0],[0,0]]` for fallback predictions. Ensures submission format matches expected output dimensions for all test cases
+- **Documentation Workflow**: Create comprehensive setup guide IMMEDIATELY after validation session while details fresh. Include: exact paths, timing data, troubleshooting steps, expected output. Saves hours in future sessions
+- **Knowledge Distillation Priority**: Baseline Code Gemma 7B too weak (fitness=0) - Phase 4b knowledge distillation with Gemini is CRITICAL, not optional. Expected +5-10% gain could jump from 15th → 5th place
 
 **From PR #45 Fix Session (Systematic PR Review) - November 01, 2025 4:27 PM JST**:
 - ✅ **COMPLETE**: PR #45 merged successfully after addressing all review feedback
@@ -780,31 +806,24 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
    - Diversity tracking across generations
    - 19 tests passing (data structures, functionality, breeding, dynamics, edge cases)
 
-**Phase 4: Kaggle Offline Inference** (Next, 3-4 days) 🚀
+**Phase 4a: Kaggle Offline Inference (Baseline)** ✅ COMPLETE (November 1, 2025)
 
-7. **Task 4.1: Standalone Kaggle Notebook** (6-8 hours) ⭐ IN PROGRESS
-   - **Purpose**: Create self-contained offline notebook with local Code Gemma 7B
-   - **Strategy**: Reimplement AI Civilization workflow without internet access
-   - **Structure**: 6 cells (setup, load model, helpers, agents, inference, submission)
-   - **No src/ dependencies**: All code inline in notebook
-   - **Deliverables**: `notebooks/kaggle_submission.ipynb`
+7. ✅ **Task 4.1-4.3: Kaggle Notebook + Validation** (COMPLETE - PR #47)
+   - Self-contained offline notebook with local Code Gemma 7B (15.93 GB downloaded)
+   - AI Civilization workflow: OfflineAnalyst → OfflineProgrammer → SimplifiedEvolution
+   - Validated on Kaggle L4x4: 103.6s/task average → 7 hours for 240 tasks ✅
+   - TEST_MODE flag for quick validation (5 tasks in 8.6 minutes)
+   - Documentation: `docs/kaggle_model_setup.md`, `docs/kaggle_testing_learnings.md`
+   - **Status**: Notebook ready, waiting for user to run full 240-task validation
 
-8. **Task 4.2: Model Preparation** (2-3 hours)
-   - Download Code Gemma 7B from HuggingFace (~7GB)
-   - Upload to Kaggle dataset for offline access
-   - Test model loading in notebook
-
-9. **Task 4.3: Local Testing** (4-6 hours)
-   - Test on evaluation set (10 tasks)
-   - Validate submission format
-   - Ensure runtime < 3 min/task average
-   - No internet calls, no crashes
-
-10. **Task 4.4: Kaggle Submission** (2-3 hours)
-    - Upload notebook and model to Kaggle
-    - Run on private test set (240 tasks)
-    - Submit to competition
-    - **Expected**: 10-20% baseline score (raw Code Gemma, no fine-tuning)
+8. **Task 4.4: Full Kaggle Submission** (7 hours runtime) ⭐ NEXT PRIORITY
+   - **Requirement**: User sets `TEST_MODE = False` in Cell 5 and runs notebook on Kaggle
+   - Run on all 240 tasks with population_size=2 (validated safe for 12h limit)
+   - Submit notebook to ARC Prize 2025 competition
+   - **Expected**: 3-8% baseline score (realistic for untrained Code Gemma 7B)
+   - **Competitive Context**: 10% historically placed in top 10 (reference Oct-Nov 2025 leaderboard)
+   - **Source**: User request, validates pipeline before optimization
+   - **Approach**: Follow `docs/kaggle_model_setup.md` step-by-step guide
 
 **Experimental Variations (After Baseline Works, Optional):**
 

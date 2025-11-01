@@ -74,11 +74,13 @@ Download Complete!
 ============================================================
 
 Model files:
-  model.safetensors: 7123.4 MB
-  tokenizer.json: 17.2 MB
-  ...
+  model-00001-of-00004.safetensors: 4764.1 MB
+  model-00002-of-00004.safetensors: 4752.1 MB
+  model-00003-of-00004.safetensors: 4752.1 MB
+  model-00004-of-00004.safetensors: 2016.1 MB
+  tokenizer.json: 32.8 MB
 
-Total size: 7156.8 MB (6.99 GB)
+Total size: 16317.2 MB (15.93 GB)
 ```
 
 **Troubleshooting**:
