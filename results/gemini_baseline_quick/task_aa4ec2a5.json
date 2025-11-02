@@ -1,0 +1,164 @@
+{
+  "task_id": "aa4ec2a5",
+  "success": true,
+  "timestamp": "2025-11-01T17:26:56.131089+00:00",
+  "config": {
+    "max_generations": 3,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": true
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.copy(task_grid)\n\n    # Identify the main object and its color\n    unique_colors = np.unique(task_grid)\n    non_background_colors = unique_colors[unique_colors != 4]\n\n    if len(non_background_colors) == 0:\n        return output_grid # Only background color\n\n    object_color = non_background_colors[0]\n\n    # Find the bounding box of the object\n    rows_idx, cols_idx = np.where(task_grid == object_color)\n    min_row, max_row = np.min(rows_idx), np.max(rows_idx)\n    min_col, max_col = np.min(cols_idx), np.max(cols_idx)\n\n    # Extract the object\n    obj = task_grid[min_row:max_row+1, min_col:max_col+1]\n    obj_rows, obj_cols = obj.shape\n\n    # Determine the transformation based on the object's shape and position\n    # This is a heuristic approach based on the provided examples.\n    # The examples suggest a pattern where the object is \"expanded\" or \"filled\"\n    # and some internal colors might change.\n\n    # Example 1: A \"C\" shape made of 1s is transformed into a filled shape\n    # with new colors (2, 6, 8). The background (4) remains.\n    # The transformation seems to be a dilation and color mapping.\n\n    # Example 2: Similar to Example 1, a \"C\" shape of 1s is transformed.\n    # New colors 2, 8, 6 are introduced.\n\n    # Example 3: A horizontal bar of 1s is transformed. New colors 2, 8, 6.\n\n    # Generalizing:\n    # If the object is a single contiguous block of non-background color,\n    # it appears to be expanded and potentially recolored.\n    # The background color (4) is generally preserved.\n\n    # Let's try a simple dilation and recoloring strategy.\n    # We'll assume the object is the smallest bounding box of non-background colors.\n\n    # Create a mask for the object\n    object_mask = task_grid != 4\n\n    # Find the center of the object (approximated)\n    center_row = rows // 2\n    center_col = cols // 2\n\n    # Create a new grid initialized with background color\n    new_rows, new_cols = rows, cols\n    new_output_grid = np.full((new_rows, new_cols), 4, dtype=int)\n\n    # Apply a simple expansion/dilation.\n    # This is a very basic interpretation. More complex shapes might require\n    # more sophisticated algorithms.\n\n    # For the given examples, it seems like the object is expanded and\n    # some internal regions are filled with new colors.\n    # The colors 1, 2, 6, 8 appear to be used for the transformed object.\n\n    # Let's try to detect the \"shape\" of the object and apply a specific transformation.\n    # This is highly dependent on the specific examples.\n\n    # Heuristic: If the object is a thin line or a \"C\" shape, expand it.\n    # If it's a solid block, it might be preserved or slightly altered.\n\n    # Let's try to identify the \"core\" of the object and expand outwards.\n    # This is a very simplified approach.\n\n    # For the examples, it looks like the transformation involves:\n    # 1. Identifying the non-background pixels.\n    # 2. Expanding these pixels.\n    # 3. Recolorizing based on some pattern.\n\n    # Let's try a simple dilation with a kernel.\n    kernel = np.array([[1, 1, 1],\n                       [1, 1, 1],\n                       [1, 1, 1]])\n\n    # Dilate the object mask\n    from scipy.ndimage import binary_dilation\n    dilated_mask = binary_dilation(object_mask, structure=kernel, iterations=1)\n\n    # This approach requires scipy, which is not allowed.\n    # We need to implement dilation using numpy only.\n\n    # Manual dilation:\n    dilated_mask_np = np.zeros_like(task_grid, dtype=bool)\n    for r in range(rows):\n        for c in range(cols):\n            if object_mask[r, c]:\n                for dr in [-1, 0, 1]:\n                    for dc in [-1, 0, 1]:\n                        nr, nc = r + dr, c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols:\n                            dilated_mask_np[nr, nc] = True\n\n    # Now, let's try to map colors.\n    # The examples show that the original object color (1) is replaced by\n    # other colors (2, 6, 8) within the expanded region.\n\n    # This is a very specific pattern recognition task.\n    # The provided examples are crucial.\n\n    # Let's analyze the color changes in Example 1:\n    # Original 1s become 2s, 6s, 8s.\n    # The shape of the 1s is like a hollow rectangle or a \"C\".\n    # The output fills this shape and adds more colors.\n\n    # Let's try to find connected components of the object.\n    # This is also complex with numpy only.\n\n    # A simpler approach for these specific examples:\n    # The transformation seems to be a form of \"filling\" or \"growing\" the object.\n    # The background (4) is mostly preserved.\n    # The object pixels (1) are transformed into a set of new colors.\n\n    # Let's try to identify the \"outline\" of the object and then fill inwards.\n    # Or identify the \"core\" and expand.\n\n    # Given the constraints, a direct pixel-wise transformation based on local\n    # neighborhood or global properties is needed.\n\n    # Let's consider the bounding box again.\n    # If the object is a small, isolated shape, it might be expanded.\n\n    # Let's try to identify the \"center\" of the object and then color outwards.\n    # This is highly speculative without more examples.\n\n    # Let's try to replicate the behavior seen in the examples directly.\n    # The examples suggest that the transformation is not a simple geometric\n    # transformation like rotation or scaling, but rather a \"filling\" and\n    # \"recoloring\" of the object.\n\n    # Let's try to find the extent of the object and then apply a coloring scheme.\n\n    # For Example 1:\n    # The object is a set of 1s. The output has 2s, 6s, 8s.\n    # The 2s seem to form an outer layer, then 8s, then 6s in the middle.\n\n    # For Example 2:\n    # Similar pattern with 1s becoming 2s, 8s, 6s.\n\n    # For Example 3:\n    # A horizontal bar of 1s becomes 2s, 8s, 6s.\n\n    # It seems the transformation is:\n    # 1. Identify the non-background pixels.\n    # 2. Create a larger bounding box or expanded region around these pixels.\n    # 3. Fill this expanded region with new colors (2, 6, 8) in a specific order.\n    # 4. Preserve the background color (4).\n\n    # Let's try to implement a simplified version of this.\n    # We'll find the bounding box of the object.\n    # Then, we'll create a new grid and fill it.\n\n    # Find the bounding box of non-background pixels\n    non_bg_rows, non_bg_cols = np.where(task_grid != 4)\n    if non_bg_rows.size == 0:\n        return task_grid # No object found\n\n    min_r, max_r = np.min(non_bg_rows), np.max(non_bg_rows)\n    min_c, max_c = np.min(non_bg_cols), np.max(non_bg_cols)\n\n    # Create an output grid filled with background color\n    output_grid = np.full_like(task_grid, 4, dtype=int)\n\n    # Determine the \"shape\" of the object within its bounding box.\n    # This is the most challenging part without explicit shape detection.\n\n    # Let's try to infer the transformation based on the relative positions\n    # of the new colors to the original object.\n\n    # In Example 1, the 1",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 1,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [
+          "Train example 0: ErrorType.RUNTIME",
+          "Train example 1: ErrorType.RUNTIME",
+          "Train example 2: ErrorType.RUNTIME",
+          "Test example 0: ErrorType.RUNTIME"
+        ],
+        "error_details": [
+          {
+            "error_type": "runtime",
+            "error_message": "ModuleNotFoundError: No module named 'scipy'",
+            "exception_class": "ModuleNotFoundError",
+            "example_id": "train_0"
+          },
+          {
+            "error_type": "runtime",
+            "error_message": "ModuleNotFoundError: No module named 'scipy'",
+            "exception_class": "ModuleNotFoundError",
+            "example_id": "train_1"
+          },
+          {
+            "error_type": "runtime",
+            "error_message": "ModuleNotFoundError: No module named 'scipy'",
+            "exception_class": "ModuleNotFoundError",
+            "example_id": "train_2"
+          },
+          {
+            "error_type": "runtime",
+            "error_message": "ModuleNotFoundError: No module named 'scipy'",
+            "exception_class": "ModuleNotFoundError",
+            "example_id": "test_0"
+          }
+        ],
+        "error_summary": {
+          "runtime": 4
+        }
+      },
+      "refinement_count": 0,
+      "total_time": 11.184752941131592,
+      "improvement": 0.0
+    },
+    {
+      "generation": 1,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    output_grid = np.copy(task_grid)\n\n    # Find all non-background pixels\n    non_bg_rows, non_bg_cols = np.where(task_grid != 4)\n\n    if non_bg_rows.size == 0:\n        return output_grid  # Only background color\n\n    # Determine the bounding box of the non-background pixels\n    min_r, max_r = np.min(non_bg_rows), np.max(non_bg_rows)\n    min_c, max_c = np.min(non_bg_cols), np.max(non_bg_cols)\n\n    # Create an output grid initialized with the background color\n    output_grid = np.full_like(task_grid, 4, dtype=int)\n\n    # Extract the object within its bounding box\n    obj_bbox = task_grid[min_r:max_r+1, min_c:max_c+1]\n    obj_rows, obj_cols = obj_bbox.shape\n\n    # Create a mask for the object within the bounding box\n    obj_mask_bbox = obj_bbox != 4\n\n    # Determine the \"center\" of the object within its bounding box\n    center_obj_r = obj_rows // 2\n    center_obj_c = obj_cols // 2\n\n    # Determine the \"center\" of the entire grid\n    center_grid_r = rows // 2\n    center_grid_c = cols // 2\n\n    # Calculate the offset to place the object's bounding box center\n    # at the grid's center. This is a heuristic.\n    offset_r = center_grid_r - center_obj_r\n    offset_c = center_grid_c - center_obj_c\n\n    # Iterate through the object's bounding box and place it in the output grid\n    # with an offset, applying color transformations.\n    for r in range(obj_rows):\n        for c in range(obj_cols):\n            if obj_mask_bbox[r, c]:\n                # Calculate the target position in the output grid\n                target_r = r + offset_r\n                target_c = c + offset_c\n\n                # Ensure the target position is within the grid bounds\n                if 0 <= target_r < rows and 0 <= target_c < cols:\n                    original_color = obj_bbox[r, c]\n\n                    # Apply color transformations based on observed patterns in examples\n                    # This is a heuristic and might need adjustment for other tasks.\n                    if original_color == 1:\n                        # Determine color based on distance from the center of the object's bounding box\n                        dist_from_center = np.sqrt((r - center_obj_r)**2 + (c - center_obj_c)**2)\n                        # Heuristic for color mapping:\n                        # Smaller distances get different colors.\n                        # This is a simplified approach to mimic the filling patterns.\n                        if dist_from_center < min(obj_rows, obj_cols) / 4:\n                            output_grid[target_r, target_c] = 6\n                        elif dist_from_center < min(obj_rows, obj_cols) / 2:\n                            output_grid[target_r, target_c] = 8\n                        else:\n                            output_grid[target_r, target_c] = 2\n                    else:\n                        # Preserve other colors if they exist, though examples primarily use 1s.\n                        output_grid[target_r, target_c] = original_color\n\n    # A post-processing step to ensure the background (4) is preserved where not overwritten.\n    # This is implicitly handled by initializing output_grid with 4.\n    # However, if the object expansion goes beyond the original object's footprint\n    # and doesn't hit a new color, it should remain 4.\n\n    # The examples suggest a form of \"dilation\" or \"filling\" of the object.\n    # Let's try to simulate this by expanding the object's mask and assigning colors.\n\n    # Create a mask for the original object in the full grid\n    object_mask_full = np.zeros_like(task_grid, dtype=bool)\n    for r in range(obj_rows):\n        for c in range(obj_cols):\n            if obj_mask_bbox[r, c]:\n                target_r = r + offset_r\n                target_c = c + offset_c\n                if 0 <= target_r < rows and 0 <= target_c < cols:\n                    object_mask_full[target_r, target_c] = True\n\n    # Apply a simple dilation to the object mask\n    dilated_object_mask = np.zeros_like(task_grid, dtype=bool)\n    for r in range(rows):\n        for c in range(cols):\n            if object_mask_full[r, c]:\n                for dr in [-1, 0, 1]:\n                    for dc in [-1, 0, 1]:\n                        nr, nc = r + dr, c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols:\n                            dilated_object_mask[nr, nc] = True\n\n    # Now, re-color based on the dilated mask and original object's position.\n    # This is a more robust approach to filling.\n    final_output_grid = np.full_like(task_grid, 4, dtype=int)\n\n    for r in range(rows):\n        for c in range(cols):\n            if dilated_object_mask[r, c]:\n                # Find the corresponding pixel in the original object's bounding box\n                # relative to the grid's center.\n                relative_r = r - offset_r\n                relative_c = c - offset_c\n\n                if 0 <= relative_r < obj_rows and 0 <= relative_c < obj_cols:\n                    if obj_mask_bbox[relative_r, relative_c]:\n                        original_color = obj_bbox[relative_r, relative_c]\n                        if original_color == 1:\n                            # Apply color based on distance from the center of the object's bounding box\n                            dist_from_center = np.sqrt((relative_r - center_obj_r)**2 + (relative_c - center_obj_c)**2)\n                            if dist_from_center < min(obj_rows, obj_cols) / 4:\n                                final_output_grid[r, c] = 6\n                            elif dist_from_center < min(obj_rows, obj_cols) / 2:\n                                final_output_grid[r, c] = 8\n                            else:\n                                final_output_grid[r, c] = 2\n                        else:\n                            final_output_grid[r, c] = original_color\n                    else:\n                        # If the dilated area extends beyond the original object's mask\n                        # within the bounding box, assign a default color (e.g., 2)\n                        # or try to infer based on proximity.\n                        # For simplicity, let's assign 2 if it's part of the dilated mask\n                        # but not the original object's mask within the bbox.\n                        # This is a heuristic to fill gaps.\n                        final_output_grid[r, c] = 2\n                else:\n                    # If the dilated area is outside the original object's bounding box\n                    # but within the grid, assign a default color (e.g., 2)\n                    final_output_grid[r, c] = 2\n\n    # Ensure background color is preserved where no object pixels are present\n    # This is already handled by initializing with 4.\n    # However, if the object expansion resulted in areas that should be background,\n    # we need to be careful. The current logic primarily fills object areas.\n\n    # Let's refine the coloring logic for the dilated area.\n    # The examples show a layered coloring.\n    # The outermost layer of the dilated object gets color 2.\n    # The next layer gets 8.\n    # The innermost layer gets 6.\n\n    # Re-initialize for a cleaner approach based on layers.\n    final_output_grid = np.full_like(task_grid, 4, dtype=int)\n\n    # Create a distance map from the original object's mask\n    distance_map = np.full_like(task_grid, np.inf, dtype=float)\n    for r in range(rows):\n        for c in range(cols):\n            if object_mask_full[r, c]:\n                distance_map[r, c] = 0\n\n    # Perform a breadth-first search or similar to calculate distances\n    # This is complex with numpy only. A simpler approach is to iterate.\n    # Let's use a simplified iterative distance calculation.\n\n    # Create a temporary grid to store distances from the object's center within its bbox\n    obj_center_dist_map = np.full((obj_rows, obj_cols), np.inf, dtype=float)\n    for r in range(obj_rows):\n        for c in range(obj_cols):\n            if obj_mask_bbox[r, c]:\n                obj_center_dist_map[r, c] = np.sqrt((r - center_obj_r)**2 + (c - center_obj_c)**2)\n\n    # Now, map these distances to the output grid based on the offset.\n    for r in range(rows):\n        for c in range(cols):\n            if dilated_object_mask[r, c]:\n                relative_r = r - offset_r\n                relative_c = c - offset_c\n\n                if 0 <= relative_r < obj_rows and 0 <= relative_c < obj_cols:\n                    # If the pixel is within the original object's bounding box\n                    if obj_mask_bbox[relative_r, relative_c]:\n                        dist = obj_center_dist_map[relative_r, relative_c]\n                        if dist < min(obj_rows, obj_cols) / 4:\n                            final_output_grid[r, c] = 6\n                        elif dist < min(obj_rows, obj_cols) / 2:\n                            final_output_grid[r, c] = 8\n                        else:\n                            final_output_grid[r, c] = 2\n                    else:\n                        # If it's in the dilated area but not the original object's mask within bbox\n                        # This implies it's an expanded part. Assign a default color.\n                        # Based on examples, 2 seems like a good default for outer expansion.\n                        final_output_grid[r, c] = 2\n                else:\n                    # If it's in the dilated area but outside the original object's bbox\n                    final_output_grid[r, c] = 2\n\n    # Final check: ensure any remaining 4s are correct.\n    # The logic above overwrites areas within the dilated mask.\n    # Areas outside this mask should remain 4.\n\n    return final_output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 1,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "test_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 4
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 11.002813816070557,
+      "improvement": 0.0
+    },
+    {
+      "generation": 2,
+      "solver_code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    if task_grid.size == 0:\n        return np.array([])\n\n    rows, cols = task_grid.shape\n    \n    # Find all non-background pixels (color 4 is background)\n    non_bg_rows, non_bg_cols = np.where(task_grid != 4)\n\n    if non_bg_rows.size == 0:\n        return np.full_like(task_grid, 4, dtype=int)  # Only background color\n\n    # Determine the bounding box of the non-background pixels\n    min_r, max_r = np.min(non_bg_rows), np.max(non_bg_rows)\n    min_c, max_c = np.min(non_bg_cols), np.max(non_bg_cols)\n\n    # Extract the object within its bounding box\n    obj_bbox = task_grid[min_r:max_r+1, min_c:max_c+1]\n    obj_rows, obj_cols = obj_bbox.shape\n\n    # Create a mask for the object within the bounding box\n    obj_mask_bbox = obj_bbox != 4\n\n    # Determine the \"center\" of the object within its bounding box\n    center_obj_r = (obj_rows - 1) / 2.0\n    center_obj_c = (obj_cols - 1) / 2.0\n\n    # Determine the \"center\" of the entire grid\n    center_grid_r = (rows - 1) / 2.0\n    center_grid_c = (cols - 1) / 2.0\n\n    # Calculate the offset to place the object's bounding box center\n    # at the grid's center.\n    offset_r = int(round(center_grid_r - center_obj_r))\n    offset_c = int(round(center_grid_c - center_obj_c))\n\n    # Initialize the output grid with the background color\n    output_grid = np.full_like(task_grid, 4, dtype=int)\n\n    # Create a mask for the original object in the full grid, considering the offset\n    object_mask_full = np.zeros_like(task_grid, dtype=bool)\n    for r in range(obj_rows):\n        for c in range(obj_cols):\n            if obj_mask_bbox[r, c]:\n                target_r = r + offset_r\n                target_c = c + offset_c\n                if 0 <= target_r < rows and 0 <= target_c < cols:\n                    object_mask_full[target_r, target_c] = True\n\n    # Apply a simple dilation to the object mask to simulate expansion\n    # This creates a larger mask that covers the object and its immediate surroundings.\n    dilated_object_mask = np.zeros_like(task_grid, dtype=bool)\n    for r in range(rows):\n        for c in range(cols):\n            if object_mask_full[r, c]:\n                for dr in [-1, 0, 1]:\n                    for dc in [-1, 0, 1]:\n                        nr, nc = r + dr, c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols:\n                            dilated_object_mask[nr, nc] = True\n\n    # Now, color the output grid based on the dilated mask and the original object's properties.\n    # The coloring logic is based on distance from the object's center within its bounding box.\n    for r in range(rows):\n        for c in range(cols):\n            if dilated_object_mask[r, c]:\n                # Calculate the corresponding position relative to the object's bounding box\n                relative_r = r - offset_r\n                relative_c = c - offset_c\n\n                # Check if this relative position falls within the original object's bounding box\n                if 0 <= relative_r < obj_rows and 0 <= relative_c < obj_cols:\n                    # If it's within the original object's bounding box and part of the object's mask\n                    if obj_mask_bbox[relative_r, relative_c]:\n                        original_color = obj_bbox[relative_r, relative_c]\n                        if original_color == 1:\n                            # Calculate distance from the center of the object's bounding box\n                            dist_from_center = np.sqrt((relative_r - center_obj_r)**2 + (relative_c - center_obj_c)**2)\n                            \n                            # Heuristic for color mapping based on distance\n                            # This is derived from observing the layered coloring in the examples.\n                            # The exact thresholds might need tuning for different tasks, but this is a good starting point.\n                            max_dist_in_bbox = np.sqrt(center_obj_r**2 + center_obj_c**2) # Approx. max distance from center to corner\n                            \n                            if dist_from_center < max_dist_in_bbox / 4.0:\n                                output_grid[r, c] = 6\n                            elif dist_from_center < max_dist_in_bbox / 2.0:\n                                output_grid[r, c] = 8\n                            else:\n                                output_grid[r, c] = 2\n                        else:\n                            # If the original object had colors other than 1, preserve them.\n                            output_grid[r, c] = original_color\n                    else:\n                        # If the pixel is within the dilated area but outside the original object's mask\n                        # within the bounding box, it means it's an expanded part.\n                        # Assign a default color (2) for the outer layers of expansion.\n                        output_grid[r, c] = 2\n                else:\n                    # If the pixel is within the dilated area but outside the original object's bounding box\n                    # Assign a default color (2) for the outermost expansion.\n                    output_grid[r, c] = 2\n\n    return output_grid",
+      "fitness_result": {
+        "fitness": 0,
+        "train_correct": 0,
+        "train_total": 3,
+        "test_correct": 0,
+        "test_total": 1,
+        "train_accuracy": 0.0,
+        "test_accuracy": 0.0,
+        "execution_errors": [],
+        "error_details": [
+          {
+            "example_id": "train_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_1",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "train_2",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          },
+          {
+            "example_id": "test_0",
+            "error_type": "logic",
+            "error_message": "Output does not match expected result",
+            "exception_class": null
+          }
+        ],
+        "error_summary": {
+          "logic": 4
+        }
+      },
+      "refinement_count": 1,
+      "total_time": 5.464544057846069,
+      "improvement": 0.0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 3,
+  "total_time": 27.652110815048218
+}

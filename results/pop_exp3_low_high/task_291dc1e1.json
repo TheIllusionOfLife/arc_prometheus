@@ -1,0 +1,132 @@
+{
+  "task_id": "291dc1e1",
+  "success": true,
+  "timestamp": "2025-11-01T18:54:17.350793+00:00",
+  "config": {
+    "max_generations": 10,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": true,
+    "use_analyst": true,
+    "analyst_temperature": null,
+    "use_tagger": true,
+    "tagger_temperature": null,
+    "use_crossover": false,
+    "crossover_temperature": null
+  },
+  "population_stats": {
+    "final_population_size": 5,
+    "best_solver_id": "tmpq98n0vau_gen0_f17609bb",
+    "best_solver_generation": 0,
+    "best_solver_tags": []
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.0,
+      "population_size": 5,
+      "crossover_events": 0,
+      "mutation_events": 0
+    },
+    {
+      "generation": 1,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 0,
+      "mutation_events": 1
+    },
+    {
+      "generation": 2,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 0
+    },
+    {
+      "generation": 3,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 1
+    },
+    {
+      "generation": 4,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 0,
+      "mutation_events": 4
+    },
+    {
+      "generation": 5,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 0
+    },
+    {
+      "generation": 6,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 1.4,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 1
+    },
+    {
+      "generation": 7,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.8,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 0
+    },
+    {
+      "generation": 8,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.8,
+      "population_size": 5,
+      "crossover_events": 0,
+      "mutation_events": 3
+    },
+    {
+      "generation": 9,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.8,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 1
+    },
+    {
+      "generation": 10,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.8,
+      "population_size": 5,
+      "crossover_events": 1,
+      "mutation_events": 1
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 11,
+  "total_time": 136.83807682991028
+}

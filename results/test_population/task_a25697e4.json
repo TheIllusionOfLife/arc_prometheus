@@ -1,0 +1,60 @@
+{
+  "task_id": "a25697e4",
+  "success": true,
+  "timestamp": "2025-11-01T18:06:33.847504+00:00",
+  "config": {
+    "max_generations": 2,
+    "target_fitness": null,
+    "sandbox_mode": "multiprocess",
+    "model_name": "gemini-2.5-flash-lite",
+    "programmer_temperature": 0.3,
+    "refiner_temperature": 0.4,
+    "timeout_eval": 5,
+    "timeout_llm": 60,
+    "use_cache": true,
+    "use_analyst": false,
+    "analyst_temperature": null,
+    "use_tagger": false,
+    "tagger_temperature": null,
+    "use_crossover": false,
+    "crossover_temperature": null
+  },
+  "population_stats": {
+    "final_population_size": 3,
+    "best_solver_id": "tmpbwc9vzer_gen0_c8a0674e",
+    "best_solver_generation": 0,
+    "best_solver_tags": []
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 0.0,
+      "population_size": 3,
+      "crossover_events": 0,
+      "mutation_events": 0
+    },
+    {
+      "generation": 1,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 2.0,
+      "population_size": 3,
+      "crossover_events": 0,
+      "mutation_events": 1
+    },
+    {
+      "generation": 2,
+      "best_fitness": 0,
+      "average_fitness": 0.0,
+      "diversity_score": 2.0,
+      "population_size": 3,
+      "crossover_events": 1,
+      "mutation_events": 0
+    }
+  ],
+  "final_fitness": 0,
+  "total_generations": 3,
+  "total_time": 25.257259130477905
+}
