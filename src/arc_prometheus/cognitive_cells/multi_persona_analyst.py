@@ -10,14 +10,13 @@ Key features:
 - Single API call for efficiency
 """
 
-import json
 from dataclasses import dataclass, field
 
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 
 from arc_prometheus.utils.config import get_gemini_api_key
-from arc_prometheus.utils.schemas import MULTI_PERSONA_SCHEMA
+from arc_prometheus.utils.schemas import MULTI_PERSONA_SCHEMA, MultiPersonaResponse
 
 
 @dataclass
@@ -234,9 +233,11 @@ IMPORTANT:
             cache = get_cache()
             cached_response = cache.get(prompt, self.model_name, self.temperature)
             if cached_response is not None:
-                # Parse cached response
-                result = json.loads(cached_response)
-                return self._parse_response(result)
+                # Parse cached response using Pydantic
+                parsed_response = MultiPersonaResponse.model_validate_json(
+                    cached_response
+                )
+                return self._parse_response(parsed_response)
 
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)
@@ -249,15 +250,17 @@ IMPORTANT:
             cache = get_cache()
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
-        # Parse response (guaranteed valid JSON by schema)
-        result = json.loads(response.text)
-        return self._parse_response(result)
+        # Parse response using Pydantic (guaranteed valid JSON by schema)
+        parsed_response = MultiPersonaResponse.model_validate_json(response.text)
+        return self._parse_response(parsed_response)
 
-    def _parse_response(self, result: dict) -> list[InterpretationResult]:
-        """Parse JSON response into InterpretationResult objects.
+    def _parse_response(
+        self, result: MultiPersonaResponse
+    ) -> list[InterpretationResult]:
+        """Parse Pydantic response into InterpretationResult objects.
 
         Args:
-            result: JSON dict matching MULTI_PERSONA_SCHEMA
+            result: MultiPersonaResponse Pydantic model
 
         Returns:
             List of 5 InterpretationResult objects
@@ -265,7 +268,7 @@ IMPORTANT:
         Raises:
             ValueError: If result doesn't contain exactly 5 interpretations
         """
-        interpretations_data = result["interpretations"]
+        interpretations_data = result.interpretations
 
         if len(interpretations_data) != 5:
             raise ValueError(
@@ -275,11 +278,11 @@ IMPORTANT:
         interpretations = []
         for data in interpretations_data:
             interp = InterpretationResult(
-                persona=data["persona"],
-                pattern=data["pattern"],
-                observations=data["observations"],
-                approach=data["approach"],
-                confidence=data["confidence"],
+                persona=data.persona,
+                pattern=data.pattern,
+                observations=data.observations,
+                approach=data.approach,
+                confidence=data.confidence,
             )
             interpretations.append(interp)
 

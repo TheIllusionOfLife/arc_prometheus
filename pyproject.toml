@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.0.0",
     "google-generativeai>=0.8.0",
     "python-dotenv>=1.0.0",
+    "pydantic>=2.7.4,<3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -73,7 +74,7 @@ strict_equality = true
 
 # Allow missing imports for third-party libraries without stubs
 [[tool.mypy.overrides]]
-module = ["dotenv", "google", "google.*", "google.generativeai", "google.generativeai.*", "numpy", "numpy.*", "docker", "docker.*"]
+module = ["dotenv", "google", "google.*", "google.generativeai", "google.generativeai.*", "numpy", "numpy.*", "docker", "docker.*", "pydantic", "pydantic.*"]
 ignore_missing_imports = true
 
 # Relax type checking for test files

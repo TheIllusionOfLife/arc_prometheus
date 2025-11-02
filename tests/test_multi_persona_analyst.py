@@ -189,9 +189,13 @@ class TestMultiPersonaAnalyst:
 
     def test_parse_response_valid(self, sample_api_response):
         """Test parsing valid API response."""
+        from arc_prometheus.utils.schemas import MultiPersonaResponse
+
         with patch("arc_prometheus.cognitive_cells.multi_persona_analyst.genai"):
             analyst = MultiPersonaAnalyst()
-            results = analyst._parse_response(sample_api_response)
+            # Convert dict to Pydantic model
+            pydantic_response = MultiPersonaResponse.model_validate(sample_api_response)
+            results = analyst._parse_response(pydantic_response)
 
             assert len(results) == 5
             assert all(isinstance(r, InterpretationResult) for r in results)
@@ -206,25 +210,27 @@ class TestMultiPersonaAnalyst:
 
     def test_parse_response_wrong_count(self):
         """Test parsing response with wrong number of interpretations."""
-        with patch("arc_prometheus.cognitive_cells.multi_persona_analyst.genai"):
-            analyst = MultiPersonaAnalyst()
+        from pydantic import ValidationError
 
-            # Only 3 interpretations instead of 5
-            invalid_response = {
-                "interpretations": [
-                    {
-                        "persona": "Test 1",
-                        "pattern": "Pattern 1",
-                        "observations": ["obs"],
-                        "approach": "approach",
-                        "confidence": "high",
-                    }
-                ]
-                * 3
-            }
+        from arc_prometheus.utils.schemas import MultiPersonaResponse
 
-            with pytest.raises(ValueError, match="Expected 5 interpretations, got 3"):
-                analyst._parse_response(invalid_response)
+        # Only 3 interpretations instead of 5 - Pydantic will catch this
+        invalid_response_data = {
+            "interpretations": [
+                {
+                    "persona": "Test 1",
+                    "pattern": "Pattern 1",
+                    "observations": ["obs"],
+                    "approach": "approach",
+                    "confidence": "high",
+                }
+            ]
+            * 3
+        }
+
+        # Pydantic validation will raise ValidationError for wrong count
+        with pytest.raises(ValidationError):
+            MultiPersonaResponse.model_validate(invalid_response_data)
 
     @patch("arc_prometheus.cognitive_cells.multi_persona_analyst.genai")
     @patch("arc_prometheus.utils.llm_cache.get_cache")

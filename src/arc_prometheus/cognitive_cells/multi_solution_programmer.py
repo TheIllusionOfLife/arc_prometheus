@@ -11,7 +11,6 @@ Key features:
 - Links each solution to its interpretation via ID
 """
 
-import json
 import logging
 from dataclasses import dataclass
 
@@ -20,7 +19,7 @@ from google.generativeai.types import GenerationConfig
 
 from arc_prometheus.cognitive_cells.multi_persona_analyst import InterpretationResult
 from arc_prometheus.utils.config import get_gemini_api_key
-from arc_prometheus.utils.schemas import MULTI_SOLUTION_SCHEMA
+from arc_prometheus.utils.schemas import MULTI_SOLUTION_SCHEMA, MultiSolutionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -237,9 +236,11 @@ Provide a JSON array with 5 solutions, each containing:
             cache = get_cache()
             cached_response = cache.get(prompt, self.model_name, self.temperature)
             if cached_response is not None:
-                # Parse cached response
-                result = json.loads(cached_response)
-                return self._parse_and_validate_response(result)
+                # Parse cached response using Pydantic
+                parsed_response = MultiSolutionResponse.model_validate_json(
+                    cached_response
+                )
+                return self._parse_and_validate_response(parsed_response)
 
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)
@@ -252,15 +253,17 @@ Provide a JSON array with 5 solutions, each containing:
             cache = get_cache()
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
-        # Parse response (guaranteed valid JSON by schema)
-        result = json.loads(response.text)
-        return self._parse_and_validate_response(result)
+        # Parse response using Pydantic (guaranteed valid JSON by schema)
+        parsed_response = MultiSolutionResponse.model_validate_json(response.text)
+        return self._parse_and_validate_response(parsed_response)
 
-    def _parse_and_validate_response(self, result: dict) -> list[SolutionResult]:
-        """Parse JSON response and validate each solution.
+    def _parse_and_validate_response(
+        self, result: MultiSolutionResponse
+    ) -> list[SolutionResult]:
+        """Parse Pydantic response and validate each solution.
 
         Args:
-            result: JSON dict matching MULTI_SOLUTION_SCHEMA
+            result: MultiSolutionResponse Pydantic model
 
         Returns:
             List of validated SolutionResult objects (3-5 solutions)
@@ -268,7 +271,7 @@ Provide a JSON array with 5 solutions, each containing:
         Raises:
             ValueError: If all 5 solutions invalid or schema violation
         """
-        solutions_data = result["solutions"]
+        solutions_data = result.solutions
 
         if len(solutions_data) != 5:
             raise ValueError(
@@ -281,9 +284,9 @@ Provide a JSON array with 5 solutions, each containing:
         error_messages = []
 
         for data in solutions_data:
-            interp_id = data["interpretation_id"]
-            code = data["code"]
-            approach = data["approach_summary"]
+            interp_id = data.interpretation_id
+            code = data.code
+            approach = data.approach_summary
 
             # Validate solution
             is_valid, error_msg = self._validate_solution(code)

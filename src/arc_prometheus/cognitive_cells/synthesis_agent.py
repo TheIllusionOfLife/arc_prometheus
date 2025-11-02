@@ -12,7 +12,6 @@ Key features:
 - Structured JSON output with meta-learning analysis
 """
 
-import json
 import logging
 from dataclasses import dataclass
 
@@ -22,7 +21,7 @@ from google.generativeai.types import GenerationConfig
 from arc_prometheus.cognitive_cells.multi_persona_analyst import InterpretationResult
 from arc_prometheus.cognitive_cells.multi_solution_programmer import SolutionResult
 from arc_prometheus.utils.config import get_gemini_api_key
-from arc_prometheus.utils.schemas import SYNTHESIS_SCHEMA
+from arc_prometheus.utils.schemas import SYNTHESIS_SCHEMA, SynthesisResponse
 
 logger = logging.getLogger(__name__)
 
@@ -377,9 +376,9 @@ Provide analysis and synthesis code in structured JSON format with:
             cache = get_cache()
             cached_response = cache.get(prompt, self.model_name, self.temperature)
             if cached_response is not None:
-                # Parse cached response
-                result = json.loads(cached_response)
-                return self._parse_response(result)
+                # Parse cached response using Pydantic
+                parsed_response = SynthesisResponse.model_validate_json(cached_response)
+                return self._parse_response(parsed_response)
 
         # Call Gemini API
         logger.info("Calling Gemini API for synthesis...")
@@ -393,15 +392,15 @@ Provide analysis and synthesis code in structured JSON format with:
             cache = get_cache()
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
-        # Parse response (guaranteed valid JSON by schema)
-        result = json.loads(response.text)
-        return self._parse_response(result)
+        # Parse response using Pydantic (guaranteed valid JSON by schema)
+        parsed_response = SynthesisResponse.model_validate_json(response.text)
+        return self._parse_response(parsed_response)
 
-    def _parse_response(self, result: dict) -> SynthesisResult:
-        """Parse JSON response into SynthesisResult object.
+    def _parse_response(self, result: SynthesisResponse) -> SynthesisResult:
+        """Parse Pydantic response into SynthesisResult object.
 
         Args:
-            result: JSON dict matching SYNTHESIS_SCHEMA
+            result: SynthesisResponse Pydantic model
 
         Returns:
             SynthesisResult object
@@ -409,10 +408,10 @@ Provide analysis and synthesis code in structured JSON format with:
         Raises:
             ValueError: If code validation fails
         """
-        # Extract fields from schema
-        analysis = result["analysis"]
-        code = result["code"]
-        diversity_justification = result["diversity_justification"]
+        # Extract fields from Pydantic model
+        analysis = result.analysis
+        code = result.code
+        diversity_justification = result.diversity_justification
 
         # Validate code
         is_valid, error_msg = self._validate_solution(code)
@@ -422,12 +421,12 @@ Provide analysis and synthesis code in structured JSON format with:
         # Create result object
         synthesis = SynthesisResult(
             code=code,
-            approach_summary=analysis["synthesis_strategy"][
+            approach_summary=analysis.synthesis_strategy[
                 :100
             ],  # Use strategy as summary
-            successful_patterns=analysis["successful_patterns"],
-            failed_patterns=analysis["failed_patterns"],
-            synthesis_strategy=analysis["synthesis_strategy"],
+            successful_patterns=analysis.successful_patterns,
+            failed_patterns=analysis.failed_patterns,
+            synthesis_strategy=analysis.synthesis_strategy,
             diversity_justification=diversity_justification,
         )
 
