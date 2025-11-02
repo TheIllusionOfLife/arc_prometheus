@@ -729,6 +729,18 @@ def main() -> int:
     """Main benchmark execution function."""
     args = parse_benchmark_args()
 
+    # Validate flag dependencies
+    if args.use_crossover and not args.use_tagger:
+        print(
+            "Error: --use-crossover requires --use-tagger to be enabled.",
+            file=sys.stderr,
+        )
+        print(
+            "Crossover fusion relies on technique tags from the Tagger agent.",
+            file=sys.stderr,
+        )
+        return 1
+
     # Print header
     print("=" * 70)
     print(" ARC-Prometheus Evolution Loop Benchmark")
@@ -779,17 +791,16 @@ def main() -> int:
     print(f"  Cache Enabled: {args.use_cache}")
 
     # Display AI Civilization mode if enabled
-    ai_civ_features = []
-    if args.use_analyst:
-        ai_civ_features.append(
-            f"Analyst (temp={args.analyst_temperature or 'default'})"
-        )
-    if args.use_tagger:
-        ai_civ_features.append(f"Tagger (temp={args.tagger_temperature or 'default'})")
-    if args.use_crossover:
-        ai_civ_features.append(
-            f"Crossover (temp={args.crossover_temperature or 'default'})"
-        )
+    ai_civ_config = {
+        "Analyst": (args.use_analyst, args.analyst_temperature),
+        "Tagger": (args.use_tagger, args.tagger_temperature),
+        "Crossover": (args.use_crossover, args.crossover_temperature),
+    }
+    ai_civ_features = [
+        f"{name} (temp={temp or 'default'})"
+        for name, (enabled, temp) in ai_civ_config.items()
+        if enabled
+    ]
 
     if ai_civ_features:
         print(f"  AI Civilization: {', '.join(ai_civ_features)}")
