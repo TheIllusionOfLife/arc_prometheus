@@ -54,3 +54,16 @@ models/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Results/Experiments - Exclude all experiment outputs
+results/gemini_*/
+results/pop_*/
+results/test_*/
+results/debug_*/
+results/docker_baseline/
+results/multiprocess_baseline/
+results/evaluation_validation/
+results/pass2_test_3tasks/
+results/**/*.json
+results/**/*.log
+results/**/*.md
