@@ -1,4 +1,4 @@
-.PHONY: test lint typecheck format format-check ci clean help install check-uv
+.PHONY: test test-integration test-all test-cov lint typecheck format format-check ci clean help install check-uv
 
 # Check if uv is installed
 check-uv:
@@ -11,11 +11,17 @@ help:  ## Show this help message
 install:  ## Install project dependencies
 	pip install -e ".[dev]"
 
-test: check-uv  ## Run tests
+test: check-uv  ## Run tests (excluding integration tests)
+	uv run pytest tests/ -v -m "not integration"
+
+test-integration: check-uv  ## Run integration tests only (requires GEMINI_API_KEY)
+	uv run pytest tests/ -v -m "integration"
+
+test-all: check-uv  ## Run all tests including integration tests
 	uv run pytest tests/ -v
 
-test-cov: check-uv  ## Run tests with coverage report
-	uv run pytest tests/ --cov=src/arc_prometheus --cov-report=term-missing --cov-report=html
+test-cov: check-uv  ## Run tests with coverage report (excluding integration tests)
+	uv run pytest tests/ -m "not integration" --cov=src/arc_prometheus --cov-report=term-missing --cov-report=html
 
 lint: check-uv  ## Run linter (ruff check)
 	uv run ruff check src/ tests/ scripts/
