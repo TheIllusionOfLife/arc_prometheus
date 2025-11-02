@@ -66,5 +66,4 @@ results/evaluation_validation/
 results/pass2_test_3tasks/
 results/**/*.json
 results/**/*.log
-results/*.log
-results/*.md
+results/**/*.md
