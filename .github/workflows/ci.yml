@@ -46,6 +46,8 @@ jobs:
         run: bandit -r src/ -ll
 
       - name: Run tests
+        env:
+          GEMINI_API_KEY: test-api-key-for-ci
         run: pytest tests/ -v --cov=src/arc_prometheus --cov-report=term-missing --cov-report=xml
 
       - name: Upload coverage to Codecov
