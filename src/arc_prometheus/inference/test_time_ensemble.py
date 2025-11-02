@@ -188,7 +188,8 @@ def _execute_on_test_input(
     if success and result is not None:
         return result
     else:
-        # Return placeholder on failure
+        # Return 2x2 placeholder grid filled with zeros on failure
+        # ARC evaluation ignores incorrect predictions, so dimensions don't affect scoring
         logger.warning("Execution failed, returning placeholder grid")
         return np.array([[0, 0], [0, 0]], dtype=np.int64)
 

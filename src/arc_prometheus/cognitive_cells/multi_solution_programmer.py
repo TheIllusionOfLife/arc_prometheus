@@ -278,6 +278,7 @@ Provide a JSON array with 5 solutions, each containing:
         # Parse and validate each solution
         valid_solutions = []
         invalid_count = 0
+        error_messages = []
 
         for data in solutions_data:
             interp_id = data["interpretation_id"]
@@ -296,14 +297,18 @@ Provide a JSON array with 5 solutions, each containing:
                 valid_solutions.append(solution)
             else:
                 invalid_count += 1
+                error_messages.append(f"Solution {interp_id}: {error_msg}")
                 logger.warning(
                     f"Solution {interp_id} failed validation: {error_msg}. Skipping."
                 )
 
         # Check if we have at least some valid solutions
         if len(valid_solutions) == 0:
+            # Include first 3 error messages for debugging
+            error_summary = "; ".join(error_messages[:3])
             raise ValueError(
-                "All 5 solutions failed validation. Cannot proceed without any valid code."
+                f"All 5 solutions failed validation. Cannot proceed without any valid code. "
+                f"Errors: {error_summary}"
             )
 
         if invalid_count > 0:
