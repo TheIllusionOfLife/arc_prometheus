@@ -40,6 +40,9 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --tb=short"
+markers = [
+    "integration: marks tests that require real API access (skipped in CI)"
+]
 
 [tool.coverage.run]
 source = ["src/arc_prometheus"]
