@@ -16,11 +16,14 @@ def set_test_env_vars():
     The actual API calls are mocked in individual tests, but having
     the env var set prevents ValueError during agent initialization.
     """
+    # Save original value if it exists
+    original_key = os.environ.get("GEMINI_API_KEY")
+
     os.environ["GEMINI_API_KEY"] = "test-api-key-for-ci"
     yield
-    # Cleanup after all tests
-    if (
-        "GEMINI_API_KEY" in os.environ
-        and os.environ["GEMINI_API_KEY"] == "test-api-key-for-ci"
-    ):
+
+    # Restore original value or clean up
+    if original_key is not None:
+        os.environ["GEMINI_API_KEY"] = original_key
+    elif "GEMINI_API_KEY" in os.environ:
         del os.environ["GEMINI_API_KEY"]
