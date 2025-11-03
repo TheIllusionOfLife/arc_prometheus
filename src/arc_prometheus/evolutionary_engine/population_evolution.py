@@ -632,3 +632,138 @@ class PopulationEvolution:
             tags=member.tags,
             created_at=member.created_at,
         )
+
+
+# ============================================================================
+# Convenience Function for CLI Integration
+# ============================================================================
+
+
+def run_population_evolution(
+    task_json_path: str,
+    population_size: int = 10,
+    max_generations: int = 10,
+    mutation_rate: float = 0.2,
+    crossover_rate: float = 0.5,
+    target_fitness: float | None = None,
+    timeout_per_eval: int = 5,
+    timeout_per_llm: int = 60,
+    sandbox_mode: str = "multiprocess",
+    model_name: str | None = None,
+    programmer_temperature: float | None = None,
+    refiner_temperature: float | None = None,
+    analyst_temperature: float | None = None,
+    tagger_temperature: float | None = None,
+    crossover_temperature: float | None = None,
+    use_cache: bool = True,
+    use_analyst: bool = True,
+    use_tagger: bool = True,
+    use_crossover: bool = True,
+    verbose: bool = False,
+) -> dict[str, Any]:
+    """Convenience wrapper for running population evolution from CLI/scripts.
+
+    Args:
+        task_json_path: Path to ARC task JSON file
+        population_size: Number of solvers in population
+        max_generations: Maximum evolution generations
+        mutation_rate: Probability of mutation (0.0-1.0)
+        crossover_rate: Probability of crossover (0.0-1.0)
+        target_fitness: Optional early termination fitness threshold
+        timeout_per_eval: Timeout for each fitness evaluation (seconds)
+        timeout_per_llm: Timeout for each LLM call (seconds)
+        sandbox_mode: Sandbox type ("multiprocess" or "docker")
+        model_name: LLM model name (default: gemini-2.5-flash-lite)
+        programmer_temperature: Temperature for code generation
+        refiner_temperature: Temperature for debugging
+        analyst_temperature: Temperature for pattern analysis
+        tagger_temperature: Temperature for technique classification
+        crossover_temperature: Temperature for technique fusion
+        use_cache: Enable LLM response caching
+        use_analyst: Enable Analyst agent (AI Civilization mode)
+        use_tagger: Enable Tagger agent for technique classification
+        use_crossover: Enable Crossover agent for solution fusion
+        verbose: Enable verbose output
+
+    Returns:
+        Dictionary with keys:
+            - "final_population": List of dicts (solver_id, code_str, fitness_score, etc.)
+            - "best_solver": Dict with best solver details
+            - "generation_history": List of generation stats dicts
+            - "total_time": Total execution time in seconds
+
+    Example:
+        ```python
+        result = run_population_evolution(
+            task_json_path="data/task.json",
+            population_size=10,
+            max_generations=5,
+            use_analyst=True,
+            use_tagger=True,
+        )
+        print(f"Best fitness: {result['best_solver']['fitness_score']}")
+        ```
+    """
+    # Create PopulationEvolution instance
+    pop_evolution = PopulationEvolution(
+        population_size=population_size,
+        mutation_rate=mutation_rate,
+        crossover_rate=crossover_rate,
+        max_generations=max_generations,
+        model_name=model_name,
+        programmer_temperature=programmer_temperature,
+        refiner_temperature=refiner_temperature,
+        analyst_temperature=analyst_temperature,
+        tagger_temperature=tagger_temperature,
+        crossover_temperature=crossover_temperature,
+        use_cache=use_cache,
+        timeout_per_eval=timeout_per_eval,
+        timeout_per_llm=timeout_per_llm,
+        sandbox_mode=sandbox_mode,
+        verbose=verbose,
+    )
+
+    # Run evolution
+    result: PopulationResult = pop_evolution.evolve_population(
+        task_json_path=task_json_path,
+        max_generations=max_generations,
+        target_fitness=target_fitness,
+    )
+
+    # Convert dataclasses to dict for JSON serialization
+    def member_to_dict(member: PopulationMember) -> dict[str, Any]:
+        return {
+            "solver_id": member.solver_id,
+            "code_str": member.code_str,
+            "fitness_score": member.fitness_score,
+            "train_correct": member.train_correct,
+            "test_correct": member.test_correct,
+            "generation": member.generation,
+            "tags": member.tags,
+            "parent_ids": member.parent_ids,
+            "created_at": (
+                member.created_at.isoformat()
+                if member.created_at and hasattr(member.created_at, "isoformat")
+                else str(member.created_at)
+                if member.created_at
+                else None
+            ),
+        }
+
+    def stats_to_dict(stats: GenerationStats) -> dict[str, Any]:
+        return {
+            "generation": stats.generation,
+            "population_size": stats.population_size,
+            "best_fitness": stats.best_fitness,
+            "average_fitness": stats.average_fitness,
+            "diversity_score": stats.diversity_score,
+            "crossover_events": stats.crossover_events,
+            "mutation_events": stats.mutation_events,
+        }
+
+    return {
+        "final_population": [member_to_dict(m) for m in result.final_population],
+        "best_solver": member_to_dict(result.best_solver),
+        "generation_history": [stats_to_dict(s) for s in result.generation_history],
+        "total_time": result.total_time,
+    }
