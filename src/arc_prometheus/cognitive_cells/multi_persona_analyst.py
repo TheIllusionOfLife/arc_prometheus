@@ -192,7 +192,7 @@ INSTRUCTIONS:
 1. Each expert analyzes the task from their specialized perspective
 2. Each expert provides:
    - Pattern: One-sentence transformation rule (≤150 chars, be concise)
-   - Observations: 1-3 key insights specific to their expertise (each ≤80 chars)
+   - Observations: 1-3 key insights specific to their expertise (each ≤85 chars)
    - Approach: High-level implementation strategy (≤200 chars max, mention numpy operations)
    - Confidence: "high", "medium", or "low"
 3. All 5 interpretations MUST be different - no duplicate patterns

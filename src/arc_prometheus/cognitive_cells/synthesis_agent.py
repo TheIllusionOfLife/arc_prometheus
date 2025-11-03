@@ -294,8 +294,8 @@ IMPORTANT CONSTRAINTS:
 
 OUTPUT FORMAT:
 Provide analysis and synthesis code in structured JSON format with:
-- analysis.successful_patterns: List of 1-3 strings (each ≤80 chars)
-- analysis.failed_patterns: List of 1-3 strings (each ≤80 chars)
+- analysis.successful_patterns: List of 1-3 strings (each ≤85 chars)
+- analysis.failed_patterns: List of 1-3 strings (each ≤85 chars)
 - analysis.synthesis_strategy: String (≤250 chars max) explaining approach
 - code: Complete Python code string with solve() function
 - diversity_justification: String (≤200 chars max) why different from all 5
