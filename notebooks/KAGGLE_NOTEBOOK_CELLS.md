@@ -270,7 +270,6 @@ def generate_structured_json(
     prompt: str,
     schema: type[BaseModel],
     temperature: float = 0.0,
-    max_tokens: int = 65536,
 ) -> BaseModel:
     """Generate structured JSON matching Pydantic schema.
 
@@ -283,10 +282,13 @@ def generate_structured_json(
         prompt: The prompt to send to the model
         schema: Pydantic model class defining output structure
         temperature: 0.0 for deterministic, >0.0 for sampling
-        max_tokens: Maximum tokens to generate
 
     Returns:
         Validated Pydantic model instance
+
+    Note:
+        Token limits are controlled by model's generation_config during loading,
+        not as a parameter to generate.json().
     """
     # Select sampler based on temperature
     if temperature == 0.0:
@@ -299,7 +301,6 @@ def generate_structured_json(
         outlines_model,
         schema,
         sampler=sampler,
-        max_tokens=max_tokens,
     )
 
     # Generate and return validated result
@@ -326,7 +327,6 @@ test_result = generate_structured_json(
     "Say hello in JSON format",
     TestSchema,
     temperature=0.0,
-    max_tokens=50,
 )
 print(f"✅ Outlines test successful: {test_result.message}")
 ```
