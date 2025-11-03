@@ -226,30 +226,25 @@ print("✅ Pydantic schemas defined (identical to Gemini workflow)")
 ```python
 # Cell 3: Load Code Gemma with Outlines Wrapper
 
+import outlines
+import torch
+
 # Path to Code Gemma model (uploaded as Kaggle dataset)
 MODEL_DIR = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
 MODEL_PATH = f"{MODEL_DIR}/model"
-TOKENIZER_PATH = f"{MODEL_DIR}/tokenizer"
 
-print("Loading Code Gemma 7B model...")
+print("Loading Code Gemma 7B model with Outlines...")
 try:
-    # Load base model and tokenizer
-    base_model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH,
-        device_map="auto",
-        torch_dtype=torch.float16,  # Memory optimization
-    )
-    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
-    print(f"✅ Base model loaded successfully! Device: {base_model.device}")
-
-    # Wrap with Outlines for structured output
-    # This is the key difference from standard generation:
-    # Outlines constrains output to match Pydantic schema (like Gemini's structured output)
+    # Let Outlines handle model loading directly from path
+    # IMPORTANT: Pass MODEL_PATH string, NOT a pre-loaded model object
+    # (outlines.models.transformers() expects a string path/name)
     outlines_model = outlines.models.transformers(
-        base_model,
-        tokenizer,
+        MODEL_PATH,  # ✅ Pass path string
+        device="auto",
+        model_kwargs={"torch_dtype": torch.float16},  # Memory optimization
     )
-    print("✅ Outlines wrapper applied for structured JSON generation")
+    print(f"✅ Model loaded successfully with Outlines wrapper!")
+    print(f"   Device: {outlines_model.device}")
 
 except Exception as e:
     print(f"❌ ERROR: Model loading failed: {e}")
@@ -257,7 +252,6 @@ except Exception as e:
     print("1. Model files exist in Kaggle dataset")
     print("2. Sufficient disk space (~16GB)")
     print(f"   MODEL_PATH: {MODEL_PATH}")
-    print(f"   TOKENIZER_PATH: {TOKENIZER_PATH}")
     raise
 
 
@@ -267,8 +261,7 @@ def generate_structured_json(
     temperature: float = 0.0,
     max_tokens: int = 65536,
 ) -> BaseModel:
-    """
-    Generate structured JSON output using Outlines.
+    """Generate structured JSON matching Pydantic schema.
 
     This replicates Gemini's structured output API behavior:
     - Input: prompt + Pydantic schema
@@ -276,21 +269,21 @@ def generate_structured_json(
     - Guaranteed valid JSON (no parsing errors)
 
     Args:
-        prompt: Input prompt for the model
-        schema: Pydantic model class (e.g., MultiPersonaResponse)
-        temperature: Sampling temperature (0.0 = greedy, 1.0 = creative)
+        prompt: The prompt to send to the model
+        schema: Pydantic model class defining output structure
+        temperature: 0.0 for deterministic, >0.0 for sampling
         max_tokens: Maximum tokens to generate
 
     Returns:
-        Pydantic model instance with validated fields
+        Validated Pydantic model instance
     """
-    # Configure sampler based on temperature
+    # Select sampler based on temperature
     if temperature == 0.0:
         sampler = outlines.samplers.greedy()
     else:
         sampler = outlines.samplers.multinomial(temperature=temperature)
 
-    # Create generator with schema constraint
+    # Create JSON generator constrained by Pydantic schema
     generator = outlines.generate.json(
         outlines_model,
         schema,
@@ -298,12 +291,33 @@ def generate_structured_json(
         max_tokens=max_tokens,
     )
 
-    # Generate and return validated Pydantic model
+    # Generate and return validated result
     result = generator(prompt)
     return result
 
 
-print("✅ Structured JSON generation function ready (Outlines + Pydantic)")
+print("✅ Structured JSON generation function ready")
+```
+
+**⚠️ IMPORTANT: Kaggle Testing Required**
+
+This fix addresses the `HFValidationError` by passing the model path string to `outlines.models.transformers()` instead of a pre-loaded model object. The change has **not been tested locally** due to Code Gemma's 16GB VRAM requirement.
+
+**Recommended Kaggle validation test:**
+```python
+# Test structured generation (add to Cell 4 for quick validation)
+from pydantic import BaseModel, Field
+
+class TestSchema(BaseModel):
+    message: str = Field(..., description="A test message")
+
+test_result = generate_structured_json(
+    "Say hello in JSON format",
+    TestSchema,
+    temperature=0.0,
+    max_tokens=50,
+)
+print(f"✅ Outlines test successful: {test_result.message}")
 ```
 
 ---

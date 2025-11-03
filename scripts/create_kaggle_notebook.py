@@ -1,7 +1,13 @@
 """Generate Kaggle submission notebook with exact Gemini ensemble workflow.
 
-This script creates a properly formatted Jupyter notebook (.ipynb) with all
-cells containing the test-time ensemble implementation using Code Gemma + Outlines.
+This script creates a MINIMAL Jupyter notebook template (.ipynb) with only
+Cell 0 (header) and Cell 1 (environment setup).
+
+For the complete implementation, refer to:
+- notebooks/KAGGLE_NOTEBOOK_CELLS.md (Cells 0-7 documentation)
+- notebooks/KAGGLE_CELL_5_AGENTS.md (Agent implementations)
+
+Copy cell contents from the markdown files into your Kaggle notebook manually.
 """
 
 import json
