@@ -230,19 +230,30 @@ import outlines
 import torch
 
 # Path to Code Gemma model (uploaded as Kaggle dataset)
-# IMPORTANT: Point to the directory containing BOTH model and tokenizer files
-MODEL_PATH = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
+# IMPORTANT: Model and tokenizer are in SEPARATE subdirectories
+MODEL_DIR = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
+MODEL_PATH = f"{MODEL_DIR}/model"      # Model weights are in /model subdirectory
+TOKENIZER_PATH = f"{MODEL_DIR}/tokenizer"  # Tokenizer files are in /tokenizer subdirectory
 
 print("Loading Code Gemma 7B model with Outlines...")
 try:
-    # Let Outlines handle model loading directly from path
-    # IMPORTANT: Pass MODEL_PATH string, NOT a pre-loaded model object
-    # (outlines.models.transformers() expects a string path/name)
-    outlines_model = outlines.models.transformers(
-        MODEL_PATH,  # ✅ Pass directory path containing model + tokenizer
-        device="auto",
-        model_kwargs={"torch_dtype": torch.float16},  # Memory optimization
+    # We need to load model and tokenizer separately, then wrap with Outlines
+    # because they're in different subdirectories
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    # Load model from /model subdirectory
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_PATH,
+        device_map="auto",
+        torch_dtype=torch.float16,
     )
+
+    # Load tokenizer from /tokenizer subdirectory
+    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
+
+    # Wrap with Outlines for structured output
+    from outlines.models import Transformers
+    outlines_model = Transformers(model, tokenizer)
     print(f"✅ Model loaded successfully with Outlines wrapper!")
     print(f"   Device: {outlines_model.device}")
 
