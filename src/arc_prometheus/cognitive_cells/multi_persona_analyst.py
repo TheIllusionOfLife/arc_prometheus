@@ -265,15 +265,11 @@ IMPORTANT:
         Returns:
             List of 5 InterpretationResult objects
 
-        Raises:
-            ValueError: If result doesn't contain exactly 5 interpretations
+        Note:
+            Length validation (exactly 5 items) is enforced by Pydantic model.
+            No need for explicit check here - ValidationError raised before this method.
         """
         interpretations_data = result.interpretations
-
-        if len(interpretations_data) != 5:
-            raise ValueError(
-                f"Expected 5 interpretations, got {len(interpretations_data)}"
-            )
 
         interpretations = []
         for data in interpretations_data:

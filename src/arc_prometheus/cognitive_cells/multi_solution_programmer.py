@@ -269,14 +269,13 @@ Provide a JSON array with 5 solutions, each containing:
             List of validated SolutionResult objects (3-5 solutions)
 
         Raises:
-            ValueError: If all 5 solutions invalid or schema violation
+            ValueError: If all 5 solutions invalid
+
+        Note:
+            Length validation (exactly 5 solutions) is enforced by Pydantic model.
+            No need for explicit check here - ValidationError raised before this method.
         """
         solutions_data = result.solutions
-
-        if len(solutions_data) != 5:
-            raise ValueError(
-                f"Expected 5 solutions in response, got {len(solutions_data)}"
-            )
 
         # Parse and validate each solution
         valid_solutions = []
