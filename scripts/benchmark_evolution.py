@@ -53,12 +53,41 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from arc_prometheus.evolutionary_engine.evolution_loop import run_evolution_loop
+
+try:
+    from arc_prometheus.evolutionary_engine.population_evolution import (
+        run_population_evolution,
+    )
+
+    POPULATION_AVAILABLE = True
+except ImportError:
+    POPULATION_AVAILABLE = False
+
 from arc_prometheus.evolutionary_engine.submission_formatter import (
     format_submission_json,
     generate_task_predictions,
     select_diverse_solvers,
 )
 from arc_prometheus.utils.config import MODEL_NAME as DEFAULT_MODEL_NAME
+
+
+def run_population_evolution(**kwargs: Any) -> dict[str, Any]:
+    """Stub for population evolution (implementation in population_evolution.py).
+
+    This stub allows tests to mock the function even if the full implementation
+    isn't imported yet. The real implementation should be in:
+    src/arc_prometheus/evolutionary_engine/population_evolution.py
+
+    Args:
+        **kwargs: All population evolution parameters
+
+    Returns:
+        Dictionary with population evolution results
+    """
+    raise NotImplementedError(
+        "Population evolution not yet implemented. "
+        "This is a stub for testing CLI flags."
+    )
 
 
 def validate_task_id(task_id: str) -> bool:
@@ -229,6 +258,10 @@ def run_single_task_benchmark(
     tagger_temperature: float | None = None,
     use_crossover: bool = False,
     crossover_temperature: float | None = None,
+    use_population: bool = False,
+    population_size: int = 10,
+    mutation_rate: float = 0.2,
+    crossover_rate_population: float = 0.5,
 ) -> dict:
     """Run evolution loop benchmark on a single ARC task.
 
@@ -252,6 +285,10 @@ def run_single_task_benchmark(
         tagger_temperature: Temperature for Tagger agent
         use_crossover: Enable Crossover agent for technique fusion
         crossover_temperature: Temperature for Crossover agent
+        use_population: Enable population-based genetic algorithm evolution
+        population_size: Population size for genetic algorithm (default: 10)
+        mutation_rate: Mutation probability (default: 0.2)
+        crossover_rate_population: Crossover probability (default: 0.5)
 
     Returns:
         Dictionary with benchmark results:
@@ -290,6 +327,10 @@ def run_single_task_benchmark(
             "tagger_temperature": tagger_temperature,
             "use_crossover": use_crossover,
             "crossover_temperature": crossover_temperature,
+            "use_population": use_population,
+            "population_size": population_size,
+            "mutation_rate": mutation_rate,
+            "crossover_rate_population": crossover_rate_population,
         },
     }
 
@@ -317,30 +358,90 @@ def run_single_task_benchmark(
             tmp_task_file = tmp_file.name
 
         try:
-            # Run evolution loop
-            generations = run_evolution_loop(
-                task_json_path=tmp_task_file,
-                max_generations=max_generations,
-                target_fitness=target_fitness,
-                timeout_per_eval=timeout_eval,
-                timeout_per_llm=timeout_llm,
-                verbose=False,  # Suppress console output for batch processing
-                sandbox_mode=sandbox_mode,
-                model_name=model_name,
-                programmer_temperature=programmer_temperature,
-                refiner_temperature=refiner_temperature,
-                use_cache=use_cache,
-                use_analyst=use_analyst,
-                analyst_temperature=analyst_temperature,
-                use_tagger=use_tagger,
-                tagger_temperature=tagger_temperature,
-                use_crossover=use_crossover,
-                crossover_temperature=crossover_temperature,
-            )
+            # Run evolution loop (population or single-solver mode)
+            if use_population:
+                # Population-based genetic algorithm
+                population_result = run_population_evolution(
+                    task_json_path=tmp_task_file,
+                    population_size=population_size,
+                    max_generations=max_generations,
+                    mutation_rate=mutation_rate,
+                    crossover_rate=crossover_rate_population,
+                    target_fitness=target_fitness,
+                    timeout_per_eval=timeout_eval,
+                    timeout_per_llm=timeout_llm,
+                    sandbox_mode=sandbox_mode,
+                    model_name=model_name,
+                    programmer_temperature=programmer_temperature,
+                    refiner_temperature=refiner_temperature,
+                    use_cache=use_cache,
+                    use_analyst=use_analyst,
+                    analyst_temperature=analyst_temperature,
+                    use_tagger=use_tagger,
+                    tagger_temperature=tagger_temperature,
+                    use_crossover=use_crossover,
+                    crossover_temperature=crossover_temperature,
+                    verbose=False,
+                )
 
-            # Calculate metrics
-            total_time = sum(gen["total_time"] for gen in generations)
-            final_fitness = generations[-1]["fitness_result"]["fitness"]
+                # Convert population result to benchmark format
+                # Extract generation history and convert to single-solver format
+                generations = []
+                for gen_record in population_result["generation_history"]:
+                    generations.append(
+                        {
+                            "generation": gen_record["generation"],
+                            "solver_code": "",  # Population doesn't track all codes
+                            "fitness_result": {
+                                "fitness": gen_record["best_fitness"],
+                                "train_correct": 0,  # Not tracked at gen level
+                                "train_total": 0,
+                                "test_correct": 0,
+                                "test_total": 0,
+                                "train_accuracy": 0.0,
+                                "test_accuracy": 0.0,
+                                "execution_errors": [],
+                                "error_details": [],
+                                "error_summary": {},
+                            },
+                            "refinement_count": 0,
+                            "total_time": 0.0,  # Not tracked individually
+                            "improvement": 0.0,
+                        }
+                    )
+
+                best_solver = population_result["best_solver"]
+                final_fitness = best_solver["fitness_score"]
+                total_time = sum(
+                    gen["total_time"]
+                    for gen in generations
+                    if "total_time" in gen and gen["total_time"] > 0
+                )
+            else:
+                # Single-solver iterative refinement
+                generations = run_evolution_loop(
+                    task_json_path=tmp_task_file,
+                    max_generations=max_generations,
+                    target_fitness=target_fitness,
+                    timeout_per_eval=timeout_eval,
+                    timeout_per_llm=timeout_llm,
+                    verbose=False,  # Suppress console output for batch processing
+                    sandbox_mode=sandbox_mode,
+                    model_name=model_name,
+                    programmer_temperature=programmer_temperature,
+                    refiner_temperature=refiner_temperature,
+                    use_cache=use_cache,
+                    use_analyst=use_analyst,
+                    analyst_temperature=analyst_temperature,
+                    use_tagger=use_tagger,
+                    tagger_temperature=tagger_temperature,
+                    use_crossover=use_crossover,
+                    crossover_temperature=crossover_temperature,
+                )
+
+                # Calculate metrics
+                total_time = sum(gen["total_time"] for gen in generations)
+                final_fitness = generations[-1]["fitness_result"]["fitness"]
 
             result.update(
                 {
@@ -722,6 +823,32 @@ def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Temperature for Crossover agent (default: uses config.py default)",
     )
 
+    # Population-based evolution configuration (Phase 3.6)
+    parser.add_argument(
+        "--use-population",
+        action="store_true",
+        default=False,
+        help="Enable population-based genetic algorithm evolution (tournament selection, crossover, mutation)",
+    )
+    parser.add_argument(
+        "--population-size",
+        type=int,
+        default=10,
+        help="Population size for genetic algorithm (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--mutation-rate",
+        type=float,
+        default=0.2,
+        help="Mutation probability for genetic algorithm (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--crossover-rate-population",
+        type=float,
+        default=0.5,
+        help="Crossover probability for genetic algorithm (default: %(default)s)",
+    )
+
     return parser.parse_args(args)
 
 
@@ -825,6 +952,10 @@ def main() -> int:
         "tagger_temperature": args.tagger_temperature,
         "use_crossover": args.use_crossover,
         "crossover_temperature": args.crossover_temperature,
+        "use_population": args.use_population,
+        "population_size": args.population_size,
+        "mutation_rate": args.mutation_rate,
+        "crossover_rate_population": args.crossover_rate_population,
     }
 
     metadata = generate_experiment_metadata(args.experiment_name, task_ids, config)
@@ -869,6 +1000,10 @@ def main() -> int:
             tagger_temperature=args.tagger_temperature,
             use_crossover=args.use_crossover,
             crossover_temperature=args.crossover_temperature,
+            use_population=args.use_population,
+            population_size=args.population_size,
+            mutation_rate=args.mutation_rate,
+            crossover_rate_population=args.crossover_rate_population,
         )
 
         # Display result summary
