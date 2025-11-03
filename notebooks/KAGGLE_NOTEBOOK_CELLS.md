@@ -63,9 +63,21 @@ import numpy as np
 # Silence tokenizer parallelism warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Install Outlines for structured output (similar to Gemini's structured output API)
-# This enables using Pydantic schemas with local Code Gemma
-print("Installing Outlines library...")
+# NOTE: Kaggle notebooks run OFFLINE (no internet access during execution).
+# You MUST pre-install dependencies by uploading them as a Kaggle dataset:
+#
+# Option 1: Upload pre-built wheels as a dataset
+#   1. Download wheels locally: pip download outlines accelerate -d wheels/
+#   2. Upload wheels/ directory as Kaggle dataset
+#   3. In notebook: pip install /kaggle/input/your-wheels-dataset/*.whl
+#
+# Option 2: Use Kaggle's pre-installed packages
+#   - Check available packages: !pip list
+#   - Pydantic and transformers are pre-installed
+#   - Only Outlines needs to be bundled
+#
+# For testing purposes, this cell attempts pip install (will fail offline)
+print("Attempting to install Outlines library...")
 import subprocess
 import sys
 
@@ -75,8 +87,8 @@ try:
     )
     print("✅ Outlines installed successfully")
 except Exception as e:
-    print(f"❌ Failed to install Outlines: {e}")
-    raise
+    print(f"⚠️  Pip install failed (expected in offline mode): {e}")
+    print("Make sure dependencies are pre-bundled as a Kaggle dataset")
 
 # Import required libraries
 try:
@@ -120,6 +132,8 @@ class Interpretation(BaseModel):
     )
     observations: list[str] = Field(
         ...,
+        min_length=1,
+        max_length=3,
         description="Key insights (1-3 items, each ≤85 chars)",
     )
     approach: str = Field(..., description="High-level implementation strategy (≤200 chars)")
@@ -133,6 +147,8 @@ class MultiPersonaResponse(BaseModel):
 
     interpretations: list[Interpretation] = Field(
         ...,
+        min_length=4,
+        max_length=4,
         description="Exactly 4 diverse expert interpretations",
     )
 
@@ -142,7 +158,7 @@ class Solution(BaseModel):
     """Single solver implementation linked to an interpretation."""
 
     interpretation_id: int = Field(
-        ..., description="Which interpretation this implements (1-4)"
+        ..., ge=1, le=4, description="Which interpretation this implements (1-4)"
     )
     code: str = Field(..., description="Complete solve() function implementation")
     approach_summary: str = Field(
@@ -151,11 +167,18 @@ class Solution(BaseModel):
 
 
 class MultiSolutionResponse(BaseModel):
-    """Response containing solver implementations."""
+    """Response containing solver implementations.
+
+    Normally contains exactly 4 solutions, but can accept 1-4 when MAX_TOKENS
+    truncates the response. The ensemble pipeline pads <4 solutions to 4 by
+    duplicating the best solution.
+    """
 
     solutions: list[Solution] = Field(
         ...,
-        description="Exactly 4 solver implementations",
+        min_length=1,
+        max_length=4,
+        description="1-4 solver implementations (target: 4)",
     )
 
 
@@ -165,10 +188,12 @@ class SynthesisAnalysis(BaseModel):
 
     successful_patterns: list[str] = Field(
         ...,
+        max_length=3,
         description="Patterns from successful solutions (max 3 items, each ≤85 chars)",
     )
     failed_patterns: list[str] = Field(
         ...,
+        max_length=5,
         description="Patterns from failed solutions (max 5 items, each ≤85 chars)",
     )
     synthesis_strategy: str = Field(

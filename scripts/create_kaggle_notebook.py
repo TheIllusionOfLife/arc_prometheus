@@ -55,9 +55,21 @@ import numpy as np
 # Silence tokenizer parallelism warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Install Outlines for structured output (similar to Gemini's structured output API)
-# This enables using Pydantic schemas with local Code Gemma
-print("Installing Outlines library...")
+# NOTE: Kaggle notebooks run OFFLINE (no internet access during execution).
+# You MUST pre-install dependencies by uploading them as a Kaggle dataset:
+#
+# Option 1: Upload pre-built wheels as a dataset
+#   1. Download wheels locally: pip download outlines accelerate -d wheels/
+#   2. Upload wheels/ directory as Kaggle dataset
+#   3. In notebook: pip install /kaggle/input/your-wheels-dataset/*.whl
+#
+# Option 2: Use Kaggle's pre-installed packages
+#   - Check available packages: !pip list
+#   - Pydantic and transformers are pre-installed
+#   - Only Outlines needs to be bundled
+#
+# For testing purposes, this cell attempts pip install (will fail offline)
+print("Attempting to install Outlines library...")
 import subprocess
 import sys
 
@@ -67,8 +79,8 @@ try:
     )
     print("✅ Outlines installed successfully")
 except Exception as e:
-    print(f"❌ Failed to install Outlines: {e}")
-    raise
+    print(f"⚠️  Pip install failed (expected in offline mode): {e}")
+    print("Make sure dependencies are pre-bundled as a Kaggle dataset")
 
 # Import required libraries
 try:
@@ -92,7 +104,7 @@ cell_1 = {
     "execution_count": None,
     "metadata": {},
     "outputs": [],
-    "source": cell_1_source.split("\n"),
+    "source": cell_1_source.splitlines(keepends=True),
 }
 
 # Due to size constraints, I'll create a Python script that users can run
