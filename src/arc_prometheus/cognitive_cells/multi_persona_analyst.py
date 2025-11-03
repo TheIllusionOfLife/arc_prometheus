@@ -18,6 +18,10 @@ from google.generativeai.types import GenerationConfig
 from pydantic import ValidationError
 
 from arc_prometheus.utils.config import get_gemini_api_key
+from arc_prometheus.utils.response_validation import (
+    unwrap_markdown_json,
+    validate_finish_reason,
+)
 from arc_prometheus.utils.schemas import MULTI_PERSONA_SCHEMA, MultiPersonaResponse
 
 logger = logging.getLogger(__name__)
@@ -241,6 +245,7 @@ IMPORTANT:
             temperature=self.temperature,
             response_mime_type="application/json",
             response_schema=MULTI_PERSONA_SCHEMA,
+            max_output_tokens=65536,  # Use full model capacity
         )
 
         # Check cache if enabled
@@ -269,6 +274,9 @@ IMPORTANT:
         model = genai.GenerativeModel(self.model_name)
         response = model.generate_content(prompt, generation_config=generation_config)
 
+        # Validate response completed successfully
+        validate_finish_reason(response)
+
         # Store in cache if enabled
         if self.use_cache:
             from ..utils.llm_cache import get_cache
@@ -277,7 +285,8 @@ IMPORTANT:
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
         # Parse response using Pydantic (guaranteed valid JSON by schema)
-        parsed_response = MultiPersonaResponse.model_validate_json(response.text)
+        cleaned_text = unwrap_markdown_json(response.text)
+        parsed_response = MultiPersonaResponse.model_validate_json(cleaned_text)
         return self._parse_response(parsed_response)
 
     def _parse_response(

@@ -17,7 +17,7 @@ but we validate responses with Pydantic models for type safety.
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 # Multi-Persona Analyst Schema
@@ -30,32 +30,18 @@ class Interpretation(BaseModel):
     )
     pattern: str = Field(
         ...,
-        max_length=150,
         description="One-sentence transformation rule description",
     )
     observations: list[str] = Field(
         ...,
         min_length=1,
         max_length=3,
-        description="Key insights (1-3 items, each ≤80 chars)",
+        description="Key insights (1-3 items)",
     )
-    approach: str = Field(
-        ..., max_length=200, description="High-level implementation strategy"
-    )
+    approach: str = Field(..., description="High-level implementation strategy")
     confidence: Literal["high", "medium", "low"] = Field(
         ..., description="Confidence in this interpretation"
     )
-
-    @field_validator("observations")
-    @classmethod
-    def validate_observations(cls, v: list[str]) -> list[str]:
-        """Validate that each observation is ≤100 characters."""
-        for obs in v:
-            if len(obs) > 100:
-                raise ValueError(
-                    f"Each observation must be ≤100 chars, but got {len(obs)}"
-                )
-        return v
 
 
 class MultiPersonaResponse(BaseModel):
@@ -78,7 +64,7 @@ class Solution(BaseModel):
     )
     code: str = Field(..., description="Complete solve() function implementation")
     approach_summary: str = Field(
-        ..., max_length=200, description="Brief description of implementation approach"
+        ..., description="Brief description of implementation approach"
     )
 
 
@@ -97,27 +83,16 @@ class SynthesisAnalysis(BaseModel):
     successful_patterns: list[str] = Field(
         ...,
         max_length=3,
-        description="Patterns from successful solutions (max 3, ≤80 chars each)",
+        description="Patterns from successful solutions (max 3 items)",
     )
     failed_patterns: list[str] = Field(
         ...,
         max_length=5,
-        description="Patterns from failed solutions (max 5, ≤80 chars each)",
+        description="Patterns from failed solutions (max 5 items)",
     )
     synthesis_strategy: str = Field(
-        ..., max_length=300, description="How to create diverse 6th solution"
+        ..., description="How to create diverse 6th solution"
     )
-
-    @field_validator("successful_patterns", "failed_patterns")
-    @classmethod
-    def validate_patterns(cls, v: list[str]) -> list[str]:
-        """Validate that each pattern is ≤100 characters."""
-        for pattern in v:
-            if len(pattern) > 100:
-                raise ValueError(
-                    f"Each pattern must be ≤100 chars, but got {len(pattern)}"
-                )
-        return v
 
 
 class SynthesisResponse(BaseModel):
@@ -131,7 +106,6 @@ class SynthesisResponse(BaseModel):
     )
     diversity_justification: str = Field(
         ...,
-        max_length=200,
         description="Why this solution is different from all 5 previous",
     )
 
