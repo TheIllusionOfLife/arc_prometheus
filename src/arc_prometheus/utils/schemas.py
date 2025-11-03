@@ -40,7 +40,7 @@ class Interpretation(BaseModel):
         description="Key insights (1-3 items, each ≤80 chars)",
     )
     approach: str = Field(
-        ..., max_length=100, description="High-level implementation strategy"
+        ..., max_length=200, description="High-level implementation strategy"
     )
     confidence: Literal["high", "medium", "low"] = Field(
         ..., description="Confidence in this interpretation"
@@ -78,7 +78,7 @@ class Solution(BaseModel):
     )
     code: str = Field(..., description="Complete solve() function implementation")
     approach_summary: str = Field(
-        ..., max_length=100, description="Brief description of implementation approach"
+        ..., max_length=200, description="Brief description of implementation approach"
     )
 
 
@@ -101,11 +101,11 @@ class SynthesisAnalysis(BaseModel):
     )
     failed_patterns: list[str] = Field(
         ...,
-        max_length=3,
-        description="Patterns from failed solutions (max 3, ≤80 chars each)",
+        max_length=5,
+        description="Patterns from failed solutions (max 5, ≤80 chars each)",
     )
     synthesis_strategy: str = Field(
-        ..., max_length=150, description="How to create diverse 6th solution"
+        ..., max_length=250, description="How to create diverse 6th solution"
     )
 
     @field_validator("successful_patterns", "failed_patterns")
@@ -131,7 +131,7 @@ class SynthesisResponse(BaseModel):
     )
     diversity_justification: str = Field(
         ...,
-        max_length=100,
+        max_length=200,
         description="Why this solution is different from all 5 previous",
     )
 
