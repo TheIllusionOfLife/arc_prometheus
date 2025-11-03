@@ -296,9 +296,22 @@ OUTPUT FORMAT:
 Provide analysis and synthesis code in structured JSON format with:
 - analysis.successful_patterns: List of 1-3 strings (each ≤80 chars)
 - analysis.failed_patterns: List of 1-3 strings (each ≤80 chars)
-- analysis.synthesis_strategy: String (≤150 chars) explaining approach
+- analysis.synthesis_strategy: String (≤250 chars max) explaining approach
 - code: Complete Python code string with solve() function
-- diversity_justification: String (≤100 chars) why different from all 5
+- diversity_justification: String (≤200 chars max) why different from all 5
+
+CONCISENESS EXAMPLES (follow these patterns):
+Good synthesis_strategy (142 chars):
+  "Combine border detection with flood fill from solutions 1 & 3, add rotation from 2, use different algorithm than all 5 (graph traversal)"
+
+Bad synthesis_strategy (too verbose):
+  "First we need to carefully identify the border regions of the input grid by examining each cell and determining if it's on the edge, then we should apply a flood fill algorithm similar to what was attempted in solution 1 but modified to work better..."
+
+Good diversity_justification (85 chars):
+  "Uses graph traversal instead of direct indexing; all 5 used array manipulation"
+
+Bad diversity_justification (too verbose):
+  "This solution is different from all the previous five solutions because it takes a completely different algorithmic approach by using graph traversal..."
 """
 
         return prompt

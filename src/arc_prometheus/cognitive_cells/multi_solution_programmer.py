@@ -163,14 +163,27 @@ IMPORTANT CONSTRAINTS:
 - Each solution's code must be self-contained and executable
 - Include "import numpy as np" at the top if using numpy
 - All 5 implementations must be DIFFERENT (different approaches/logic)
-- Each approach_summary must be ≤100 characters
+- Each approach_summary must be ≤200 characters max
 - Link each solution to its interpretation_id (1-5)
+
+CONCISENESS EXAMPLES (follow these patterns):
+Good approach_summary (134 chars):
+  "Rotate input 90° clockwise using np.rot90(grid, k=-1), then replace color 1→3 with np.where(rotated == 1, 3, rotated). Return result."
+
+Bad approach_summary (too verbose):
+  "First apply a rotation transformation to the input grid by using the numpy rotation function, then carefully examine each cell to determine if any color changes are needed and apply those changes systematically..."
+
+Good approach_summary (97 chars):
+  "Use np.flip(grid, axis=0) for vertical flip, then np.where to fill color 0→5 in border regions"
+
+Bad approach_summary (too verbose):
+  "Start by flipping the grid vertically to mirror the rows, and then we need to identify the border cells and change their colors from background to the target color..."
 
 OUTPUT FORMAT:
 Provide a JSON array with 5 solutions, each containing:
 - interpretation_id: Integer 1-5 (which interpretation it implements)
 - code: Complete Python code string with solve() function
-- approach_summary: Brief description (≤100 chars)
+- approach_summary: Brief description (≤200 chars max)
 """
 
         return prompt

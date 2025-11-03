@@ -193,10 +193,23 @@ INSTRUCTIONS:
 2. Each expert provides:
    - Pattern: One-sentence transformation rule (≤150 chars, be concise)
    - Observations: 1-3 key insights specific to their expertise (each ≤80 chars)
-   - Approach: High-level implementation strategy (≤100 chars, mention numpy operations)
+   - Approach: High-level implementation strategy (≤200 chars max, mention numpy operations)
    - Confidence: "high", "medium", or "low"
 3. All 5 interpretations MUST be different - no duplicate patterns
 4. Be extremely concise - stick to character limits strictly
+
+CONCISENESS EXAMPLES (follow these patterns):
+Good approach (158 chars):
+  "Use np.rot90 to rotate grid 90° clockwise, then apply np.where to replace colors: blue→red. Check each training example to confirm rotation direction"
+
+Bad approach (too verbose):
+  "First we need to carefully analyze the grid structure and determine the appropriate rotation angle, then we should systematically examine each cell to identify which colors need to be changed and what the mapping should be..."
+
+Good observation (72 chars):
+  "Output is 90° rotation of input with color 1→3 substitution preserved"
+
+Bad observation (too verbose):
+  "The output grid appears to be a rotated version of the input grid, specifically rotated by 90 degrees, and additionally there seems to be some color transformations happening..."
 
 IMPORTANT:
 - Focus on the ABSTRACT RULE that works for ALL examples
