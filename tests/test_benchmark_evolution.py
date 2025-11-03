@@ -594,3 +594,201 @@ class TestResumeCapability:
         assert "00576224" in remaining
         assert "009d5c81" in remaining
         assert "007bbfb7" not in remaining
+
+
+class TestPopulationModeFlags:
+    """Test population-based evolution CLI flags."""
+
+    def test_population_mode_flag_defaults_to_false(self):
+        """Test --use-population defaults to False."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+            ]
+        )
+
+        assert args.use_population is False
+
+    def test_population_mode_flag_can_be_enabled(self):
+        """Test --use-population flag can be enabled."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--use-population",
+            ]
+        )
+
+        assert args.use_population is True
+
+    def test_population_size_default(self):
+        """Test --population-size defaults to 10."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+            ]
+        )
+
+        assert args.population_size == 10
+
+    def test_population_size_custom_value(self):
+        """Test --population-size accepts custom values."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--population-size",
+                "20",
+            ]
+        )
+
+        assert args.population_size == 20
+
+    def test_mutation_rate_default(self):
+        """Test --mutation-rate defaults to 0.2."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+            ]
+        )
+
+        assert args.mutation_rate == 0.2
+
+    def test_mutation_rate_custom_value(self):
+        """Test --mutation-rate accepts custom values."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--mutation-rate",
+                "0.3",
+            ]
+        )
+
+        assert args.mutation_rate == 0.3
+
+    def test_crossover_rate_population_default(self):
+        """Test --crossover-rate-population defaults to 0.5."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+            ]
+        )
+
+        assert args.crossover_rate_population == 0.5
+
+    def test_crossover_rate_population_custom_value(self):
+        """Test --crossover-rate-population accepts custom values."""
+        from scripts.benchmark_evolution import parse_benchmark_args
+
+        args = parse_benchmark_args(
+            [
+                "--tasks",
+                "00576224",
+                "--output-dir",
+                "results/",
+                "--experiment-name",
+                "test",
+                "--crossover-rate-population",
+                "0.6",
+            ]
+        )
+
+        assert args.crossover_rate_population == 0.6
+
+    @patch("scripts.benchmark_evolution.run_population_evolution")
+    def test_population_params_propagated_to_evolution(
+        self, mock_run_population, tmp_path
+    ):
+        """Test population parameters are passed to evolution function."""
+        from scripts.benchmark_evolution import run_single_task_benchmark
+
+        # Mock population evolution results
+        mock_run_population.return_value = {
+            "generation_history": [
+                {
+                    "generation": 0,
+                    "best_fitness": 5.0,
+                    "average_fitness": 3.0,
+                    "diversity_score": 0.8,
+                }
+            ],
+            "best_solver": {
+                "solver_id": "solver_1",
+                "code_str": "def solve(x): return x",
+                "fitness_score": 5.0,
+                "train_correct": 2,
+                "test_correct": 0,
+            },
+        }
+
+        # Create mock task file
+        task_data = {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]], "output": [[6]]}],
+        }
+        training_file = tmp_path / "training.json"
+        training_file.write_text(json.dumps({"00576224": task_data}))
+
+        # Call with population mode enabled
+        run_single_task_benchmark(
+            task_id="00576224",
+            training_challenges_path=str(training_file),
+            max_generations=5,
+            use_population=True,
+            population_size=20,
+            mutation_rate=0.3,
+            crossover_rate_population=0.6,
+        )
+
+        # Verify run_population_evolution was called with correct params
+        call_kwargs = mock_run_population.call_args.kwargs
+        assert call_kwargs["population_size"] == 20
+        assert call_kwargs["mutation_rate"] == 0.3
+        assert call_kwargs["crossover_rate"] == 0.6
