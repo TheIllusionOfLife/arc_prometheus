@@ -157,8 +157,8 @@ class TestMultiSolutionProgrammer:
             assert "EXPERT INTERPRETATIONS TO IMPLEMENT:" in prompt
             assert "YOUR TASK:" in prompt
 
-            # Check for all 5 interpretations
-            for i in range(1, 6):
+            # Check for all 4 interpretations
+            for i in range(1, 5):
                 assert f"Interpretation {i}" in prompt
 
             # Check for training examples
@@ -244,8 +244,8 @@ class TestMultiSolutionProgrammer:
             sample_task, sample_interpretations
         )
 
-        # Should get 5 valid solutions from cache
-        assert len(solutions) == 5
+        # Should get 4 valid solutions from cache
+        assert len(solutions) == 4
         assert all(isinstance(s, SolutionResult) for s in solutions)
         assert mock_cache.get.called
         # API should NOT be called

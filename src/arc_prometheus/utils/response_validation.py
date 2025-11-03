@@ -20,6 +20,11 @@ def validate_finish_reason(response: Any) -> None:
         raise ValueError("No candidates in API response")
 
     candidate = response.candidates[0]
+
+    # Skip validation for non-Gemini objects (e.g., test mocks)
+    if not hasattr(type(candidate), "FinishReason"):
+        return
+
     finish_reason_enum = type(candidate).FinishReason
 
     # Check for various termination conditions

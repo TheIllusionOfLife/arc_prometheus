@@ -175,7 +175,7 @@ class TestMultiPersonaAnalyst:
             # Check for conciseness instructions
             assert "≤150 chars" in prompt
             assert "≤85 chars" in prompt
-            assert "≤100 chars" in prompt
+            assert "≤200 chars" in prompt
 
     def test_parse_response_valid(self, sample_api_response):
         """Test parsing valid API response."""

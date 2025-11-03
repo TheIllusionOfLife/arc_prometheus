@@ -136,8 +136,8 @@ def _pad_solutions(
 ) -> tuple[list[SolutionResult], list[InterpretationResult]]:
     """Pad solutions to exactly 4 for Synthesis agent compatibility.
 
-    If fewer than 4 solutions are provided, duplicates the best solution
-    (first in list) and its interpretation to reach 4 total.
+    If fewer than 4 solutions are provided, duplicates the first solution
+    (solutions[0]) and its interpretation to reach 4 total.
 
     Args:
         solutions: List of 1-4 SolutionResult objects
@@ -180,7 +180,7 @@ def _pad_solutions(
         )
 
     logger.warning(
-        f"Padded {len(solutions)} solutions to 4 by duplicating best solution"
+        f"Padded {len(solutions)} solutions to 4 by duplicating first solution"
     )
 
     return padded_solutions, matched_interpretations

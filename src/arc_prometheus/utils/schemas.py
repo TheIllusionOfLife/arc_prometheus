@@ -99,12 +99,12 @@ class SynthesisAnalysis(BaseModel):
         description="Patterns from failed solutions (max 5 items)",
     )
     synthesis_strategy: str = Field(
-        ..., description="How to create diverse 6th solution"
+        ..., description="How to create diverse 5th solution"
     )
 
 
 class SynthesisResponse(BaseModel):
-    """Response containing synthesis of 5 solutions into a 6th diverse solution."""
+    """Response containing synthesis of 4 solutions into a 5th diverse solution."""
 
     analysis: SynthesisAnalysis = Field(
         ..., description="Analysis of existing solutions"
@@ -114,7 +114,7 @@ class SynthesisResponse(BaseModel):
     )
     diversity_justification: str = Field(
         ...,
-        description="Why this solution is different from all 5 previous",
+        description="Why this solution is different from all 4 previous",
     )
 
 
@@ -160,7 +160,7 @@ MULTI_PERSONA_SCHEMA = {
                     "confidence",
                 ],
             },
-            "description": "Exactly 5 diverse expert interpretations",
+            "description": "Exactly 4 diverse expert interpretations",
         }
     },
     "required": ["interpretations"],
@@ -176,7 +176,7 @@ MULTI_SOLUTION_SCHEMA = {
                 "properties": {
                     "interpretation_id": {
                         "type": "integer",
-                        "description": "Which interpretation this implements (1-5)",
+                        "description": "Which interpretation this implements (1-4)",
                     },
                     "code": {
                         "type": "string",
@@ -189,7 +189,7 @@ MULTI_SOLUTION_SCHEMA = {
                 },
                 "required": ["interpretation_id", "code", "approach_summary"],
             },
-            "description": "Exactly 5 solver implementations",
+            "description": "Exactly 4 solver implementations",
         }
     },
     "required": ["solutions"],
