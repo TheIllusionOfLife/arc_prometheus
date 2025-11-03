@@ -384,14 +384,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--programmer-temperature",
         type=float,
-        default=0.7,
-        help="Temperature for programmer (default: 0.7)",
+        default=0.0,
+        help="Temperature for programmer (default: 0.0)",
     )
     parser.add_argument(
         "--synthesis-temperature",
         type=float,
-        default=0.5,
-        help="Temperature for synthesis (default: 0.5)",
+        default=0.0,
+        help="Temperature for synthesis (default: 0.0)",
     )
 
     # Execution configuration

@@ -90,3 +90,40 @@ def unwrap_markdown_json(text: str) -> str:
         text = text[:-3]
 
     return text.strip()
+
+
+def fix_truncated_json(text: str) -> str:
+    """Attempt to fix truncated JSON by closing open structures.
+
+    When MAX_TOKENS is reached, JSON is often cut off mid-string or mid-object.
+    This function attempts to close common truncation patterns to allow parsing.
+
+    Args:
+        text: Potentially truncated JSON string
+
+    Returns:
+        JSON string with missing closures added
+
+    Note:
+        This is best-effort - complex truncations may still fail to parse.
+        The goal is to recover partial results (e.g., 4/5 solutions) when possible.
+    """
+    result = text.strip()
+
+    # Check if truncated mid-string (most common case)
+    # Count quotes to see if we're inside a string
+    quote_count = result.count('"') - result.count('\\"')  # Exclude escaped quotes
+    if quote_count % 2 == 1:
+        # Odd number of quotes = truncated inside string
+        result += '"'
+
+    # Count opening/closing brackets and braces
+    open_braces = result.count("{") - result.count("}")
+    open_brackets = result.count("[") - result.count("]")
+
+    # Close any open structures
+    # Order matters: close innermost first (brackets before braces)
+    result += "]" * open_brackets
+    result += "}" * open_braces
+
+    return result

@@ -131,7 +131,7 @@ class TestMultiSolutionProgrammer:
             programmer = MultiSolutionProgrammer()
 
             assert programmer.model_name == "gemini-2.0-flash-thinking-exp"
-            assert programmer.temperature == 0.7
+            assert programmer.temperature == 0.0
             assert programmer.use_cache is True
 
     def test_initialization_custom(self):
@@ -181,7 +181,8 @@ class TestMultiSolutionProgrammer:
             # Check for constraints
             assert "def solve(task_grid: np.ndarray)" in prompt
             assert "import numpy as np" in prompt
-            assert "≤100 characters" in prompt
+            assert "≤200 characters" in prompt  # Updated: removed max_length
+            assert "≤1500 characters" in prompt  # New: conciseness requirement
             assert "interpretation_id" in prompt
 
     def test_validate_solution_valid(self):
@@ -343,7 +344,7 @@ class TestMultiSolutionProgrammer:
         generation_config = call_args[1]["generation_config"]
 
         # Verify structured output configuration
-        assert generation_config.temperature == 0.7
+        assert generation_config.temperature == 0.0
         assert generation_config.response_mime_type == "application/json"
         assert generation_config.response_schema is not None
 
@@ -425,7 +426,7 @@ class TestMultiSolutionProgrammer:
 
         programmer = MultiSolutionProgrammer(use_cache=False)
 
-        with pytest.raises(ValueError, match="All 5 solutions failed validation"):
+        with pytest.raises(ValueError, match="All 4 solutions failed validation"):
             programmer.generate_multi_solutions(sample_task, sample_interpretations)
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
@@ -438,7 +439,7 @@ class TestMultiSolutionProgrammer:
         # Only 3 interpretations instead of 5
         wrong_count_interpretations = sample_interpretations[:3]
 
-        with pytest.raises(ValueError, match="Expected 5 interpretations, got 3"):
+        with pytest.raises(ValueError, match="Expected 4 interpretations, got 3"):
             programmer.generate_multi_solutions(
                 sample_task, wrong_count_interpretations
             )

@@ -33,7 +33,7 @@ from ..cognitive_cells.multi_solution_programmer import (
     MultiSolutionProgrammer,
     SolutionResult,
 )
-from ..cognitive_cells.synthesis_agent import SynthesisAgent
+from ..cognitive_cells.synthesis_agent import SynthesisAgent, SynthesisResult
 from ..crucible.sandbox import MultiprocessSandbox
 from ..crucible.sandbox_protocol import ExecutionEnvironment
 
@@ -83,6 +83,26 @@ def _calculate_accuracies(
     return accuracies
 
 
+def _create_placeholder_solution() -> SolutionResult:
+    """Create a simple placeholder solution that returns input unchanged.
+
+    Used as fallback when Programmer fails due to MAX_TOKENS or other errors.
+
+    Returns:
+        SolutionResult with identity function (returns input as-is)
+    """
+    placeholder_code = """import numpy as np
+
+def solve(task_grid: np.ndarray) -> np.ndarray:
+    return task_grid.copy()
+"""
+    return SolutionResult(
+        interpretation_id=1,
+        code=placeholder_code,
+        approach_summary="Fallback: return input unchanged (Programmer failed)",
+    )
+
+
 def _select_best_solution(
     solutions: list[SolutionResult], accuracies: list[float]
 ) -> tuple[SolutionResult, float]:
@@ -114,53 +134,53 @@ def _select_best_solution(
 def _pad_solutions(
     solutions: list[SolutionResult], interpretations: list[InterpretationResult]
 ) -> tuple[list[SolutionResult], list[InterpretationResult]]:
-    """Pad solutions to exactly 5 for Synthesis agent compatibility.
+    """Pad solutions to exactly 4 for Synthesis agent compatibility.
 
-    If fewer than 5 solutions are provided, duplicates the best solution
-    (first in list) and its interpretation to reach 5 total.
+    If fewer than 4 solutions are provided, duplicates the best solution
+    (first in list) and its interpretation to reach 4 total.
 
     Args:
-        solutions: List of 1-5 SolutionResult objects
-        interpretations: List of 5 InterpretationResult objects
+        solutions: List of 1-4 SolutionResult objects
+        interpretations: List of 4 InterpretationResult objects
 
     Returns:
-        Tuple of (padded_solutions, matched_interpretations) both length 5
+        Tuple of (padded_solutions, matched_interpretations) both length 4
 
     Raises:
-        ValueError: If solutions list is empty or interpretations != 5
+        ValueError: If solutions list is empty or interpretations != 4
     """
     if not solutions:
         raise ValueError("Cannot pad empty solutions list")
 
-    if len(interpretations) != 5:
-        raise ValueError(f"Expected 5 interpretations, got {len(interpretations)}")
+    if len(interpretations) != 4:
+        raise ValueError(f"Expected 4 interpretations, got {len(interpretations)}")
 
-    if len(solutions) >= 5:
-        # Take first 5 solutions
-        return solutions[:5], interpretations[:5]
+    if len(solutions) >= 4:
+        # Take first 4 solutions
+        return solutions[:4], interpretations[:4]
 
-    # Need to pad to 5
+    # Need to pad to 4
     padded_solutions = solutions.copy()
     matched_interpretations = []
 
     # Match existing solutions to their interpretations
     for solution in solutions:
         interp_idx = solution.interpretation_id - 1  # IDs are 1-indexed
-        if 0 <= interp_idx < 5:
+        if 0 <= interp_idx < 4:
             matched_interpretations.append(interpretations[interp_idx])
         else:
             # Fallback to first interpretation if ID out of range
             matched_interpretations.append(interpretations[0])
 
-    # Duplicate first solution and interpretation to reach 5
-    while len(padded_solutions) < 5:
+    # Duplicate first solution and interpretation to reach 4
+    while len(padded_solutions) < 4:
         padded_solutions.append(solutions[0])
         matched_interpretations.append(
             interpretations[solutions[0].interpretation_id - 1]
         )
 
     logger.warning(
-        f"Padded {len(solutions)} solutions to 5 by duplicating best solution"
+        f"Padded {len(solutions)} solutions to 4 by duplicating best solution"
     )
 
     return padded_solutions, matched_interpretations
@@ -260,23 +280,37 @@ def solve_task_ensemble(
     interpretations = analyst.analyze_task(task)
     logger.info(f"Generated {len(interpretations)} interpretations")
 
-    # Step 2: Multi-Solution Generation
+    # Step 2: Multi-Solution Generation (with fallback)
     logger.info("Starting Multi-Solution Programmer...")
     programmer = MultiSolutionProgrammer(
         model_name=model_name,
         temperature=programmer_temperature,
         use_cache=use_cache,
     )
-    solutions = programmer.generate_multi_solutions(task, interpretations)
-    logger.info(f"Generated {len(solutions)}/5 valid solutions")
+    try:
+        solutions = programmer.generate_multi_solutions(task, interpretations)
+        logger.info(f"Generated {len(solutions)}/4 valid solutions")
+    except ValueError as e:
+        # Fallback: If Programmer completely fails (e.g., MAX_TOKENS unparseable),
+        # use placeholder solution to avoid task failure
+        if "MAX_TOKENS" in str(e) or "unparseable" in str(e):
+            logger.warning(
+                "Programmer failed with MAX_TOKENS/unparseable error. "
+                "Using placeholder solution as fallback."
+            )
+            placeholder = _create_placeholder_solution()
+            solutions = [placeholder]
+        else:
+            # Re-raise for other errors (validation, schema issues, etc.)
+            raise
 
-    # Step 3: Pad solutions to 5 if needed (Synthesis requires exactly 5)
-    if len(solutions) < 5:
+    # Step 3: Pad solutions to 4 if needed (Synthesis requires exactly 4)
+    if len(solutions) < 4:
         solutions, matched_interpretations = _pad_solutions(solutions, interpretations)
-        logger.info("Padded to 5 solutions for Synthesis agent")
+        logger.info("Padded to 4 solutions for Synthesis agent")
     else:
-        # Use first 5 solutions and match interpretations
-        solutions = solutions[:5]
+        # Use first 4 solutions and match interpretations
+        solutions = solutions[:4]
         matched_interpretations = [
             interpretations[sol.interpretation_id - 1] for sol in solutions
         ]
@@ -299,7 +333,7 @@ def solve_task_ensemble(
         f"(interpretation {best_solution.interpretation_id})"
     )
 
-    # Step 5: Synthesis - Create 6th solution
+    # Step 5: Synthesis - Create 5th solution (with fallback)
     logger.info("Starting Synthesis Agent...")
     synthesis_agent = SynthesisAgent(
         model_name=model_name,
@@ -308,10 +342,33 @@ def solve_task_ensemble(
         timeout=timeout,
         sandbox_mode=sandbox_mode,
     )
-    synthesis_result = synthesis_agent.synthesize_solution(
-        task, solutions, matched_interpretations
-    )
-    logger.info(f"Generated synthesis solution: {synthesis_result.approach_summary}")
+    try:
+        synthesis_result = synthesis_agent.synthesize_solution(
+            task, solutions, matched_interpretations
+        )
+        logger.info(
+            f"Generated synthesis solution: {synthesis_result.approach_summary}"
+        )
+    except ValueError as e:
+        # Fallback: If Synthesis fails (e.g., MAX_TOKENS unparseable),
+        # use best solution for both attempts (duplicate)
+        if "MAX_TOKENS" in str(e) or "unparseable" in str(e):
+            logger.warning(
+                "Synthesis failed with MAX_TOKENS/unparseable error. "
+                "Using best Programmer solution for both attempts (pass@1 only)."
+            )
+            # Create dummy synthesis result that duplicates best solution
+            synthesis_result = SynthesisResult(
+                code=best_solution.code,
+                approach_summary="Fallback: duplicate best solution (Synthesis failed)",
+                successful_patterns=[],
+                failed_patterns=[],
+                synthesis_strategy="N/A - Synthesis failed",
+                diversity_justification="N/A - Synthesis failed",
+            )
+        else:
+            # Re-raise for other errors
+            raise
 
     # Handle case where all solutions failed on train
     if best_accuracy == 0.0:

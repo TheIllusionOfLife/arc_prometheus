@@ -55,7 +55,7 @@ def sample_task_multi_test():
 
 @pytest.fixture
 def sample_interpretations():
-    """5 sample interpretations."""
+    """4 sample interpretations."""
     return [
         InterpretationResult(
             persona=f"Specialist {i + 1}",
@@ -64,20 +64,20 @@ def sample_interpretations():
             approach=f"Approach {i + 1}",
             confidence="high" if i % 2 == 0 else "medium",
         )
-        for i in range(5)
+        for i in range(4)
     ]
 
 
 @pytest.fixture
 def sample_solutions():
-    """5 sample solutions."""
+    """4 sample solutions."""
     return [
         SolutionResult(
             interpretation_id=i + 1,
             code=f"import numpy as np\ndef solve(grid): return np.flip(grid, axis={i})",
             approach_summary=f"Flip axis {i}",
         )
-        for i in range(5)
+        for i in range(4)
     ]
 
 
@@ -163,7 +163,7 @@ class TestSelectBestSolution:
 
     def test_select_highest(self, sample_solutions):
         """Test selecting solution with highest accuracy."""
-        accuracies = [0.2, 0.8, 0.5, 0.3, 0.6]
+        accuracies = [0.2, 0.8, 0.5, 0.3]
         best, best_acc = _select_best_solution(sample_solutions, accuracies)
 
         assert best.interpretation_id == 2  # Second solution (index 1)
@@ -171,7 +171,7 @@ class TestSelectBestSolution:
 
     def test_select_tie_first_wins(self, sample_solutions):
         """Test that first occurrence wins on tie."""
-        accuracies = [0.7, 0.5, 0.7, 0.3, 0.7]
+        accuracies = [0.7, 0.5, 0.7, 0.3]
         best, best_acc = _select_best_solution(sample_solutions, accuracies)
 
         assert best.interpretation_id == 1  # First solution with 0.7
@@ -192,15 +192,15 @@ class TestPadSolutions:
     """Test _pad_solutions helper function."""
 
     def test_no_padding_needed(self, sample_solutions, sample_interpretations):
-        """Test when exactly 5 solutions provided."""
+        """Test when exactly 4 solutions provided."""
         padded, matched = _pad_solutions(sample_solutions, sample_interpretations)
 
-        assert len(padded) == 5
-        assert len(matched) == 5
+        assert len(padded) == 4
+        assert len(matched) == 4
         assert padded == sample_solutions  # No change
 
-    def test_padding_from_2_to_5(self, sample_interpretations):
-        """Test padding 2 solutions to 5."""
+    def test_padding_from_2_to_4(self, sample_interpretations):
+        """Test padding 2 solutions to 4."""
         solutions = [
             SolutionResult(
                 interpretation_id=1, code="code1", approach_summary="approach1"
@@ -212,12 +212,11 @@ class TestPadSolutions:
 
         padded, matched = _pad_solutions(solutions, sample_interpretations)
 
-        assert len(padded) == 5
-        assert len(matched) == 5
-        # First 3 extra should be duplicates of first solution
+        assert len(padded) == 4
+        assert len(matched) == 4
+        # First 2 extra should be duplicates of first solution
         assert padded[2].code == "code1"
         assert padded[3].code == "code1"
-        assert padded[4].code == "code1"
 
     def test_empty_raises_error(self, sample_interpretations):
         """Test that empty solutions raises ValueError."""
@@ -226,7 +225,7 @@ class TestPadSolutions:
 
     def test_wrong_interpretations_count_raises_error(self, sample_solutions):
         """Test that wrong interpretation count raises ValueError."""
-        with pytest.raises(ValueError, match="Expected 5 interpretations"):
+        with pytest.raises(ValueError, match="Expected 4 interpretations"):
             _pad_solutions(sample_solutions, sample_solutions[:3])
 
 

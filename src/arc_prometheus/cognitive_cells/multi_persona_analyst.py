@@ -1,10 +1,10 @@
-"""Multi-Persona Analyst - Generates 5 diverse interpretations per task.
+"""Multi-Persona Analyst - Generates 4 diverse interpretations per task.
 
-This agent uses a single API call to generate 5 different expert perspectives
+This agent uses a single API call to generate 4 different expert perspectives
 on an ARC task, promoting diversity and increasing generalization capability.
 
 Key features:
-- 5 expert personas with different specializations
+- 4 expert personas with different specializations
 - High temperature (1.0) for maximum diversity
 - Structured JSON output with concise constraints
 - Single API call for efficiency
@@ -46,7 +46,7 @@ class InterpretationResult:
     confidence: str = ""
 
 
-# Default 5-persona set (from plan appendix)
+# Default 4-persona set (from plan appendix)
 DEFAULT_PERSONAS = {
     "persona_1": {
         "name": "Geometric Transformation Specialist",
@@ -72,17 +72,11 @@ DEFAULT_PERSONAS = {
         "focus": "Cropping, slicing, tiling, partitioning, resizing, concatenation, grid dimensions",
         "key_question": "Is this about grid dimensions or regional selection?",
     },
-    "persona_5": {
-        "name": "Logical Rules Specialist",
-        "emoji": "⚡",
-        "focus": "Conditional logic, counting, neighborhood analysis, cellular automata, pattern matching",
-        "key_question": "Are there if-then rules based on positions, counts, or neighbors?",
-    },
 }
 
 
 class MultiPersonaAnalyst:
-    """Generates 5 diverse expert interpretations of ARC tasks.
+    """Generates 4 diverse expert interpretations of ARC tasks.
 
     This agent uses multiple expert personas to analyze the same task from
     different perspectives, increasing the likelihood that at least one
@@ -94,7 +88,7 @@ class MultiPersonaAnalyst:
         task = load_task("data/arc-prize-2025/training/00576224.json")
         interpretations = analyst.analyze_task(task)
 
-        # Returns 5 InterpretationResult objects
+        # Returns 4 InterpretationResult objects
         for interp in interpretations:
             print(f"{interp.persona}: {interp.pattern}")
             print(f"  Confidence: {interp.confidence}")
@@ -146,7 +140,7 @@ class MultiPersonaAnalyst:
             task_json: ARC task dictionary with 'train' examples
 
         Returns:
-            Prompt string for LLM with 5 persona instructions
+            Prompt string for LLM with 4 persona instructions
         """
         # Format training examples
         train_examples = task_json["train"]
@@ -179,17 +173,17 @@ class MultiPersonaAnalyst:
         personas_text = "\n\n".join(persona_instructions)
 
         # Create prompt
-        prompt = f"""Analyze this ARC task from 5 DIFFERENT expert perspectives.
+        prompt = f"""Analyze this ARC task from 4 DIFFERENT expert perspectives.
 
 TRAINING EXAMPLES:
 {training_examples}
 
 YOUR TASK:
-You are a team of 5 experts analyzing this puzzle. Each expert has a different specialization
-and must provide their unique interpretation. Diversity is critical - all 5 perspectives
+You are a team of 4 experts analyzing this puzzle. Each expert has a different specialization
+and must provide their unique interpretation. Diversity is critical - all 4 perspectives
 must be DIFFERENT.
 
-THE 5 EXPERTS:
+THE 4 EXPERTS:
 {personas_text}
 
 INSTRUCTIONS:
@@ -199,7 +193,7 @@ INSTRUCTIONS:
    - Observations: 1-3 key insights specific to their expertise (each ≤85 chars)
    - Approach: High-level implementation strategy (≤200 chars max, mention numpy operations)
    - Confidence: "high", "medium", or "low"
-3. All 5 interpretations MUST be different - no duplicate patterns
+3. All 4 interpretations MUST be different - no duplicate patterns
 4. Be extremely concise - stick to character limits strictly
 
 CONCISENESS EXAMPLES (follow these patterns):
@@ -225,16 +219,16 @@ IMPORTANT:
         return prompt
 
     def analyze_task(self, task_json: dict) -> list[InterpretationResult]:
-        """Analyze ARC task and return 5 diverse interpretations.
+        """Analyze ARC task and return 4 diverse interpretations.
 
         Args:
             task_json: ARC task dictionary with 'train' examples
 
         Returns:
-            List of 5 InterpretationResult objects (one per expert persona)
+            List of 4 InterpretationResult objects (one per expert persona)
 
         Raises:
-            ValueError: If API response is invalid or doesn't contain 5 interpretations
+            ValueError: If API response is invalid or doesn't contain 4 interpretations
             TimeoutError: If API call times out
         """
         # Create prompt
@@ -298,10 +292,10 @@ IMPORTANT:
             result: MultiPersonaResponse Pydantic model
 
         Returns:
-            List of 5 InterpretationResult objects
+            List of 4 InterpretationResult objects
 
         Note:
-            Length validation (exactly 5 items) is enforced by Pydantic model.
+            Length validation (exactly 4 items) is enforced by Pydantic model.
             No need for explicit check here - ValidationError raised before this method.
         """
         interpretations_data = result.interpretations

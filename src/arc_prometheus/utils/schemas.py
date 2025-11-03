@@ -45,13 +45,13 @@ class Interpretation(BaseModel):
 
 
 class MultiPersonaResponse(BaseModel):
-    """Response containing 5 diverse expert interpretations."""
+    """Response containing 4 diverse expert interpretations."""
 
     interpretations: list[Interpretation] = Field(
         ...,
-        min_length=5,
-        max_length=5,
-        description="Exactly 5 diverse expert interpretations",
+        min_length=4,
+        max_length=4,
+        description="Exactly 4 diverse expert interpretations",
     )
 
 
@@ -60,7 +60,7 @@ class Solution(BaseModel):
     """Single solver implementation linked to an interpretation."""
 
     interpretation_id: int = Field(
-        ..., ge=1, le=5, description="Which interpretation this implements (1-5)"
+        ..., ge=1, le=4, description="Which interpretation this implements (1-4)"
     )
     code: str = Field(..., description="Complete solve() function implementation")
     approach_summary: str = Field(
@@ -69,16 +69,24 @@ class Solution(BaseModel):
 
 
 class MultiSolutionResponse(BaseModel):
-    """Response containing 5 solver implementations."""
+    """Response containing solver implementations.
+
+    Normally contains exactly 4 solutions, but can accept 1-4 when MAX_TOKENS
+    truncates the response. The ensemble pipeline pads <4 solutions to 4 by
+    duplicating the best solution.
+    """
 
     solutions: list[Solution] = Field(
-        ..., min_length=5, max_length=5, description="Exactly 5 solver implementations"
+        ...,
+        min_length=1,
+        max_length=4,
+        description="1-4 solver implementations (target: 4)",
     )
 
 
 # Synthesis Agent Schema
 class SynthesisAnalysis(BaseModel):
-    """Analysis of 5 solutions to inform synthesis."""
+    """Analysis of 4 solutions to inform synthesis."""
 
     successful_patterns: list[str] = Field(
         ...,
