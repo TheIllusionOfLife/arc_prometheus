@@ -602,19 +602,33 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## Session Handover
 
-### Last Updated: November 03, 2025 07:26 AM JST
+### Last Updated: November 03, 2025 10:05 AM JST
 
-#### Current Status: PR #53 Merged - Test-Time Ensemble Ready
+#### Current Status: PR #55 Merged - Pydantic Schema Validation Complete
 
-**Test-Time Multi-Persona Ensemble:** MERGED
-- Status: PR #53 successfully merged to main with all CI passing
-- Architectural shift: Evolution → Test-time ensemble (3 API calls/task)
-- New modules: Multi-Persona Analyst, Multi-Solution Programmer, Synthesis Agent
-- Test coverage: 80 comprehensive tests (all passing)
-- Repository hygiene: Removed 11,660 lines of experiment bloat
-- Quick wins: Enhanced error messages + placeholder documentation
+**Pydantic Schema Migration with Cache Error Handling:** MERGED
+- Status: PR #55 successfully merged to main with all CI passing
+- Architectural improvement: Hybrid schema (dict for API, Pydantic for validation)
+- Added 7 missing length constraints to Pydantic models
+- Graceful cache invalidation handling for schema migrations
+- Cache validation error recovery prevents crashes on stale entries
+- Test coverage: 518 tests (all passing)
+- **Impact**: Robust schema validation + automatic cache recovery on model changes
 
 #### Recently Completed
+
+**PR #55: Pydantic Schema Validation Migration** ([PR #55](https://github.com/TheIllusionOfLife/arc_prometheus/pull/55) - November 03, 2025):
+- Migrated from dict-based to Pydantic v2 schema validation (PR #53 bug fix)
+- Hybrid architecture: dict schemas for Gemini API compatibility + Pydantic models for runtime validation
+- Added 7 missing length constraints: `pattern` (150), `approach` (100), `approach_summary` (100), `synthesis_strategy` (150), `diversity_justification` (100), `observations` (1-3), `successful_patterns/failed_patterns` (max 3)
+- Enhanced field validators to check per-item lengths for list fields
+- Graceful cache error handling: try-except ValidationError with automatic regeneration on stale cache
+- Removed redundant validation checks (Pydantic handles constraint validation)
+- Fixed Makefile test targets: separate `test`, `test-integration`, `test-all` targets
+- Post-merge cache clearing instructions in PR description
+- **Code Quality**: Addressed all gemini-code-assist and claude[bot] review feedback (9 items total)
+- **Cache Recovery**: ValidationError handling prevents crashes when Pydantic models change after schema migrations
+- **Impact**: Production-ready schema validation with robust error recovery for evolving schemas
 
 **PR #53: Test-Time Multi-Persona Ensemble** ([PR #53](https://github.com/TheIllusionOfLife/arc_prometheus/pull/53) - November 03, 2025):
 - Implemented test-time ensemble architecture (Phase 1 Tasks 1.1-1.4)
@@ -716,6 +730,17 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - ✅ Error Classification ([PR #26](https://github.com/TheIllusionOfLife/arc_prometheus/pull/26))
 
 #### Session Learnings (Most Recent)
+
+**From PR #55 (Pydantic Schema Migration + Cache Error Handling) - November 03, 2025 10:05 AM JST**:
+- ✅ **COMPLETE**: PR #55 merged - Pydantic schema validation with graceful cache error recovery
+- **Cache Validation for Schema Migrations (Pattern #34)**: When Pydantic models change (e.g., adding max_length constraints), cached responses from old schemas cause ValidationError. Solution: Wrap model_validate_json() in try-except, log warning, fall through to regenerate fresh response. Invalid cache entries automatically overwritten.
+- **Hybrid Schema Architecture**: Dict schemas define Gemini API output format (must be simple for API compatibility), Pydantic models enforce runtime validation (can have complex constraints). Separation of concerns: API contract vs runtime safety.
+- **Missing Validation Constraints**: During migration, removed max_length from dict schemas for API compatibility but forgot to add to Pydantic Field() definitions. Lesson: Schema migration requires TWO updates - remove from dict, ADD to Pydantic model.
+- **Redundant Validation Anti-Pattern**: If Pydantic model has `min_length=1, max_length=5` on list field, don't add explicit `if len(data) != 5: raise ValueError()` check in parsing code. Pydantic raises ValidationError BEFORE parsing method is called. Trust the framework.
+- **Field Validator Enhancement**: For list fields with per-item constraints (e.g., observations: list[str] each ≤80 chars), use @field_validator to check each item individually, not just list length. Example: `for obs in v: if len(obs) > 80: raise ValueError()`
+- **Post-Merge Cache Clearing**: After schema migrations, users with existing caches need instructions. Added to PR description: "rm -rf ~/.arc_prometheus/llm_cache.db" prevents validation errors on first run with new models.
+- **GraphQL PR Review Efficiency**: Continued /fix_pr_graphql pattern - single query fetches all feedback sources. This session: 2 reviewers (gemini-code-assist, claude[bot]), addressed all cache error handling suggestions immediately.
+- **Test Coverage for Constraints**: Added length constraints didn't break any tests because existing test data already complied. Good test data should include BOTH valid and boundary cases to catch constraint violations.
 
 **From PR #53 (Test-Time Ensemble + PR Review) - November 03, 2025 07:26 AM JST**:
 - ✅ **COMPLETE**: PR #53 merged - test-time multi-persona ensemble operational
