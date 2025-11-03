@@ -62,19 +62,12 @@ def sample_interpretations():
             approach="Use array slicing [::-1]",
             confidence="high",
         ),
-        InterpretationResult(
-            persona="Logical Rules Specialist",
-            pattern="Apply rule: output[i] = input[n-1-i]",
-            observations=["Index transformation", "Works for any height"],
-            approach="Iterate with reversed indices",
-            confidence="medium",
-        ),
     ]
 
 
 @pytest.fixture
 def sample_api_response():
-    """Sample valid API response with 5 solutions."""
+    """Sample valid API response with 4 solutions."""
     return {
         "solutions": [
             {
@@ -96,11 +89,6 @@ def sample_api_response():
                 "interpretation_id": 4,
                 "code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    n = task_grid.shape[0]\n    result = np.zeros_like(task_grid)\n    for i in range(n):\n        result[i] = task_grid[n-1-i]\n    return result",
                 "approach_summary": "Index-based row reversal",
-            },
-            {
-                "interpretation_id": 5,
-                "code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    return np.flipud(task_grid)",
-                "approach_summary": "Flip up-down using np.flipud",
             },
         ]
     }
