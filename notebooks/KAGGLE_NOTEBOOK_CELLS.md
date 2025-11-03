@@ -255,7 +255,7 @@ try:
     from outlines.models import Transformers
     outlines_model = Transformers(model, tokenizer)
     print(f"✅ Model loaded successfully with Outlines wrapper!")
-    print(f"   Device: {outlines_model.device}")
+    print(f"   Device: {model.device}")
 
 except Exception as e:
     print(f"❌ ERROR: Model loading failed: {e}")
