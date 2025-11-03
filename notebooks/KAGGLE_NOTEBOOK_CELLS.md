@@ -230,8 +230,8 @@ import outlines
 import torch
 
 # Path to Code Gemma model (uploaded as Kaggle dataset)
-MODEL_DIR = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
-MODEL_PATH = f"{MODEL_DIR}/model"
+# IMPORTANT: Point to the directory containing BOTH model and tokenizer files
+MODEL_PATH = "/kaggle/input/codegemma-7b-instruct/codegemma-7b"
 
 print("Loading Code Gemma 7B model with Outlines...")
 try:
@@ -239,7 +239,7 @@ try:
     # IMPORTANT: Pass MODEL_PATH string, NOT a pre-loaded model object
     # (outlines.models.transformers() expects a string path/name)
     outlines_model = outlines.models.transformers(
-        MODEL_PATH,  # ✅ Pass path string
+        MODEL_PATH,  # ✅ Pass directory path containing model + tokenizer
         device="auto",
         model_kwargs={"torch_dtype": torch.float16},  # Memory optimization
     )
