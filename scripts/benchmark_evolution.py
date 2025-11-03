@@ -63,31 +63,32 @@ try:
 except ImportError:
     POPULATION_AVAILABLE = False
 
+    # Define stub only if import failed
+    def run_population_evolution(**kwargs: Any) -> dict[str, Any]:
+        """Stub for population evolution (implementation in population_evolution.py).
+
+        This stub allows tests to mock the function even if the full implementation
+        isn't imported yet. The real implementation should be in:
+        src/arc_prometheus/evolutionary_engine/population_evolution.py
+
+        Args:
+            **kwargs: All population evolution parameters
+
+        Returns:
+            Dictionary with population evolution results
+        """
+        raise NotImplementedError(
+            "Population evolution not yet implemented. "
+            "This is a stub for testing CLI flags."
+        )
+
+
 from arc_prometheus.evolutionary_engine.submission_formatter import (
     format_submission_json,
     generate_task_predictions,
     select_diverse_solvers,
 )
 from arc_prometheus.utils.config import MODEL_NAME as DEFAULT_MODEL_NAME
-
-
-def run_population_evolution(**kwargs: Any) -> dict[str, Any]:
-    """Stub for population evolution (implementation in population_evolution.py).
-
-    This stub allows tests to mock the function even if the full implementation
-    isn't imported yet. The real implementation should be in:
-    src/arc_prometheus/evolutionary_engine/population_evolution.py
-
-    Args:
-        **kwargs: All population evolution parameters
-
-    Returns:
-        Dictionary with population evolution results
-    """
-    raise NotImplementedError(
-        "Population evolution not yet implemented. "
-        "This is a stub for testing CLI flags."
-    )
 
 
 def validate_task_id(task_id: str) -> bool:
@@ -386,6 +387,8 @@ def run_single_task_benchmark(
 
                 # Convert population result to benchmark format
                 # Extract generation history and convert to single-solver format
+                best_solver = population_result["best_solver"]
+
                 generations = []
                 for gen_record in population_result["generation_history"]:
                     generations.append(
@@ -394,12 +397,33 @@ def run_single_task_benchmark(
                             "solver_code": "",  # Population doesn't track all codes
                             "fitness_result": {
                                 "fitness": gen_record["best_fitness"],
-                                "train_correct": 0,  # Not tracked at gen level
-                                "train_total": 0,
-                                "test_correct": 0,
-                                "test_total": 0,
-                                "train_accuracy": 0.0,
-                                "test_accuracy": 0.0,
+                                # Use best_solver's final stats for the last generation
+                                "train_correct": best_solver.get("train_correct", 0)
+                                if gen_record["generation"]
+                                == len(population_result["generation_history"]) - 1
+                                else 0,
+                                "train_total": len(task_data.get("train", [])),
+                                "test_correct": best_solver.get("test_correct", 0)
+                                if gen_record["generation"]
+                                == len(population_result["generation_history"]) - 1
+                                else 0,
+                                "test_total": len(task_data.get("test", [])),
+                                "train_accuracy": (
+                                    best_solver.get("train_correct", 0)
+                                    / len(task_data.get("train", []))
+                                )
+                                if len(task_data.get("train", [])) > 0
+                                and gen_record["generation"]
+                                == len(population_result["generation_history"]) - 1
+                                else 0.0,
+                                "test_accuracy": (
+                                    best_solver.get("test_correct", 0)
+                                    / len(task_data.get("test", []))
+                                )
+                                if len(task_data.get("test", [])) > 0
+                                and gen_record["generation"]
+                                == len(population_result["generation_history"]) - 1
+                                else 0.0,
                                 "execution_errors": [],
                                 "error_details": [],
                                 "error_summary": {},
@@ -410,13 +434,8 @@ def run_single_task_benchmark(
                         }
                     )
 
-                best_solver = population_result["best_solver"]
                 final_fitness = best_solver["fitness_score"]
-                total_time = sum(
-                    gen["total_time"]
-                    for gen in generations
-                    if "total_time" in gen and gen["total_time"] > 0
-                )
+                total_time = population_result.get("total_time", 0.0)
             else:
                 # Single-solver iterative refinement
                 generations = run_evolution_loop(
