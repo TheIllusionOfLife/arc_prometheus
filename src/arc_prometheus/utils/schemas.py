@@ -49,11 +49,11 @@ class Interpretation(BaseModel):
     @field_validator("observations")
     @classmethod
     def validate_observations(cls, v: list[str]) -> list[str]:
-        """Validate that each observation is ≤85 characters."""
+        """Validate that each observation is ≤100 characters."""
         for obs in v:
-            if len(obs) > 85:
+            if len(obs) > 100:
                 raise ValueError(
-                    f"Each observation must be ≤85 chars, but got {len(obs)}"
+                    f"Each observation must be ≤100 chars, but got {len(obs)}"
                 )
         return v
 
@@ -105,17 +105,17 @@ class SynthesisAnalysis(BaseModel):
         description="Patterns from failed solutions (max 5, ≤80 chars each)",
     )
     synthesis_strategy: str = Field(
-        ..., max_length=250, description="How to create diverse 6th solution"
+        ..., max_length=300, description="How to create diverse 6th solution"
     )
 
     @field_validator("successful_patterns", "failed_patterns")
     @classmethod
     def validate_patterns(cls, v: list[str]) -> list[str]:
-        """Validate that each pattern is ≤85 characters."""
+        """Validate that each pattern is ≤100 characters."""
         for pattern in v:
-            if len(pattern) > 85:
+            if len(pattern) > 100:
                 raise ValueError(
-                    f"Each pattern must be ≤85 chars, but got {len(pattern)}"
+                    f"Each pattern must be ≤100 chars, but got {len(pattern)}"
                 )
         return v
 
