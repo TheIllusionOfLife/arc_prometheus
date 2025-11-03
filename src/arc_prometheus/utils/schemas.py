@@ -29,12 +29,19 @@ class Interpretation(BaseModel):
         description="Expert perspective name (e.g., 'Geometric Transformation Specialist')",
     )
     pattern: str = Field(
-        ..., description="One-sentence transformation rule description"
+        ...,
+        max_length=150,
+        description="One-sentence transformation rule description",
     )
     observations: list[str] = Field(
-        ..., description="Key insights (max 3, each ≤80 chars)"
+        ...,
+        min_length=1,
+        max_length=3,
+        description="Key insights (1-3 items, each ≤80 chars)",
     )
-    approach: str = Field(..., description="High-level implementation strategy")
+    approach: str = Field(
+        ..., max_length=100, description="High-level implementation strategy"
+    )
     confidence: Literal["high", "medium", "low"] = Field(
         ..., description="Confidence in this interpretation"
     )
@@ -42,9 +49,12 @@ class Interpretation(BaseModel):
     @field_validator("observations")
     @classmethod
     def validate_observations(cls, v: list[str]) -> list[str]:
-        """Validate observations list length."""
-        if not 1 <= len(v) <= 3:
-            raise ValueError("Must have 1-3 observations")
+        """Validate that each observation is ≤80 characters."""
+        for obs in v:
+            if len(obs) > 80:
+                raise ValueError(
+                    f"Each observation must be ≤80 chars, but got {len(obs)}"
+                )
         return v
 
 
@@ -68,7 +78,7 @@ class Solution(BaseModel):
     )
     code: str = Field(..., description="Complete solve() function implementation")
     approach_summary: str = Field(
-        ..., description="Brief description of implementation approach"
+        ..., max_length=100, description="Brief description of implementation approach"
     )
 
 
@@ -85,21 +95,28 @@ class SynthesisAnalysis(BaseModel):
     """Analysis of 5 solutions to inform synthesis."""
 
     successful_patterns: list[str] = Field(
-        ..., description="Patterns from successful solutions (≤80 chars each)"
+        ...,
+        max_length=3,
+        description="Patterns from successful solutions (max 3, ≤80 chars each)",
     )
     failed_patterns: list[str] = Field(
-        ..., description="Patterns from failed solutions (≤80 chars each)"
+        ...,
+        max_length=3,
+        description="Patterns from failed solutions (max 3, ≤80 chars each)",
     )
     synthesis_strategy: str = Field(
-        ..., description="How to create diverse 6th solution"
+        ..., max_length=150, description="How to create diverse 6th solution"
     )
 
     @field_validator("successful_patterns", "failed_patterns")
     @classmethod
     def validate_patterns(cls, v: list[str]) -> list[str]:
-        """Validate pattern lists (max 3 items)."""
-        if len(v) > 3:
-            raise ValueError("Maximum 3 patterns allowed")
+        """Validate that each pattern is ≤80 characters."""
+        for pattern in v:
+            if len(pattern) > 80:
+                raise ValueError(
+                    f"Each pattern must be ≤80 chars, but got {len(pattern)}"
+                )
         return v
 
 
@@ -114,6 +131,7 @@ class SynthesisResponse(BaseModel):
     )
     diversity_justification: str = Field(
         ...,
+        max_length=100,
         description="Why this solution is different from all 5 previous",
     )
 
