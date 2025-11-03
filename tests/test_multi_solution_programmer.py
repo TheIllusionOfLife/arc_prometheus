@@ -280,7 +280,7 @@ class TestMultiSolutionProgrammer:
         )
 
         # Should get 5 valid solutions from API
-        assert len(solutions) == 5
+        assert len(solutions) == 4
         assert mock_cache.get.called
         # API should be called
         assert mock_genai.GenerativeModel.called
@@ -305,7 +305,7 @@ class TestMultiSolutionProgrammer:
         )
 
         # Should get 5 valid solutions from API
-        assert len(solutions) == 5
+        assert len(solutions) == 4
         # API should be called
         assert mock_genai.GenerativeModel.called
 
@@ -341,7 +341,7 @@ class TestMultiSolutionProgrammer:
         self, mock_genai, sample_task, sample_interpretations
     ):
         """Test handling of partial validation failures (some solutions invalid)."""
-        # Response with 2 invalid solutions
+        # Response with 2 invalid solutions (out of 4 total)
         partial_response = {
             "solutions": [
                 {
@@ -364,11 +364,6 @@ class TestMultiSolutionProgrammer:
                     "code": "def solve(grid):\n    return np.array(grid)  # Missing numpy import",
                     "approach_summary": "Invalid - no numpy import",
                 },
-                {
-                    "interpretation_id": 5,
-                    "code": "import numpy as np\n\ndef solve(grid: np.ndarray) -> np.ndarray:\n    return np.flipud(grid)",
-                    "approach_summary": "Valid solution 3",
-                },
             ]
         }
 
@@ -384,16 +379,16 @@ class TestMultiSolutionProgrammer:
             sample_task, sample_interpretations
         )
 
-        # Should return only 3 valid solutions
-        assert len(solutions) == 3
-        assert all(s.interpretation_id in [1, 3, 5] for s in solutions)
+        # Should return only 2 valid solutions (1 and 3)
+        assert len(solutions) == 2
+        assert all(s.interpretation_id in [1, 3] for s in solutions)
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
     def test_generate_multi_solutions_all_invalid_raises_error(
         self, mock_genai, sample_task, sample_interpretations
     ):
         """Test that all invalid solutions raises ValueError."""
-        # Response with all invalid solutions
+        # Response with all invalid solutions (4 total)
         all_invalid_response = {
             "solutions": [
                 {
@@ -401,7 +396,7 @@ class TestMultiSolutionProgrammer:
                     "code": "def broken(): pass",  # All missing solve()
                     "approach_summary": f"Invalid solution {i}",
                 }
-                for i in range(1, 6)
+                for i in range(1, 5)
             ]
         }
 
@@ -433,12 +428,12 @@ class TestMultiSolutionProgrammer:
             )
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
-    def test_parse_response_wrong_solution_count(
+    def test_parse_response_accepts_fewer_than_four_solutions(
         self, mock_genai, sample_task, sample_interpretations
     ):
-        """Test that wrong solution count in response raises validation error."""
-        # Response with only 3 solutions (Pydantic will catch this)
-        wrong_count_response = {
+        """Test that response with 1-4 solutions is accepted (handles MAX_TOKENS gracefully)."""
+        # Response with only 3 solutions - this is valid for MAX_TOKENS scenarios
+        partial_response = {
             "solutions": [
                 {
                     "interpretation_id": i,
@@ -452,17 +447,17 @@ class TestMultiSolutionProgrammer:
         # Setup mock API response
         mock_model = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = json.dumps(wrong_count_response)
+        mock_response.text = json.dumps(partial_response)
         mock_model.generate_content.return_value = mock_response
         mock_genai.GenerativeModel.return_value = mock_model
 
         programmer = MultiSolutionProgrammer(use_cache=False)
 
-        # Pydantic validation will raise ValidationError for wrong count
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            programmer.generate_multi_solutions(sample_task, sample_interpretations)
+        # Should succeed and return 3 solutions (padded to 4 by ensemble)
+        solutions = programmer.generate_multi_solutions(
+            sample_task, sample_interpretations
+        )
+        assert len(solutions) == 3
 
 
 # Integration test (can be run with real API if needed)

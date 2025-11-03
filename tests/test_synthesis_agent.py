@@ -509,7 +509,7 @@ class TestSynthesisAgent:
         generation_config = call_args[1]["generation_config"]
 
         # Verify structured output configuration
-        assert generation_config.temperature == 0.5
+        assert generation_config.temperature == 0.0
         assert generation_config.response_mime_type == "application/json"
         assert generation_config.response_schema is not None
 
