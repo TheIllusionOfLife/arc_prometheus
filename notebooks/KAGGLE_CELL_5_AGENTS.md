@@ -146,7 +146,6 @@ IMPORTANT:
             prompt,
             MultiPersonaResponse,
             temperature=self.temperature,
-            max_tokens=65536,
         )
 
         # Convert Pydantic models to dicts
@@ -282,7 +281,6 @@ Provide a JSON array with 4 solutions, each containing:
             prompt,
             MultiSolutionResponse,
             temperature=self.temperature,
-            max_tokens=65536,
         )
 
         # Convert Pydantic models to dicts
@@ -486,7 +484,6 @@ Bad diversity_justification (too verbose):
             prompt,
             SynthesisResponse,
             temperature=self.temperature,
-            max_tokens=65536,
         )
 
         # Convert Pydantic model to dict
