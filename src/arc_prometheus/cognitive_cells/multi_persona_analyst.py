@@ -1,10 +1,10 @@
-"""Multi-Persona Analyst - Generates 5 diverse interpretations per task.
+"""Multi-Persona Analyst - Generates 4 diverse interpretations per task.
 
-This agent uses a single API call to generate 5 different expert perspectives
+This agent uses a single API call to generate 4 different expert perspectives
 on an ARC task, promoting diversity and increasing generalization capability.
 
 Key features:
-- 5 expert personas with different specializations
+- 4 expert personas with different specializations
 - High temperature (1.0) for maximum diversity
 - Structured JSON output with concise constraints
 - Single API call for efficiency
@@ -18,6 +18,10 @@ from google.generativeai.types import GenerationConfig
 from pydantic import ValidationError
 
 from arc_prometheus.utils.config import get_gemini_api_key
+from arc_prometheus.utils.response_validation import (
+    unwrap_markdown_json,
+    validate_finish_reason,
+)
 from arc_prometheus.utils.schemas import MULTI_PERSONA_SCHEMA, MultiPersonaResponse
 
 logger = logging.getLogger(__name__)
@@ -42,7 +46,7 @@ class InterpretationResult:
     confidence: str = ""
 
 
-# Default 5-persona set (from plan appendix)
+# Default 4-persona set (from plan appendix)
 DEFAULT_PERSONAS = {
     "persona_1": {
         "name": "Geometric Transformation Specialist",
@@ -68,17 +72,11 @@ DEFAULT_PERSONAS = {
         "focus": "Cropping, slicing, tiling, partitioning, resizing, concatenation, grid dimensions",
         "key_question": "Is this about grid dimensions or regional selection?",
     },
-    "persona_5": {
-        "name": "Logical Rules Specialist",
-        "emoji": "⚡",
-        "focus": "Conditional logic, counting, neighborhood analysis, cellular automata, pattern matching",
-        "key_question": "Are there if-then rules based on positions, counts, or neighbors?",
-    },
 }
 
 
 class MultiPersonaAnalyst:
-    """Generates 5 diverse expert interpretations of ARC tasks.
+    """Generates 4 diverse expert interpretations of ARC tasks.
 
     This agent uses multiple expert personas to analyze the same task from
     different perspectives, increasing the likelihood that at least one
@@ -90,7 +88,7 @@ class MultiPersonaAnalyst:
         task = load_task("data/arc-prize-2025/training/00576224.json")
         interpretations = analyst.analyze_task(task)
 
-        # Returns 5 InterpretationResult objects
+        # Returns 4 InterpretationResult objects
         for interp in interpretations:
             print(f"{interp.persona}: {interp.pattern}")
             print(f"  Confidence: {interp.confidence}")
@@ -142,7 +140,7 @@ class MultiPersonaAnalyst:
             task_json: ARC task dictionary with 'train' examples
 
         Returns:
-            Prompt string for LLM with 5 persona instructions
+            Prompt string for LLM with 4 persona instructions
         """
         # Format training examples
         train_examples = task_json["train"]
@@ -175,28 +173,41 @@ class MultiPersonaAnalyst:
         personas_text = "\n\n".join(persona_instructions)
 
         # Create prompt
-        prompt = f"""Analyze this ARC task from 5 DIFFERENT expert perspectives.
+        prompt = f"""Analyze this ARC task from 4 DIFFERENT expert perspectives.
 
 TRAINING EXAMPLES:
 {training_examples}
 
 YOUR TASK:
-You are a team of 5 experts analyzing this puzzle. Each expert has a different specialization
-and must provide their unique interpretation. Diversity is critical - all 5 perspectives
+You are a team of 4 experts analyzing this puzzle. Each expert has a different specialization
+and must provide their unique interpretation. Diversity is critical - all 4 perspectives
 must be DIFFERENT.
 
-THE 5 EXPERTS:
+THE 4 EXPERTS:
 {personas_text}
 
 INSTRUCTIONS:
 1. Each expert analyzes the task from their specialized perspective
 2. Each expert provides:
    - Pattern: One-sentence transformation rule (≤150 chars, be concise)
-   - Observations: 1-3 key insights specific to their expertise (each ≤80 chars)
-   - Approach: High-level implementation strategy (≤100 chars, mention numpy operations)
+   - Observations: 1-3 key insights specific to their expertise (each ≤85 chars)
+   - Approach: High-level implementation strategy (≤200 chars max, mention numpy operations)
    - Confidence: "high", "medium", or "low"
-3. All 5 interpretations MUST be different - no duplicate patterns
+3. All 4 interpretations MUST be different - no duplicate patterns
 4. Be extremely concise - stick to character limits strictly
+
+CONCISENESS EXAMPLES (follow these patterns):
+Good approach (158 chars):
+  "Use np.rot90 to rotate grid 90° clockwise, then apply np.where to replace colors: blue→red. Check each training example to confirm rotation direction"
+
+Bad approach (too verbose):
+  "First we need to carefully analyze the grid structure and determine the appropriate rotation angle, then we should systematically examine each cell to identify which colors need to be changed and what the mapping should be..."
+
+Good observation (72 chars):
+  "Output is 90° rotation of input with color 1→3 substitution preserved"
+
+Bad observation (too verbose):
+  "The output grid appears to be a rotated version of the input grid, specifically rotated by 90 degrees, and additionally there seems to be some color transformations happening..."
 
 IMPORTANT:
 - Focus on the ABSTRACT RULE that works for ALL examples
@@ -208,16 +219,16 @@ IMPORTANT:
         return prompt
 
     def analyze_task(self, task_json: dict) -> list[InterpretationResult]:
-        """Analyze ARC task and return 5 diverse interpretations.
+        """Analyze ARC task and return 4 diverse interpretations.
 
         Args:
             task_json: ARC task dictionary with 'train' examples
 
         Returns:
-            List of 5 InterpretationResult objects (one per expert persona)
+            List of 4 InterpretationResult objects (one per expert persona)
 
         Raises:
-            ValueError: If API response is invalid or doesn't contain 5 interpretations
+            ValueError: If API response is invalid or doesn't contain 4 interpretations
             TimeoutError: If API call times out
         """
         # Create prompt
@@ -228,6 +239,7 @@ IMPORTANT:
             temperature=self.temperature,
             response_mime_type="application/json",
             response_schema=MULTI_PERSONA_SCHEMA,
+            max_output_tokens=65536,  # Use full model capacity
         )
 
         # Check cache if enabled
@@ -256,6 +268,9 @@ IMPORTANT:
         model = genai.GenerativeModel(self.model_name)
         response = model.generate_content(prompt, generation_config=generation_config)
 
+        # Validate response completed successfully
+        validate_finish_reason(response)
+
         # Store in cache if enabled
         if self.use_cache:
             from ..utils.llm_cache import get_cache
@@ -264,7 +279,8 @@ IMPORTANT:
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
         # Parse response using Pydantic (guaranteed valid JSON by schema)
-        parsed_response = MultiPersonaResponse.model_validate_json(response.text)
+        cleaned_text = unwrap_markdown_json(response.text)
+        parsed_response = MultiPersonaResponse.model_validate_json(cleaned_text)
         return self._parse_response(parsed_response)
 
     def _parse_response(
@@ -276,10 +292,10 @@ IMPORTANT:
             result: MultiPersonaResponse Pydantic model
 
         Returns:
-            List of 5 InterpretationResult objects
+            List of 4 InterpretationResult objects
 
         Note:
-            Length validation (exactly 5 items) is enforced by Pydantic model.
+            Length validation (exactly 4 items) is enforced by Pydantic model.
             No need for explicit check here - ValidationError raised before this method.
         """
         interpretations_data = result.interpretations

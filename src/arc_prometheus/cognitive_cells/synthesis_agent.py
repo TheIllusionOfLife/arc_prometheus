@@ -1,14 +1,14 @@
-"""Synthesis Agent - Meta-learning from 5 solutions to create diverse 6th solution.
+"""Synthesis Agent - Meta-learning from 4 solutions to create diverse 5th solution.
 
-This agent analyzes 5 solutions and their performance to generate a 6th solution
+This agent analyzes 4 solutions and their performance to generate a 5th solution
 that learns from successful patterns and avoids failed approaches.
 
 Key features:
-- Analyzes accuracy of all 5 solutions on training examples
+- Analyzes accuracy of all 4 solutions on training examples
 - Extracts successful patterns from high-accuracy solutions
 - Identifies anti-patterns from failed solutions
-- Generates diverse 6th solution using different algorithm
-- Temperature 0.5 for balanced creativity/consistency
+- Generates diverse 5th solution using different algorithm
+- Temperature 0.0 for deterministic output
 - Structured JSON output with meta-learning analysis
 """
 
@@ -21,6 +21,11 @@ from google.generativeai.types import GenerationConfig
 from arc_prometheus.cognitive_cells.multi_persona_analyst import InterpretationResult
 from arc_prometheus.cognitive_cells.multi_solution_programmer import SolutionResult
 from arc_prometheus.utils.config import get_gemini_api_key
+from arc_prometheus.utils.response_validation import (
+    fix_truncated_json,
+    unwrap_markdown_json,
+    validate_finish_reason,
+)
 from arc_prometheus.utils.schemas import SYNTHESIS_SCHEMA, SynthesisResponse
 
 logger = logging.getLogger(__name__)
@@ -35,8 +40,8 @@ class SynthesisResult:
         approach_summary: Brief description of implementation (≤100 chars)
         successful_patterns: Patterns from successful solutions (1-3 items, each ≤80 chars)
         failed_patterns: Patterns from failed solutions (1-3 items, each ≤80 chars)
-        synthesis_strategy: How to create diverse 6th solution (≤150 chars)
-        diversity_justification: Why different from all 5 previous (≤100 chars)
+        synthesis_strategy: How to create diverse 5th solution (≤150 chars)
+        diversity_justification: Why different from all 4 previous (≤100 chars)
     """
 
     code: str
@@ -48,10 +53,10 @@ class SynthesisResult:
 
 
 class SynthesisAgent:
-    """Generates diverse 6th solution by meta-learning from 5 solutions.
+    """Generates diverse 5th solution by meta-learning from 4 solutions.
 
-    This agent analyzes the performance of 5 generated solutions and creates
-    a 6th solution that learns from successful patterns and avoids failed
+    This agent analyzes the performance of 4 generated solutions and creates
+    a 5th solution that learns from successful patterns and avoids failed
     approaches, while using a DIFFERENT algorithm than all previous attempts.
 
     Example:
@@ -75,7 +80,7 @@ class SynthesisAgent:
     def __init__(
         self,
         model_name: str = "gemini-2.0-flash-thinking-exp",
-        temperature: float = 0.5,
+        temperature: float = 0.0,
         use_cache: bool = True,
         timeout: int = 5,
         sandbox_mode: str = "multiprocess",
@@ -211,9 +216,9 @@ class SynthesisAgent:
 
         Args:
             task_json: ARC task dictionary with 'train' examples
-            solutions: List of 5 SolutionResult objects
+            solutions: List of 4 SolutionResult objects
             accuracies: List of accuracy dicts for each solution
-            interpretations: List of 5 InterpretationResult objects from Analyst
+            interpretations: List of 4 InterpretationResult objects from Analyst
 
         Returns:
             Prompt string for LLM with synthesis instructions
@@ -256,16 +261,16 @@ class SynthesisAgent:
         solutions_summary = "\n".join(solution_summaries)
 
         # Create prompt
-        prompt = f"""Analyze 5 previous solutions and create a DIVERSE 6th solution.
+        prompt = f"""Analyze 4 previous solutions and create a DIVERSE 5th solution.
 
 TRAINING EXAMPLES:
 {training_examples}
 
-PREVIOUS 5 SOLUTIONS (with accuracy on training examples):
+PREVIOUS 4 SOLUTIONS (with accuracy on training examples):
 {solutions_summary}
 
 YOUR TASK:
-You are a meta-learning expert analyzing these 5 attempts to solve the ARC task.
+You are a meta-learning expert analyzing these 4 attempts to solve the ARC task.
 
 1. ANALYZE successful patterns:
    - What approaches worked well (high train accuracy)?
@@ -277,28 +282,55 @@ You are a meta-learning expert analyzing these 5 attempts to solve the ARC task.
    - What anti-patterns should be avoided?
    - Extract 1-3 key failed patterns (≤80 chars each)
 
-3. SYNTHESIZE a 6th solution:
+3. SYNTHESIZE a 5th solution:
    - Learn from successful patterns
    - Avoid failed patterns
-   - Use a DIFFERENT algorithm than all 5 previous attempts
+   - Use a DIFFERENT algorithm than all 4 previous attempts
    - Must be diverse in approach, not just different implementation
 
 IMPORTANT CONSTRAINTS:
-- The 6th solution MUST use a different algorithm/approach than all 5 previous
+- The 5th solution MUST use a different algorithm/approach than all 4 previous
 - Include "import numpy as np" at the top if using numpy
 - Must follow signature: def solve(task_grid: np.ndarray) -> np.ndarray
 - Use ONLY numpy for array operations (no other libraries)
 - Code must be complete, runnable, and self-contained
-- Provide clear diversity justification (≤100 chars) explaining why different
-- Synthesis strategy should explain how you combined insights (≤150 chars)
+- Provide clear diversity justification explaining why different
+- Synthesis strategy should explain how you combined insights
+
+CODE CONCISENESS REQUIREMENTS:
+- Aim for ≤1500 characters for solution code (strict limit to prevent token overflow)
+- NO comments whatsoever - code should be self-explanatory through clear variable names
+- NO docstrings - function signature and context make purpose clear
+- Use loops or helper functions instead of repetitive np.where/np.roll chains
+- Avoid commented-out alternative approaches or exploratory notes
+
+CRITICAL ERROR PREVENTION:
+- NEVER import scipy or any library except numpy (import numpy as np)
+- ALWAYS return np.ndarray type, NEVER return list (use np.array() to convert if needed)
+- CHECK your syntax: no missing colons, no indentation errors, no unclosed brackets
+- AVOID AttributeError: ensure you're calling methods on correct types (e.g., .shape on arrays not lists)
+- TEST your logic: ensure index access doesn't go out of bounds
 
 OUTPUT FORMAT:
 Provide analysis and synthesis code in structured JSON format with:
-- analysis.successful_patterns: List of 1-3 strings (each ≤80 chars)
-- analysis.failed_patterns: List of 1-3 strings (each ≤80 chars)
-- analysis.synthesis_strategy: String (≤150 chars) explaining approach
+- analysis.successful_patterns: List of 1-3 strings (each ≤85 chars)
+- analysis.failed_patterns: List of 1-3 strings (each ≤85 chars)
+- analysis.synthesis_strategy: String (≤250 chars max) explaining approach
 - code: Complete Python code string with solve() function
-- diversity_justification: String (≤100 chars) why different from all 5
+- diversity_justification: String (≤200 chars max) why different from all 4
+
+CONCISENESS EXAMPLES (follow these patterns):
+Good synthesis_strategy (141 chars):
+  "Combine border detection with flood fill from solutions 1 & 3, add rotation from 2, use different algorithm than all 4 (graph traversal)"
+
+Bad synthesis_strategy (too verbose):
+  "First we need to carefully identify the border regions of the input grid by examining each cell and determining if it's on the edge, then we should apply a flood fill algorithm similar to what was attempted in solution 1 but modified to work better..."
+
+Good diversity_justification (84 chars):
+  "Uses graph traversal instead of direct indexing; all 4 used array manipulation"
+
+Bad diversity_justification (too verbose):
+  "This solution is different from all the previous four solutions because it takes a completely different algorithmic approach by using graph traversal..."
 """
 
         return prompt
@@ -336,12 +368,12 @@ Provide analysis and synthesis code in structured JSON format with:
         solutions: list[SolutionResult],
         interpretations: list[InterpretationResult],
     ) -> SynthesisResult:
-        """Generate diverse 6th solution through meta-learning.
+        """Generate diverse 5th solution through meta-learning.
 
         Args:
             task_json: ARC task dictionary with 'train' examples
-            solutions: List of 5 SolutionResult objects from Programmer
-            interpretations: List of 5 InterpretationResult objects from Analyst
+            solutions: List of 4 SolutionResult objects from Programmer
+            interpretations: List of 4 InterpretationResult objects from Analyst
 
         Returns:
             SynthesisResult with code and meta-learning analysis
@@ -349,14 +381,14 @@ Provide analysis and synthesis code in structured JSON format with:
         Raises:
             ValueError: If validation fails or wrong number of solutions/interpretations
         """
-        if len(solutions) != 5:
-            raise ValueError(f"Expected 5 solutions, got {len(solutions)}")
+        if len(solutions) != 4:
+            raise ValueError(f"Expected 4 solutions, got {len(solutions)}")
 
-        if len(interpretations) != 5:
-            raise ValueError(f"Expected 5 interpretations, got {len(interpretations)}")
+        if len(interpretations) != 4:
+            raise ValueError(f"Expected 4 interpretations, got {len(interpretations)}")
 
-        # Calculate accuracies for all 5 solutions
-        logger.info("Calculating accuracies for 5 solutions...")
+        # Calculate accuracies for all 4 solutions
+        logger.info("Calculating accuracies for 4 solutions...")
         accuracies = self._calculate_solution_accuracies(task_json, solutions)
 
         # Create prompt
@@ -367,6 +399,7 @@ Provide analysis and synthesis code in structured JSON format with:
             temperature=self.temperature,
             response_mime_type="application/json",
             response_schema=SYNTHESIS_SCHEMA,
+            max_output_tokens=65536,  # Use full model capacity
         )
 
         # Check cache if enabled
@@ -385,6 +418,21 @@ Provide analysis and synthesis code in structured JSON format with:
         model = genai.GenerativeModel(self.model_name)
         response = model.generate_content(prompt, generation_config=generation_config)
 
+        # Validate response completed successfully (or handle MAX_TOKENS gracefully)
+        is_truncated = False
+        try:
+            validate_finish_reason(response)
+        except ValueError as e:
+            if "MAX_TOKENS" in str(e):
+                logger.warning(
+                    "Synthesis response truncated due to MAX_TOKENS. "
+                    "Attempting to parse partial response..."
+                )
+                is_truncated = True
+            else:
+                # Re-raise for other errors (SAFETY, RECITATION, etc.)
+                raise
+
         # Store in cache if enabled
         if self.use_cache:
             from ..utils.llm_cache import get_cache
@@ -392,9 +440,33 @@ Provide analysis and synthesis code in structured JSON format with:
             cache = get_cache()
             cache.set(prompt, response.text, self.model_name, self.temperature)
 
-        # Parse response using Pydantic (guaranteed valid JSON by schema)
-        parsed_response = SynthesisResponse.model_validate_json(response.text)
-        return self._parse_response(parsed_response)
+        # Parse response using Pydantic
+        # If truncated, attempt to fix JSON before parsing
+        try:
+            cleaned_text = unwrap_markdown_json(response.text)
+            if is_truncated:
+                cleaned_text = fix_truncated_json(cleaned_text)
+                logger.info(
+                    "Fixed truncated JSON (added missing closures). "
+                    "Attempting to parse..."
+                )
+            parsed_response = SynthesisResponse.model_validate_json(cleaned_text)
+
+            if is_truncated:
+                logger.info("Successfully parsed synthesis from truncated response!")
+
+            return self._parse_response(parsed_response)
+        except (ValueError, Exception) as parse_error:
+            if is_truncated:
+                # If we can't parse truncated response, raise informative error
+                raise ValueError(
+                    f"Synthesis response truncated (MAX_TOKENS) and unparseable. "
+                    f"Could not extract partial solution. "
+                    f"Parse error: {parse_error}"
+                ) from parse_error
+            else:
+                # Non-truncated parse error, re-raise as-is
+                raise
 
     def _parse_response(self, result: SynthesisResponse) -> SynthesisResult:
         """Parse Pydantic response into SynthesisResult object.

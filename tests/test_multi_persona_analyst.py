@@ -76,16 +76,6 @@ def sample_api_response():
                 "approach": "Use array slicing [::-1] on rows",
                 "confidence": "high",
             },
-            {
-                "persona": "Logical Rules Specialist",
-                "pattern": "Apply rule: output[i] = input[n-1-i] for each row i",
-                "observations": [
-                    "Index transformation pattern",
-                    "Works for any grid height",
-                ],
-                "approach": "Iterate with reversed indices",
-                "confidence": "medium",
-            },
         ]
     }
 
@@ -169,7 +159,7 @@ class TestMultiPersonaAnalyst:
 
             # Check for key sections
             assert "TRAINING EXAMPLES:" in prompt
-            assert "THE 5 EXPERTS:" in prompt
+            assert "THE 4 EXPERTS:" in prompt
             assert "INSTRUCTIONS:" in prompt
 
             # Check for all personas
@@ -184,8 +174,8 @@ class TestMultiPersonaAnalyst:
 
             # Check for conciseness instructions
             assert "≤150 chars" in prompt
-            assert "≤80 chars" in prompt
-            assert "≤100 chars" in prompt
+            assert "≤85 chars" in prompt
+            assert "≤200 chars" in prompt
 
     def test_parse_response_valid(self, sample_api_response):
         """Test parsing valid API response."""
@@ -197,7 +187,7 @@ class TestMultiPersonaAnalyst:
             pydantic_response = MultiPersonaResponse.model_validate(sample_api_response)
             results = analyst._parse_response(pydantic_response)
 
-            assert len(results) == 5
+            assert len(results) == 4
             assert all(isinstance(r, InterpretationResult) for r in results)
 
             # Check first interpretation
@@ -247,7 +237,7 @@ class TestMultiPersonaAnalyst:
         results = analyst.analyze_task(sample_task)
 
         # Should get results from cache
-        assert len(results) == 5
+        assert len(results) == 4
         assert mock_cache.get.called
         # API should NOT be called
         assert not mock_genai.GenerativeModel.called
@@ -274,7 +264,7 @@ class TestMultiPersonaAnalyst:
         results = analyst.analyze_task(sample_task)
 
         # Should get results from API
-        assert len(results) == 5
+        assert len(results) == 4
         assert mock_cache.get.called
         # API should be called
         assert mock_genai.GenerativeModel.called
@@ -295,7 +285,7 @@ class TestMultiPersonaAnalyst:
         results = analyst.analyze_task(sample_task)
 
         # Should get results from API
-        assert len(results) == 5
+        assert len(results) == 4
         # API should be called
         assert mock_genai.GenerativeModel.called
 
@@ -330,9 +320,9 @@ class TestMultiPersonaAnalyst:
 class TestDefaultPersonas:
     """Test DEFAULT_PERSONAS constant."""
 
-    def test_has_five_personas(self):
-        """Test that DEFAULT_PERSONAS has exactly 5 personas."""
-        assert len(DEFAULT_PERSONAS) == 5
+    def test_has_four_personas(self):
+        """Test that DEFAULT_PERSONAS has exactly 4 personas."""
+        assert len(DEFAULT_PERSONAS) == 4
 
     def test_persona_structure(self):
         """Test that each persona has required fields."""
@@ -368,7 +358,7 @@ def test_real_api_multi_persona_analyst(sample_task):
         results = analyst.analyze_task(sample_task)
 
         # Validate structure
-        assert len(results) == 5
+        assert len(results) == 4
         assert all(isinstance(r, InterpretationResult) for r in results)
 
         # Validate content

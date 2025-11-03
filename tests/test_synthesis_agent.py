@@ -77,16 +77,6 @@ def sample_interpretations():
             approach="Use array slicing [::-1] on rows",
             confidence="high",
         ),
-        InterpretationResult(
-            persona="Logical Rules Specialist",
-            pattern="Apply rule: output[i] = input[n-1-i] for each row i",
-            observations=[
-                "Index transformation pattern",
-                "Works for any grid height",
-            ],
-            approach="Iterate with reversed indices",
-            confidence="medium",
-        ),
     ]
 
 
@@ -113,11 +103,6 @@ def sample_solutions():
             interpretation_id=4,
             code="import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    return task_grid[::-1]",
             approach_summary="Simple array reversal",
-        ),
-        SolutionResult(
-            interpretation_id=5,
-            code="import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    n = len(task_grid)\n    result = np.zeros_like(task_grid)\n    for i in range(n):\n        result[i] = task_grid[n-1-i]\n    return result",
-            approach_summary="Index transformation with loop",
         ),
     ]
 
@@ -172,7 +157,7 @@ class TestSynthesisAgent:
             agent = SynthesisAgent()
 
             assert agent.model_name == "gemini-2.0-flash-thinking-exp"
-            assert agent.temperature == 0.5
+            assert agent.temperature == 0.0
             assert agent.use_cache is True
             assert agent.timeout == 5
             assert agent.sandbox_mode == "multiprocess"
@@ -218,7 +203,6 @@ class TestSynthesisAgent:
                 {"train_accuracy": 1.0, "train_correct": 2, "train_total": 2},
                 {"train_accuracy": 1.0, "train_correct": 2, "train_total": 2},
                 {"train_accuracy": 0.5, "train_correct": 1, "train_total": 2},
-                {"train_accuracy": 0.0, "train_correct": 0, "train_total": 2},
             ]
 
             prompt = agent._create_prompt(
@@ -227,7 +211,7 @@ class TestSynthesisAgent:
 
             # Check for key sections
             assert "TRAINING EXAMPLES:" in prompt
-            assert "PREVIOUS 5 SOLUTIONS" in prompt
+            assert "PREVIOUS 4 SOLUTIONS" in prompt
             assert "YOUR TASK:" in prompt
 
             # Check for solution summaries with accuracy
@@ -334,8 +318,8 @@ class TestSynthesisAgent:
         """Test error when wrong number of solutions provided."""
         agent = SynthesisAgent()
 
-        # Only 3 solutions instead of 5
-        with pytest.raises(ValueError, match="Expected 5 solutions, got 3"):
+        # Only 3 solutions instead of 4
+        with pytest.raises(ValueError, match="Expected 4 solutions, got 3"):
             agent.synthesize_solution(
                 sample_task, sample_solutions[:3], sample_interpretations
             )
@@ -347,8 +331,8 @@ class TestSynthesisAgent:
         """Test error when wrong number of interpretations provided."""
         agent = SynthesisAgent()
 
-        # Only 3 interpretations instead of 5
-        with pytest.raises(ValueError, match="Expected 5 interpretations, got 3"):
+        # Only 3 interpretations instead of 4
+        with pytest.raises(ValueError, match="Expected 4 interpretations, got 3"):
             agent.synthesize_solution(
                 sample_task, sample_solutions, sample_interpretations[:3]
             )
@@ -525,7 +509,7 @@ class TestSynthesisAgent:
         generation_config = call_args[1]["generation_config"]
 
         # Verify structured output configuration
-        assert generation_config.temperature == 0.5
+        assert generation_config.temperature == 0.0
         assert generation_config.response_mime_type == "application/json"
         assert generation_config.response_schema is not None
 
@@ -551,7 +535,7 @@ class TestSynthesisAgent:
                 sample_task, sample_solutions
             )
 
-            assert len(accuracies) == 5
+            assert len(accuracies) == 4
             # First solution should have high accuracy
             assert accuracies[0]["train_accuracy"] > 0.0
             assert accuracies[0]["train_correct"] >= 0
@@ -593,7 +577,7 @@ class TestSynthesisAgent:
                 sample_task, sample_solutions
             )
 
-            assert len(accuracies) == 5
+            assert len(accuracies) == 4
             # Should have mixed results
             assert any(acc["train_accuracy"] > 0 for acc in accuracies)
             assert any(acc["has_errors"] for acc in accuracies)

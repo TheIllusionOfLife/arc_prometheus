@@ -62,19 +62,12 @@ def sample_interpretations():
             approach="Use array slicing [::-1]",
             confidence="high",
         ),
-        InterpretationResult(
-            persona="Logical Rules Specialist",
-            pattern="Apply rule: output[i] = input[n-1-i]",
-            observations=["Index transformation", "Works for any height"],
-            approach="Iterate with reversed indices",
-            confidence="medium",
-        ),
     ]
 
 
 @pytest.fixture
 def sample_api_response():
-    """Sample valid API response with 5 solutions."""
+    """Sample valid API response with 4 solutions."""
     return {
         "solutions": [
             {
@@ -96,11 +89,6 @@ def sample_api_response():
                 "interpretation_id": 4,
                 "code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    n = task_grid.shape[0]\n    result = np.zeros_like(task_grid)\n    for i in range(n):\n        result[i] = task_grid[n-1-i]\n    return result",
                 "approach_summary": "Index-based row reversal",
-            },
-            {
-                "interpretation_id": 5,
-                "code": "import numpy as np\n\ndef solve(task_grid: np.ndarray) -> np.ndarray:\n    return np.flipud(task_grid)",
-                "approach_summary": "Flip up-down using np.flipud",
             },
         ]
     }
@@ -131,7 +119,7 @@ class TestMultiSolutionProgrammer:
             programmer = MultiSolutionProgrammer()
 
             assert programmer.model_name == "gemini-2.0-flash-thinking-exp"
-            assert programmer.temperature == 0.7
+            assert programmer.temperature == 0.0
             assert programmer.use_cache is True
 
     def test_initialization_custom(self):
@@ -169,8 +157,8 @@ class TestMultiSolutionProgrammer:
             assert "EXPERT INTERPRETATIONS TO IMPLEMENT:" in prompt
             assert "YOUR TASK:" in prompt
 
-            # Check for all 5 interpretations
-            for i in range(1, 6):
+            # Check for all 4 interpretations
+            for i in range(1, 5):
                 assert f"Interpretation {i}" in prompt
 
             # Check for training examples
@@ -181,7 +169,8 @@ class TestMultiSolutionProgrammer:
             # Check for constraints
             assert "def solve(task_grid: np.ndarray)" in prompt
             assert "import numpy as np" in prompt
-            assert "≤100 characters" in prompt
+            assert "≤200 characters" in prompt  # Updated: removed max_length
+            assert "≤1500 characters" in prompt  # New: conciseness requirement
             assert "interpretation_id" in prompt
 
     def test_validate_solution_valid(self):
@@ -255,8 +244,8 @@ class TestMultiSolutionProgrammer:
             sample_task, sample_interpretations
         )
 
-        # Should get 5 valid solutions from cache
-        assert len(solutions) == 5
+        # Should get 4 valid solutions from cache
+        assert len(solutions) == 4
         assert all(isinstance(s, SolutionResult) for s in solutions)
         assert mock_cache.get.called
         # API should NOT be called
@@ -291,7 +280,7 @@ class TestMultiSolutionProgrammer:
         )
 
         # Should get 5 valid solutions from API
-        assert len(solutions) == 5
+        assert len(solutions) == 4
         assert mock_cache.get.called
         # API should be called
         assert mock_genai.GenerativeModel.called
@@ -316,7 +305,7 @@ class TestMultiSolutionProgrammer:
         )
 
         # Should get 5 valid solutions from API
-        assert len(solutions) == 5
+        assert len(solutions) == 4
         # API should be called
         assert mock_genai.GenerativeModel.called
 
@@ -343,7 +332,7 @@ class TestMultiSolutionProgrammer:
         generation_config = call_args[1]["generation_config"]
 
         # Verify structured output configuration
-        assert generation_config.temperature == 0.7
+        assert generation_config.temperature == 0.0
         assert generation_config.response_mime_type == "application/json"
         assert generation_config.response_schema is not None
 
@@ -352,7 +341,7 @@ class TestMultiSolutionProgrammer:
         self, mock_genai, sample_task, sample_interpretations
     ):
         """Test handling of partial validation failures (some solutions invalid)."""
-        # Response with 2 invalid solutions
+        # Response with 2 invalid solutions (out of 4 total)
         partial_response = {
             "solutions": [
                 {
@@ -375,11 +364,6 @@ class TestMultiSolutionProgrammer:
                     "code": "def solve(grid):\n    return np.array(grid)  # Missing numpy import",
                     "approach_summary": "Invalid - no numpy import",
                 },
-                {
-                    "interpretation_id": 5,
-                    "code": "import numpy as np\n\ndef solve(grid: np.ndarray) -> np.ndarray:\n    return np.flipud(grid)",
-                    "approach_summary": "Valid solution 3",
-                },
             ]
         }
 
@@ -395,16 +379,16 @@ class TestMultiSolutionProgrammer:
             sample_task, sample_interpretations
         )
 
-        # Should return only 3 valid solutions
-        assert len(solutions) == 3
-        assert all(s.interpretation_id in [1, 3, 5] for s in solutions)
+        # Should return only 2 valid solutions (1 and 3)
+        assert len(solutions) == 2
+        assert all(s.interpretation_id in [1, 3] for s in solutions)
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
     def test_generate_multi_solutions_all_invalid_raises_error(
         self, mock_genai, sample_task, sample_interpretations
     ):
         """Test that all invalid solutions raises ValueError."""
-        # Response with all invalid solutions
+        # Response with all invalid solutions (4 total)
         all_invalid_response = {
             "solutions": [
                 {
@@ -412,7 +396,7 @@ class TestMultiSolutionProgrammer:
                     "code": "def broken(): pass",  # All missing solve()
                     "approach_summary": f"Invalid solution {i}",
                 }
-                for i in range(1, 6)
+                for i in range(1, 5)
             ]
         }
 
@@ -425,7 +409,7 @@ class TestMultiSolutionProgrammer:
 
         programmer = MultiSolutionProgrammer(use_cache=False)
 
-        with pytest.raises(ValueError, match="All 5 solutions failed validation"):
+        with pytest.raises(ValueError, match="All 4 solutions failed validation"):
             programmer.generate_multi_solutions(sample_task, sample_interpretations)
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
@@ -438,18 +422,18 @@ class TestMultiSolutionProgrammer:
         # Only 3 interpretations instead of 5
         wrong_count_interpretations = sample_interpretations[:3]
 
-        with pytest.raises(ValueError, match="Expected 5 interpretations, got 3"):
+        with pytest.raises(ValueError, match="Expected 4 interpretations, got 3"):
             programmer.generate_multi_solutions(
                 sample_task, wrong_count_interpretations
             )
 
     @patch("arc_prometheus.cognitive_cells.multi_solution_programmer.genai")
-    def test_parse_response_wrong_solution_count(
+    def test_parse_response_accepts_fewer_than_four_solutions(
         self, mock_genai, sample_task, sample_interpretations
     ):
-        """Test that wrong solution count in response raises validation error."""
-        # Response with only 3 solutions (Pydantic will catch this)
-        wrong_count_response = {
+        """Test that response with 1-4 solutions is accepted (handles MAX_TOKENS gracefully)."""
+        # Response with only 3 solutions - this is valid for MAX_TOKENS scenarios
+        partial_response = {
             "solutions": [
                 {
                     "interpretation_id": i,
@@ -463,17 +447,17 @@ class TestMultiSolutionProgrammer:
         # Setup mock API response
         mock_model = MagicMock()
         mock_response = MagicMock()
-        mock_response.text = json.dumps(wrong_count_response)
+        mock_response.text = json.dumps(partial_response)
         mock_model.generate_content.return_value = mock_response
         mock_genai.GenerativeModel.return_value = mock_model
 
         programmer = MultiSolutionProgrammer(use_cache=False)
 
-        # Pydantic validation will raise ValidationError for wrong count
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            programmer.generate_multi_solutions(sample_task, sample_interpretations)
+        # Should succeed and return 3 solutions (padded to 4 by ensemble)
+        solutions = programmer.generate_multi_solutions(
+            sample_task, sample_interpretations
+        )
+        assert len(solutions) == 3
 
 
 # Integration test (can be run with real API if needed)
