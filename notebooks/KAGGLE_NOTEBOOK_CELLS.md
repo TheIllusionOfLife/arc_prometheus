@@ -297,3 +297,408 @@ print("✅ Structured JSON generation function ready (Outlines + Pydantic)")
 - C) Continue with markdown documentation but split into multiple files?
 
 Let me know and I'll proceed accordingly!
+## Cell 4 (Code): Core Helper Functions
+
+```python
+# Cell 4: Core Helper Functions
+
+def format_grid(grid: list[list[int]]) -> str:
+    """Format grid as readable text (identical to Gemini agents)."""
+    rows = []
+    for row in grid:
+        rows.append(" ".join(str(cell) for cell in row))
+    return "\n".join(rows)
+
+
+def execute_solver_safe(
+    code: str, input_grid: np.ndarray, timeout: int = 5
+) -> tuple[bool, np.ndarray | None, dict | None]:
+    """
+    Execute solver code with timeout (multiprocess sandbox).
+
+    SECURITY NOTE: Provides process isolation but cannot prevent
+    filesystem/network access (acceptable for Kaggle's isolated environment).
+
+    Args:
+        code: Solver code string
+        input_grid: Input grid to transform
+        timeout: Timeout in seconds
+
+    Returns:
+        (success, result_grid, error_detail)
+    """
+
+    def _run_solver(code_str, task_grid, result_queue):
+        """Worker function for multiprocess execution"""
+        try:
+            # Create restricted namespace (remove dangerous builtins)
+            safe_builtins = {
+                k: v
+                for k, v in __builtins__.items()
+                if k not in ["eval", "exec", "compile", "open", "__import__"]
+            }
+
+            namespace = {
+                "__builtins__": safe_builtins,
+                "np": np,
+                "task_grid": task_grid,
+            }
+
+            # Execute code
+            exec(code_str, namespace)  # noqa: S102
+
+            if "solve" not in namespace:
+                result_queue.put(
+                    (
+                        False,
+                        None,
+                        {
+                            "error_type": "missing_function",
+                            "error_message": "No solve() function found",
+                        },
+                    )
+                )
+                return
+
+            result = namespace["solve"](task_grid)
+
+            # Validate result type
+            if not isinstance(result, np.ndarray):
+                result_queue.put(
+                    (
+                        False,
+                        None,
+                        {
+                            "error_type": "invalid_return",
+                            "error_message": f"Expected np.ndarray, got {type(result)}",
+                        },
+                    )
+                )
+                return
+
+            result_queue.put((True, result, None))
+
+        except Exception as e:
+            result_queue.put(
+                (False, None, {"error_type": type(e).__name__, "error_message": str(e)})
+            )
+
+    # Run in separate process
+    result_queue = multiprocessing.Queue()
+    process = multiprocessing.Process(
+        target=_run_solver, args=(code, input_grid, result_queue)
+    )
+
+    try:
+        process.start()
+        process.join(timeout=timeout)
+
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            return (
+                False,
+                None,
+                {
+                    "error_type": "timeout",
+                    "error_message": f"Execution exceeded {timeout}s",
+                },
+            )
+
+        if result_queue.empty():
+            return (
+                False,
+                None,
+                {
+                    "error_type": "unknown",
+                    "error_message": "Process terminated without result",
+                },
+            )
+
+        return result_queue.get()
+
+    finally:
+        result_queue.close()
+        result_queue.join_thread()
+
+
+print("✅ Helper functions ready")
+```
+
+---
+
+## Cell 5 (Code): Test-Time Ensemble Agents
+
+**NOTE:** This cell is very long (~500 lines). It contains all 3 agent classes with EXACT prompts copied from Gemini agents.
+
+Due to length, I'll provide it in a separate file: `notebooks/KAGGLE_CELL_5_AGENTS.md`
+
+For now, here's the structure:
+
+```python
+# Cell 5: Test-Time Ensemble Agents (Exact Gemini Workflow Replication)
+
+# IMPORTANT: These classes use EXACT prompts copied from:
+# - src/arc_prometheus/cognitive_cells/multi_persona_analyst.py
+# - src/arc_prometheus/cognitive_cells/multi_solution_programmer.py
+# - src/arc_prometheus/cognitive_cells/synthesis_agent.py
+#
+# Temperatures match exactly: Analyst=1.0, Programmer=0.0, Synthesis=0.0
+
+class OfflineMultiPersonaAnalyst:
+    """Multi-Persona Analyst for offline inference with Code Gemma."""
+    # ... (see separate file for full implementation)
+
+class OfflineMultiSolutionProgrammer:
+    """Multi-Solution Programmer for offline inference with Code Gemma."""
+    # ... (see separate file for full implementation)
+
+class OfflineSynthesisAgent:
+    """Synthesis Agent for offline inference with Code Gemma."""
+    # ... (see separate file for full implementation)
+
+print("✅ Test-Time Ensemble agents ready (exact Gemini workflow)")
+```
+
+---
+
+## Cell 6 (Code): Main Inference Loop
+
+```python
+# Cell 6: Main Inference Loop
+
+# Configuration
+TEST_DATA_PATH = "/kaggle/input/arc-prize-2025/arc-agi_test_challenges.json"
+TEST_MODE = True  # Set False for submission, True for 5-sample validation
+
+print(f"Loading test tasks from: {TEST_DATA_PATH}")
+
+try:
+    with open(TEST_DATA_PATH) as f:
+        test_tasks = json.load(f)
+    print(f"Loaded {len(test_tasks)} test tasks")
+except FileNotFoundError:
+    print("Warning: Test data not found (using mock for local testing)")
+    test_tasks = {}
+
+if TEST_MODE:
+    test_tasks = dict(list(test_tasks.items())[:5])
+    print(f"⚠️  TEST MODE: Running on {len(test_tasks)} tasks for validation")
+    print("Set TEST_MODE = False before submission!")
+
+# Initialize agents (exact Gemini temperatures)
+analyst = OfflineMultiPersonaAnalyst(temperature=1.0)
+programmer = OfflineMultiSolutionProgrammer(temperature=0.0)
+synthesis_agent = OfflineSynthesisAgent(temperature=0.0, timeout=5)
+
+# Track progress and timing
+submission = {}
+start_time = time.time()
+timing_stats = []
+
+print(f"\nStarting test-time ensemble on {len(test_tasks)} tasks...")
+print(
+    f"Target: ≤90 sec/task ({len(test_tasks) * 90 / 60:.1f} min total, "
+    f"{len(test_tasks) * 90 / 3600:.2f} hours)"
+)
+
+for idx, (task_id, task) in enumerate(test_tasks.items()):
+    task_start = time.time()
+    print(f"\n{'=' * 60}")
+    print(f"Processing {idx + 1}/{len(test_tasks)}: {task_id}")
+
+    try:
+        # Step 1: Multi-Persona Analysis (temp=1.0, 4 interpretations)
+        step_start = time.time()
+        interpretations = analyst.analyze_task(task)
+        analyst_time = time.time() - step_start
+        print(f"  ✓ Analyst: {len(interpretations)} interpretations ({analyst_time:.1f}s)")
+
+        # Step 2: Multi-Solution Generation (temp=0.0, 4 solutions)
+        step_start = time.time()
+        solutions = programmer.generate_multi_solutions(task, interpretations)
+        programmer_time = time.time() - step_start
+        print(f"  ✓ Programmer: {len(solutions)} solutions ({programmer_time:.1f}s)")
+
+        # Step 3: Synthesis (temp=0.0, 5th solution via meta-learning)
+        step_start = time.time()
+        synthesis_result = synthesis_agent.synthesize_solution(
+            task, solutions, interpretations
+        )
+        synthesis_time = time.time() - step_start
+        print(f"  ✓ Synthesis: 5th solution generated ({synthesis_time:.1f}s)")
+
+        # Step 4: Select best solution from 4 solutions
+        best_solution = solutions[0]  # Default to first solution
+        best_fitness = 0.0
+
+        for solution in solutions:
+            train_correct = 0
+            for example in task.get("train", []):
+                input_grid = np.array(example["input"], dtype=np.int64)
+                expected = np.array(example["output"], dtype=np.int64)
+                success, result, _ = execute_solver_safe(solution["code"], input_grid)
+                if success and np.array_equal(result, expected):
+                    train_correct += 1
+
+            fitness = train_correct
+            if fitness > best_fitness:
+                best_fitness = fitness
+                best_solution = solution
+
+        # Step 5: Generate pass@2 predictions (best + synthesis)
+        predictions = []
+        for test_input in task.get("test", []):
+            input_grid = np.array(test_input["input"], dtype=np.int64)
+
+            # Attempt 1: Best solution
+            success1, pred1, _ = execute_solver_safe(
+                best_solution["code"], input_grid, timeout=5
+            )
+            attempt_1 = pred1.tolist() if success1 else input_grid.tolist()
+
+            # Attempt 2: Synthesis solution
+            success2, pred2, _ = execute_solver_safe(
+                synthesis_result["code"], input_grid, timeout=5
+            )
+            attempt_2 = pred2.tolist() if success2 else input_grid.tolist()
+
+            predictions.append({"attempt_1": attempt_1, "attempt_2": attempt_2})
+
+        submission[task_id] = predictions
+
+        # Record timing
+        task_time = time.time() - task_start
+        timing_stats.append(
+            {
+                "task_id": task_id,
+                "total_time": task_time,
+                "analyst_time": analyst_time,
+                "programmer_time": programmer_time,
+                "synthesis_time": synthesis_time,
+            }
+        )
+
+        print(f"  ✅ Task complete in {task_time:.1f}s")
+
+    except Exception as e:
+        print(f"  ❌ ERROR: {e}")
+        # Fallback: use input grids
+        predictions = [
+            {"attempt_1": test_input["input"], "attempt_2": test_input["input"]}
+            for test_input in task.get("test", [])
+        ]
+        submission[task_id] = predictions
+
+    # Progress update every 5 tasks
+    if (idx + 1) % 5 == 0:
+        elapsed = time.time() - start_time
+        avg_time = elapsed / (idx + 1)
+        remaining = avg_time * (len(test_tasks) - idx - 1)
+        print(f"\n📊 Progress: {idx + 1}/{len(test_tasks)} tasks")
+        print(f"   Elapsed: {elapsed / 60:.1f} min | Avg: {avg_time:.1f}s/task")
+        print(f"   ETA: {remaining / 60:.1f} min")
+
+# Final timing summary
+total_time = time.time() - start_time
+avg_time = total_time / len(test_tasks)
+
+print(f"\n{'=' * 60}")
+print("INFERENCE COMPLETE!")
+print(f"Total time: {total_time / 60:.1f} min ({total_time / 3600:.2f} hours)")
+print(f"Average: {avg_time:.1f} sec/task")
+print(f"Target: 90 sec/task → {'✅ PASS' if avg_time <= 90 else '❌ FAIL'}")
+
+# Detailed timing breakdown
+if timing_stats:
+    avg_analyst = sum(s["analyst_time"] for s in timing_stats) / len(timing_stats)
+    avg_programmer = sum(s["programmer_time"] for s in timing_stats) / len(timing_stats)
+    avg_synthesis = sum(s["synthesis_time"] for s in timing_stats) / len(timing_stats)
+
+    print(f"\n⏱️  Timing Breakdown (averages):")
+    print(f"   Analyst: {avg_analyst:.1f}s")
+    print(f"   Programmer: {avg_programmer:.1f}s")
+    print(f"   Synthesis: {avg_synthesis:.1f}s")
+    print(f"   Total: {avg_analyst + avg_programmer + avg_synthesis:.1f}s")
+```
+
+---
+
+## Cell 7 (Code): Save Submission + Validation
+
+```python
+# Cell 7: Save Submission + Validation
+
+OUTPUT_PATH = "submission.json"
+
+print(f"Saving submission to: {OUTPUT_PATH}")
+
+with open(OUTPUT_PATH, "w") as f:
+    json.dump(submission, f, indent=2)
+
+print("✅ Submission saved successfully!")
+print(f"   Tasks: {len(submission)}")
+print("   Format: pass@2 (2 attempts per test input)")
+
+# Validate submission format
+print("\nValidating submission format...")
+valid = True
+for task_id, predictions in submission.items():
+    if not isinstance(predictions, list):
+        print(f"❌ ERROR: {task_id} has invalid predictions type")
+        valid = False
+        continue
+
+    for pred_idx, pred in enumerate(predictions):
+        if not isinstance(pred, dict):
+            print(f"❌ ERROR: {task_id} prediction {pred_idx} is not a dict")
+            valid = False
+            break
+
+        if "attempt_1" not in pred or "attempt_2" not in pred:
+            print(f"❌ ERROR: {task_id} prediction {pred_idx} missing attempts")
+            valid = False
+            break
+
+        # Check that attempts are lists (grids)
+        if not isinstance(pred["attempt_1"], list) or not isinstance(
+            pred["attempt_2"], list
+        ):
+            print(f"❌ ERROR: {task_id} prediction {pred_idx} has non-list attempts")
+            valid = False
+            break
+
+if valid:
+    print("\n✅ Submission format validated successfully!")
+    print("\n📦 Ready for Kaggle submission!")
+else:
+    print("\n❌ Submission format validation FAILED!")
+    print("Please fix errors before submitting.")
+
+# If TEST_MODE, remind to switch to full dataset
+if TEST_MODE:
+    print("\n" + "=" * 60)
+    print("⚠️  REMINDER: TEST MODE is enabled!")
+    print("   Before final submission:")
+    print("   1. Set TEST_MODE = False in Cell 6")
+    print("   2. Verify you have 240 tasks loaded")
+    print("   3. Re-run all cells")
+    print("=" * 60)
+```
+
+---
+
+## Summary
+
+**Complete Notebook Structure:**
+- ✅ Cell 0: Markdown header (architecture overview)
+- ✅ Cell 1: Environment setup + dependencies
+- ✅ Cell 2: Pydantic schemas (exact copies)
+- ✅ Cell 3: Code Gemma + Outlines wrapper
+- ✅ Cell 4: Helper functions (sandbox, grid formatting)
+- 📝 Cell 5: Agent implementations (see separate file for full code)
+- ✅ Cell 6: Main inference loop with timing
+- ✅ Cell 7: Submission save + validation
+
+**Next Step:**
+Cell 5 is very long (~500 lines with all 3 agent classes). I'll create it in a separate file for easier review.
