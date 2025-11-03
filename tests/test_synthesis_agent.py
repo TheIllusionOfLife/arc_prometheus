@@ -11,6 +11,7 @@ from arc_prometheus.cognitive_cells.synthesis_agent import (
     SynthesisAgent,
     SynthesisResult,
 )
+from arc_prometheus.utils.schemas import SynthesisResponse
 
 
 @pytest.fixture
@@ -293,7 +294,9 @@ class TestSynthesisAgent:
         """Test parsing valid API response."""
         with patch("arc_prometheus.cognitive_cells.synthesis_agent.genai"):
             agent = SynthesisAgent()
-            result = agent._parse_response(sample_api_response)
+            # Convert dict to Pydantic model first
+            pydantic_response = SynthesisResponse.model_validate(sample_api_response)
+            result = agent._parse_response(pydantic_response)
 
             assert isinstance(result, SynthesisResult)
             assert "def solve" in result.code
@@ -318,8 +321,11 @@ class TestSynthesisAgent:
                 "diversity_justification": "Different approach",
             }
 
+            # Convert dict to Pydantic model first
+            pydantic_response = SynthesisResponse.model_validate(invalid_response)
+
             with pytest.raises(ValueError, match="validation failed"):
-                agent._parse_response(invalid_response)
+                agent._parse_response(pydantic_response)
 
     @patch("arc_prometheus.cognitive_cells.synthesis_agent.genai")
     def test_synthesize_solution_wrong_solution_count(

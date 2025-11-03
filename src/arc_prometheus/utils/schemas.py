@@ -1,19 +1,144 @@
-"""JSON schemas for structured LLM outputs.
+"""Pydantic schemas for structured LLM outputs.
 
-These schemas are used with Gemini's structured output API to ensure reliable,
-type-safe, and concise responses from the cognitive cells.
+These schemas work with Gemini's structured output API via Pydantic model validation.
 
 Benefits:
-- Type enforcement with maxLength constraints
+- Type enforcement with runtime validation
 - Guaranteed valid JSON parsing
 - ~70% token reduction vs free-form text
 - Consistent output format every time
+- IDE autocomplete and type hints
 
 Reference: https://ai.google.dev/gemini-api/docs/structured-output
+
+Note: google-generativeai library uses dict-based schemas for API calls,
+but we validate responses with Pydantic models for type safety.
 """
 
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
+
+
 # Multi-Persona Analyst Schema
-# Generates 5 diverse interpretations from different expert perspectives
+class Interpretation(BaseModel):
+    """Single expert interpretation of an ARC task."""
+
+    persona: str = Field(
+        ...,
+        description="Expert perspective name (e.g., 'Geometric Transformation Specialist')",
+    )
+    pattern: str = Field(
+        ...,
+        max_length=150,
+        description="One-sentence transformation rule description",
+    )
+    observations: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=3,
+        description="Key insights (1-3 items, each ≤80 chars)",
+    )
+    approach: str = Field(
+        ..., max_length=100, description="High-level implementation strategy"
+    )
+    confidence: Literal["high", "medium", "low"] = Field(
+        ..., description="Confidence in this interpretation"
+    )
+
+    @field_validator("observations")
+    @classmethod
+    def validate_observations(cls, v: list[str]) -> list[str]:
+        """Validate that each observation is ≤80 characters."""
+        for obs in v:
+            if len(obs) > 80:
+                raise ValueError(
+                    f"Each observation must be ≤80 chars, but got {len(obs)}"
+                )
+        return v
+
+
+class MultiPersonaResponse(BaseModel):
+    """Response containing 5 diverse expert interpretations."""
+
+    interpretations: list[Interpretation] = Field(
+        ...,
+        min_length=5,
+        max_length=5,
+        description="Exactly 5 diverse expert interpretations",
+    )
+
+
+# Multi-Solution Programmer Schema
+class Solution(BaseModel):
+    """Single solver implementation linked to an interpretation."""
+
+    interpretation_id: int = Field(
+        ..., ge=1, le=5, description="Which interpretation this implements (1-5)"
+    )
+    code: str = Field(..., description="Complete solve() function implementation")
+    approach_summary: str = Field(
+        ..., max_length=100, description="Brief description of implementation approach"
+    )
+
+
+class MultiSolutionResponse(BaseModel):
+    """Response containing 5 solver implementations."""
+
+    solutions: list[Solution] = Field(
+        ..., min_length=5, max_length=5, description="Exactly 5 solver implementations"
+    )
+
+
+# Synthesis Agent Schema
+class SynthesisAnalysis(BaseModel):
+    """Analysis of 5 solutions to inform synthesis."""
+
+    successful_patterns: list[str] = Field(
+        ...,
+        max_length=3,
+        description="Patterns from successful solutions (max 3, ≤80 chars each)",
+    )
+    failed_patterns: list[str] = Field(
+        ...,
+        max_length=3,
+        description="Patterns from failed solutions (max 3, ≤80 chars each)",
+    )
+    synthesis_strategy: str = Field(
+        ..., max_length=150, description="How to create diverse 6th solution"
+    )
+
+    @field_validator("successful_patterns", "failed_patterns")
+    @classmethod
+    def validate_patterns(cls, v: list[str]) -> list[str]:
+        """Validate that each pattern is ≤80 characters."""
+        for pattern in v:
+            if len(pattern) > 80:
+                raise ValueError(
+                    f"Each pattern must be ≤80 chars, but got {len(pattern)}"
+                )
+        return v
+
+
+class SynthesisResponse(BaseModel):
+    """Response containing synthesis of 5 solutions into a 6th diverse solution."""
+
+    analysis: SynthesisAnalysis = Field(
+        ..., description="Analysis of existing solutions"
+    )
+    code: str = Field(
+        ..., description="Complete solve() function for synthesis solution"
+    )
+    diversity_justification: str = Field(
+        ...,
+        max_length=100,
+        description="Why this solution is different from all 5 previous",
+    )
+
+
+# Dict-based schemas for Gemini API (without unsupported fields)
+# These are used for response_schema parameter in generation_config
+# Pydantic models above are used for parsing and validation
 MULTI_PERSONA_SCHEMA = {
     "type": "object",
     "properties": {
@@ -24,29 +149,25 @@ MULTI_PERSONA_SCHEMA = {
                 "properties": {
                     "persona": {
                         "type": "string",
-                        "maxLength": 50,
-                        "description": "Expert perspective name (e.g., 'Geometric Transformation Specialist')",
+                        "description": "Expert perspective name",
                     },
                     "pattern": {
                         "type": "string",
-                        "maxLength": 150,
-                        "description": "One-sentence transformation rule description",
+                        "description": "One-sentence transformation rule",
                     },
                     "observations": {
                         "type": "array",
-                        "items": {"type": "string", "maxLength": 80},
-                        "maxItems": 3,
+                        "items": {"type": "string"},
                         "description": "Key insights (max 3, each ≤80 chars)",
                     },
                     "approach": {
                         "type": "string",
-                        "maxLength": 100,
                         "description": "High-level implementation strategy",
                     },
                     "confidence": {
                         "type": "string",
                         "enum": ["high", "medium", "low"],
-                        "description": "Confidence in this interpretation",
+                        "description": "Confidence level",
                     },
                 },
                 "required": [
@@ -57,16 +178,12 @@ MULTI_PERSONA_SCHEMA = {
                     "confidence",
                 ],
             },
-            "minItems": 5,
-            "maxItems": 5,
             "description": "Exactly 5 diverse expert interpretations",
         }
     },
     "required": ["interpretations"],
 }
 
-# Multi-Solution Programmer Schema
-# Generates 5 solver implementations linked to interpretations
 MULTI_SOLUTION_SCHEMA = {
     "type": "object",
     "properties": {
@@ -77,32 +194,25 @@ MULTI_SOLUTION_SCHEMA = {
                 "properties": {
                     "interpretation_id": {
                         "type": "integer",
-                        "minimum": 1,
-                        "maximum": 5,
                         "description": "Which interpretation this implements (1-5)",
                     },
                     "code": {
                         "type": "string",
-                        "description": "Complete solve() function implementation",
+                        "description": "Complete solve() function",
                     },
                     "approach_summary": {
                         "type": "string",
-                        "maxLength": 100,
-                        "description": "Brief description of implementation approach",
+                        "description": "Brief implementation description",
                     },
                 },
                 "required": ["interpretation_id", "code", "approach_summary"],
             },
-            "minItems": 5,
-            "maxItems": 5,
             "description": "Exactly 5 solver implementations",
         }
     },
     "required": ["solutions"],
 }
 
-# Synthesis Agent Schema
-# Analyzes 5 solutions and creates a 6th diverse solution
 SYNTHESIS_SCHEMA = {
     "type": "object",
     "properties": {
@@ -111,19 +221,16 @@ SYNTHESIS_SCHEMA = {
             "properties": {
                 "successful_patterns": {
                     "type": "array",
-                    "items": {"type": "string", "maxLength": 80},
-                    "maxItems": 3,
-                    "description": "Patterns from successful solutions (≤80 chars each)",
+                    "items": {"type": "string"},
+                    "description": "Patterns from successful solutions",
                 },
                 "failed_patterns": {
                     "type": "array",
-                    "items": {"type": "string", "maxLength": 80},
-                    "maxItems": 3,
-                    "description": "Patterns from failed solutions (≤80 chars each)",
+                    "items": {"type": "string"},
+                    "description": "Patterns from failed solutions",
                 },
                 "synthesis_strategy": {
                     "type": "string",
-                    "maxLength": 150,
                     "description": "How to create diverse 6th solution",
                 },
             },
@@ -135,19 +242,24 @@ SYNTHESIS_SCHEMA = {
         },
         "code": {
             "type": "string",
-            "description": "Complete solve() function for synthesis solution",
+            "description": "Complete solve() function",
         },
         "diversity_justification": {
             "type": "string",
-            "maxLength": 100,
-            "description": "Why this solution is different from all 5 previous",
+            "description": "Why this solution is different",
         },
     },
     "required": ["analysis", "code", "diversity_justification"],
 }
 
-# Export all schemas
 __all__ = [
+    "Interpretation",
+    "MultiPersonaResponse",
+    "Solution",
+    "MultiSolutionResponse",
+    "SynthesisAnalysis",
+    "SynthesisResponse",
+    # Dict schemas for Gemini API
     "MULTI_PERSONA_SCHEMA",
     "MULTI_SOLUTION_SCHEMA",
     "SYNTHESIS_SCHEMA",

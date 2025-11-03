@@ -447,8 +447,8 @@ class TestMultiSolutionProgrammer:
     def test_parse_response_wrong_solution_count(
         self, mock_genai, sample_task, sample_interpretations
     ):
-        """Test that wrong solution count in response raises ValueError."""
-        # Response with only 3 solutions
+        """Test that wrong solution count in response raises validation error."""
+        # Response with only 3 solutions (Pydantic will catch this)
         wrong_count_response = {
             "solutions": [
                 {
@@ -469,7 +469,10 @@ class TestMultiSolutionProgrammer:
 
         programmer = MultiSolutionProgrammer(use_cache=False)
 
-        with pytest.raises(ValueError, match="Expected 5 solutions in response, got 3"):
+        # Pydantic validation will raise ValidationError for wrong count
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
             programmer.generate_multi_solutions(sample_task, sample_interpretations)
 
 
