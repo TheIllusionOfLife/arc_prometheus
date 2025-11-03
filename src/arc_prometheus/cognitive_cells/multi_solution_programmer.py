@@ -35,7 +35,7 @@ class SolutionResult:
     """Single solver implementation result.
 
     Attributes:
-        interpretation_id: Which interpretation this implements (1-5)
+        interpretation_id: Which interpretation this implements (1-4)
         code: Complete Python code with solve() function
         approach_summary: Brief description of implementation (≤100 chars)
     """

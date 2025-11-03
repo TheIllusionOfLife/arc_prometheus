@@ -280,6 +280,13 @@ def solve_task_ensemble(
     interpretations = analyst.analyze_task(task)
     logger.info(f"Generated {len(interpretations)} interpretations")
 
+    # Validate we have interpretations (prevent downstream failures)
+    if not interpretations:
+        raise ValueError(
+            "Analyst returned 0 interpretations. Cannot proceed with empty analysis. "
+            "This indicates a critical failure in the Multi-Persona Analyst."
+        )
+
     # Step 2: Multi-Solution Generation (with fallback)
     logger.info("Starting Multi-Solution Programmer...")
     programmer = MultiSolutionProgrammer(

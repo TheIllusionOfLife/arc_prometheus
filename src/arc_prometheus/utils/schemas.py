@@ -213,7 +213,7 @@ SYNTHESIS_SCHEMA = {
                 },
                 "synthesis_strategy": {
                     "type": "string",
-                    "description": "How to create diverse 6th solution",
+                    "description": "How to synthesize diverse solution from 4 existing solutions",
                 },
             },
             "required": [
