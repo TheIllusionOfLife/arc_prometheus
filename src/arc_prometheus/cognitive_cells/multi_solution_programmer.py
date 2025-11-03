@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
+from pydantic import ValidationError
 
 from arc_prometheus.cognitive_cells.multi_persona_analyst import InterpretationResult
 from arc_prometheus.utils.config import get_gemini_api_key
@@ -236,11 +237,20 @@ Provide a JSON array with 5 solutions, each containing:
             cache = get_cache()
             cached_response = cache.get(prompt, self.model_name, self.temperature)
             if cached_response is not None:
-                # Parse cached response using Pydantic
-                parsed_response = MultiSolutionResponse.model_validate_json(
-                    cached_response
-                )
-                return self._parse_and_validate_response(parsed_response)
+                try:
+                    # Parse cached response using Pydantic
+                    parsed_response = MultiSolutionResponse.model_validate_json(
+                        cached_response
+                    )
+                    return self._parse_and_validate_response(parsed_response)
+                except ValidationError as e:
+                    # Invalid cache entry (e.g., stale from schema migration)
+                    logger.warning(
+                        f"Invalid cache entry for MultiSolutionResponse, "
+                        f"regenerating fresh response. Validation error: {e}"
+                    )
+                    # Fall through to regenerate fresh response
+                    # (invalid entry will be overwritten when new response is cached)
 
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)

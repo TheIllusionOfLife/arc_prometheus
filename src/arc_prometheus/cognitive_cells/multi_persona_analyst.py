@@ -10,13 +10,17 @@ Key features:
 - Single API call for efficiency
 """
 
+import logging
 from dataclasses import dataclass, field
 
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
+from pydantic import ValidationError
 
 from arc_prometheus.utils.config import get_gemini_api_key
 from arc_prometheus.utils.schemas import MULTI_PERSONA_SCHEMA, MultiPersonaResponse
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -233,11 +237,20 @@ IMPORTANT:
             cache = get_cache()
             cached_response = cache.get(prompt, self.model_name, self.temperature)
             if cached_response is not None:
-                # Parse cached response using Pydantic
-                parsed_response = MultiPersonaResponse.model_validate_json(
-                    cached_response
-                )
-                return self._parse_response(parsed_response)
+                try:
+                    # Parse cached response using Pydantic
+                    parsed_response = MultiPersonaResponse.model_validate_json(
+                        cached_response
+                    )
+                    return self._parse_response(parsed_response)
+                except ValidationError as e:
+                    # Invalid cache entry (e.g., stale from schema migration)
+                    logger.warning(
+                        f"Invalid cache entry for MultiPersonaResponse, "
+                        f"regenerating fresh response. Validation error: {e}"
+                    )
+                    # Fall through to regenerate fresh response
+                    # (invalid entry will be overwritten when new response is cached)
 
         # Call Gemini API
         model = genai.GenerativeModel(self.model_name)
