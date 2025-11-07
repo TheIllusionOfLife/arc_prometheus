@@ -109,21 +109,22 @@ def _generate_variations(
     """
     Generate variations of a single example.
 
-    Variations are returned in deterministic order for reproducibility:
+    Variations are generated in this order:
     1. Rotations (90°, 180°, 270°) - 3 variations
     2. Flips (horizontal, vertical) - 2 variations
     3. Color permutations - up to MAX_COLOR_PERMUTATIONS (5) variations
 
-    This means requesting count=9 will return the first 9 transformations in order.
-    If you want all color permutations, use count >= 10 (3 + 2 + 5).
+    Then shuffled before slicing to ensure diverse mix for any count value.
+    This prevents small counts from only getting geometric transforms.
 
     Args:
         example: Single training example with input/output
         count: Number of variations to generate
-        seed: Random seed for reproducible color permutations
+        seed: Random seed for reproducible shuffling and color permutations
 
     Returns:
-        List of augmented variations (deterministic order, sliced to count)
+        List of augmented variations (shuffled, then sliced to count)
+        When seed is provided, output is deterministic across runs.
     """
     all_variations = []
 
@@ -215,6 +216,53 @@ def _generate_variations(
             f"Some transformations may have failed or produced duplicates. "
             f"Maximum unique variations: ~13 (3 rotations + 2 flips + {MAX_COLOR_PERMUTATIONS} colors + original)."
         )
+
+    # Stratified sampling for diversity
+    # For small counts, ensure a mix of transformation types (not just geometric)
+    # Split variations into categories and sample proportionally
+    if count < len(unique_variations):
+        rng = random.Random(seed) if seed is not None else random.Random()  # noqa: S311
+
+        # Define constants for transformation counts to avoid magic numbers
+        num_rotations = 3
+        num_flips = 2
+        flip_start_idx = num_rotations
+        color_start_idx = flip_start_idx + num_flips
+
+        # Rotations (first 3), Flips (next 2), Color perms (rest)
+        rotation_vars: list[dict[str, Any]] = unique_variations[
+            : min(flip_start_idx, len(unique_variations))
+        ]
+        flip_vars: list[dict[str, Any]] = unique_variations[
+            flip_start_idx : min(color_start_idx, len(unique_variations))
+        ]
+        color_vars: list[dict[str, Any]] = unique_variations[color_start_idx:]
+
+        # Shuffle each category independently
+        rng.shuffle(rotation_vars)
+        rng.shuffle(flip_vars)
+        rng.shuffle(color_vars)
+
+        # Calculate proportional sampling
+        # For small counts, ensure at least 1 from each category if available
+        selected: list[dict[str, Any]] = []
+        remaining = count
+
+        # Add at least 1 from each non-empty category
+        categories: list[list[dict[str, Any]]] = [
+            c for c in [rotation_vars, flip_vars, color_vars] if c
+        ]
+        for category in categories:
+            if remaining > 0 and category:
+                selected.append(category.pop(0))
+                remaining -= 1
+
+        # Distribute remaining slots proportionally across categories
+        all_remaining: list[dict[str, Any]] = rotation_vars + flip_vars + color_vars
+        rng.shuffle(all_remaining)
+        selected.extend(all_remaining[:remaining])
+
+        return selected
 
     return unique_variations[:count]
 

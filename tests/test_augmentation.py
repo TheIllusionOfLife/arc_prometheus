@@ -92,7 +92,8 @@ class TestRotations:
             ]
         }
 
-        augmented = augment_examples(task, num_variations=5)
+        # Request all variations (10) to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # Find rotated version (should have rotated input)
         # 90° rotation of [[1,2],[3,4]] = [[3,1],[4,2]]
@@ -110,7 +111,8 @@ class TestRotations:
         """Test 180-degree rotation."""
         task = {"train": [{"input": [[1, 2]], "output": [[3, 4]]}]}
 
-        augmented = augment_examples(task, num_variations=3)
+        # Request all variations to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # 180° rotation of [[1,2]] = [[2,1]] (flipped both ways)
         found_rotation = False
@@ -135,7 +137,8 @@ class TestRotations:
             ]
         }
 
-        augmented = augment_examples(task, num_variations=4)
+        # Request all variations to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # 270° rotation of [[1,2],[3,4]] = [[2,4],[1,3]]
         found_rotation = False
@@ -155,7 +158,8 @@ class TestFlips:
         """Test horizontal flip."""
         task = {"train": [{"input": [[1, 2, 3]], "output": [[4, 5, 6]]}]}
 
-        augmented = augment_examples(task, num_variations=5)
+        # Request all variations to ensure all flips are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # Horizontal flip: [[1,2,3]] → [[3,2,1]]
         found_flip = False
@@ -428,3 +432,112 @@ class TestSeedReproducibility:
         for perm in perms:
             swaps = sum(1 for i in range(10) if perm[i] != i)
             assert swaps >= 5, f"Permutation only has {swaps} swaps, expected >= 5"
+
+
+class TestStratifiedSampling:
+    """Test stratified sampling ensures diverse transformation mix."""
+
+    def test_small_count_includes_diverse_categories(self):
+        """Test that count=3 gets diverse mix, not just rotations."""
+        task = {"train": [{"input": [[1, 2]], "output": [[3, 4]]}]}
+
+        augmented = augment_examples(task, num_variations=3, seed=42)
+
+        assert len(augmented) == 3
+
+        # Collect all unique input grids to identify transformation types
+        inputs = [tuple(tuple(row) for row in ex["input"]) for ex in augmented]
+
+        # Check for diversity: should have more than just the original
+        unique_inputs = set(inputs)
+        assert len(unique_inputs) >= 2, (
+            f"Expected at least 2 unique inputs for diverse mix, got {len(unique_inputs)}"
+        )
+
+        # With stratified sampling, we should NOT get 3 identical examples
+        # (which would happen with pure sequential selection)
+        assert len(unique_inputs) > 1, (
+            "Stratified sampling should produce diverse examples"
+        )
+
+    def test_stratified_sampling_reproducible_with_seed(self):
+        """Test that stratified sampling is deterministic with seed."""
+        task = {"train": [{"input": [[0, 1], [2, 3]], "output": [[1, 0], [3, 2]]}]}
+
+        aug1 = augment_examples(task, num_variations=5, seed=42)
+        aug2 = augment_examples(task, num_variations=5, seed=42)
+
+        # Should be identical
+        assert len(aug1) == len(aug2)
+        assert aug1 == aug2, "Same seed should produce identical augmentation order"
+
+    def test_count_one_returns_original(self):
+        """Test edge case: count=1 should return original example."""
+        task = {"train": [{"input": [[5]], "output": [[7]]}]}
+
+        augmented = augment_examples(task, num_variations=1, seed=42)
+
+        assert len(augmented) == 1
+        assert augmented[0] == task["train"][0], (
+            "count=1 should return original example"
+        )
+
+    def test_count_two_selects_from_different_categories(self):
+        """Test edge case: count=2 should get 2 diverse examples."""
+        task = {"train": [{"input": [[1, 2], [3, 4]], "output": [[5, 6], [7, 8]]}]}
+
+        augmented = augment_examples(task, num_variations=2, seed=42)
+
+        assert len(augmented) == 2
+
+        # First should be original
+        assert augmented[0] == task["train"][0]
+
+        # Second should be different (from stratified sampling)
+        assert augmented[1] != augmented[0], "count=2 should include a variation"
+
+    def test_stratified_sampling_ensures_category_representation(self):
+        """Test that stratified sampling selects at least 1 from each available category."""
+        task = {
+            "train": [
+                {
+                    "input": [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
+                    "output": [[8, 7, 6], [5, 4, 3], [2, 1, 0]],
+                }
+            ]
+        }
+
+        # Request 6 variations (enough to guarantee all 3 categories: rotations, flips, colors)
+        augmented = augment_examples(task, num_variations=6, seed=42)
+
+        assert len(augmented) == 6
+
+        # Collect unique inputs to verify diversity
+        unique_inputs = set()
+        for ex in augmented:
+            grid_tuple = tuple(tuple(row) for row in ex["input"])
+            unique_inputs.add(grid_tuple)
+
+        # With stratified sampling, should have at least 3-4 unique transformations
+        # (original + at least 1 rotation + at least 1 flip + optionally 1 color perm)
+        assert len(unique_inputs) >= 3, (
+            f"Expected at least 3 diverse transformations, got {len(unique_inputs)}"
+        )
+
+    def test_stratified_sampling_with_multiple_training_examples(self):
+        """Test stratified sampling with multiple training examples."""
+        task = {
+            "train": [
+                {"input": [[1, 2]], "output": [[3, 4]]},
+                {"input": [[5, 6]], "output": [[7, 8]]},
+            ]
+        }
+
+        # Request 3 variations per example = 6 total
+        augmented = augment_examples(task, num_variations=3, seed=42)
+
+        # Should have 3 * 2 = 6 examples total
+        assert len(augmented) == 6
+
+        # First should be original first example
+        assert augmented[0] == task["train"][0]

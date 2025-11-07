@@ -26,6 +26,15 @@ from ..cognitive_cells.programmer import generate_solver
 from ..cognitive_cells.refiner import refine_solver
 from ..cognitive_cells.tagger import Tagger
 from ..crucible.data_loader import load_task
+
+# Optional dependency: augmentation module for Active Inference
+try:
+    from ..cognitive_cells.augmentation import augment_examples
+
+    AUGMENTATION_AVAILABLE = True
+except ImportError:
+    AUGMENTATION_AVAILABLE = False
+
 from ..utils.config import (
     ANALYST_DEFAULT_TEMPERATURE,
     CROSSOVER_DEFAULT_TEMPERATURE,
@@ -160,7 +169,10 @@ def run_evolution_loop(
 
     # Active Inference: Augment training examples if enabled
     if use_active_inference:
-        from ..cognitive_cells.augmentation import augment_examples
+        if not AUGMENTATION_AVAILABLE:
+            raise ImportError(
+                "The 'augmentation' module is required for Active Inference but could not be imported."
+            )
 
         original_count = len(train_pairs)
         task_data = task_data.copy()  # Don't modify original
