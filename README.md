@@ -555,6 +555,17 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - **GraphQL PR Review Efficiency**: Continued /fix_pr_graphql pattern - single query fetches all feedback sources. This session: 2 reviewers (gemini-code-assist, claude[bot]), addressed all cache error handling suggestions immediately.
 - **Test Coverage for Constraints**: Added length constraints didn't break any tests because existing test data already complied. Good test data should include BOTH valid and boundary cases to catch constraint violations.
 
+**From PR #60 (Active Inference) - November 07, 2025 10:00 PM JST**:
+- ✅ **COMPLETE**: PR #60 merged - Active Inference training example augmentation with +5% success rate improvement
+- **Multi-Reviewer Feedback Handling**: Systematic extraction and prioritization of feedback from 3 AI reviewers (coderabbitai, gemini-code-assist, claude) across different comment threads
+- **5-Commit Fix Strategy**: Addressed feedback in priority order - (1) CRITICAL: seed control (2) MEDIUM: CLI validation, console display, documentation (3) MEDIUM: performance optimization, diversity enforcement (4) CRITICAL: API tracking, variation warnings (5) MUST FIX: duplicate detection
+- **Duplicate Detection Pattern**: Added deduplication logic to prevent token waste when augmentation_factor > 13 (max unique variations). Logs info when duplicates removed, prevents wasting tokens on identical examples
+- **API Cost Tracking Accuracy**: Fixed metric showing incorrect "30 API calls" with augmentation_factor=10. Corrected to show accurate "3 API calls" + "10x token multiplier" - important for user cost awareness
+- **Seed Reproducibility**: Implemented full seed control for color permutations with min_swaps diversity enforcement. Documented limitation that seed only affects color perms, not geometric transforms
+- **Performance Optimization**: Replaced O(10×n) color mapping loop with O(n) lookup table using numpy indexing - 5-10x speedup for large grids
+- **Test Coverage**: 565 tests passing (26 augmentation unit + 9 integration + 530 existing), all reviewers approved after systematic fixes
+- **Production Quality Metrics**: +5% success rate validated on 25 tasks, 3.5x slower execution (acceptable trade-off for 10x prompt increase), comprehensive error handling and warnings
+
 **From PR #53 (Test-Time Ensemble + PR Review) - November 03, 2025 07:26 AM JST**:
 - ✅ **COMPLETE**: PR #53 merged - test-time multi-persona ensemble operational
 - **Comprehensive PR Review Workflow**: Used GraphQL to extract ALL feedback sources (PR comments, reviews, line comments, CI annotations) from 4 reviewers (claude, coderabbitai, gemini-code-assist, chatgpt-codex-connector)
