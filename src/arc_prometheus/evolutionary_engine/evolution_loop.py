@@ -83,6 +83,9 @@ def run_evolution_loop(
     use_crossover: bool = False,
     crossover_temperature: float | None = None,
     solver_library: SolverLibrary | None = None,
+    use_active_inference: bool = False,
+    augmentation_factor: int = 10,
+    seed: int | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -113,6 +116,8 @@ def run_evolution_loop(
         use_crossover: If True, use Crossover agent for technique fusion (Phase 3.4) (default: False)
         crossover_temperature: Temperature for Crossover (default: 0.5, only used if use_crossover=True)
         solver_library: SolverLibrary instance for population tracking (Phase 3.5) (default: None = create new)
+        use_active_inference: Enable training example augmentation (Phase 4 - Active Inference) (default: False)
+        augmentation_factor: Number of variations per training example (default: 10, only used if use_active_inference=True)
 
     Returns:
         List of GenerationResult dicts, one per generation
@@ -153,10 +158,30 @@ def run_evolution_loop(
     if not train_pairs:
         raise ValueError(f"Task {task_json_path} has no train examples")
 
+    # Active Inference: Augment training examples if enabled
+    if use_active_inference:
+        from ..cognitive_cells.augmentation import augment_examples
+
+        original_count = len(train_pairs)
+        task_data = task_data.copy()  # Don't modify original
+        task_data["train"] = augment_examples(
+            task_data, num_variations=augmentation_factor, seed=seed
+        )
+        train_pairs = task_data["train"]
+        if verbose:
+            print(
+                f"Active Inference: Augmented {original_count} examples → "
+                f"{len(train_pairs)} examples ({augmentation_factor}x)"
+            )
+
     # Load raw JSON once for LLM agents (Analyst, Crossover, Tagger)
     # They need raw dict with lists, not numpy arrays
-    with open(task_json_path) as f:
-        task_json = json.load(f)
+    if use_active_inference:
+        # Use augmented task_data instead of loading from file again
+        task_json = task_data
+    else:
+        with open(task_json_path) as f:
+            task_json = json.load(f)
 
     results: list[GenerationResult] = []
     current_code: str = ""

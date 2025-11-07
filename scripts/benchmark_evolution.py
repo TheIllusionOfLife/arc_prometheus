@@ -263,6 +263,9 @@ def run_single_task_benchmark(
     population_size: int = 10,
     mutation_rate: float = 0.2,
     crossover_rate_population: float = 0.5,
+    use_active_inference: bool = False,
+    augmentation_factor: int = 10,
+    seed: int | None = None,
 ) -> dict:
     """Run evolution loop benchmark on a single ARC task.
 
@@ -279,6 +282,8 @@ def run_single_task_benchmark(
         timeout_llm: LLM API call timeout
         use_cache: Whether to use LLM response cache
         generate_submission: If True, generate pass@2 predictions
+        use_active_inference: Enable training example augmentation
+        augmentation_factor: Number of variations per training example
         num_attempts: Number of diverse attempts for pass@2 (default: 2)
         use_analyst: Enable Analyst agent for pattern analysis
         analyst_temperature: Temperature for Analyst agent
@@ -332,6 +337,8 @@ def run_single_task_benchmark(
             "population_size": population_size,
             "mutation_rate": mutation_rate,
             "crossover_rate_population": crossover_rate_population,
+            "use_active_inference": use_active_inference,
+            "augmentation_factor": augmentation_factor,
         },
     }
 
@@ -456,6 +463,9 @@ def run_single_task_benchmark(
                     tagger_temperature=tagger_temperature,
                     use_crossover=use_crossover,
                     crossover_temperature=crossover_temperature,
+                    use_active_inference=use_active_inference,
+                    augmentation_factor=augmentation_factor,
+                    seed=seed,
                 )
 
                 # Calculate metrics
@@ -842,6 +852,20 @@ def parse_benchmark_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Temperature for Crossover agent (default: uses config.py default)",
     )
 
+    # Active Inference configuration (Phase 4)
+    parser.add_argument(
+        "--use-active-inference",
+        action="store_true",
+        default=False,
+        help="Enable training example augmentation (Active Inference)",
+    )
+    parser.add_argument(
+        "--augmentation-factor",
+        type=int,
+        default=10,
+        help="Number of variations per training example (default: %(default)s)",
+    )
+
     # Population-based evolution configuration (Phase 3.6)
     parser.add_argument(
         "--use-population",
@@ -886,6 +910,30 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    # Validate augmentation_factor range
+    if args.augmentation_factor < 1:
+        print(
+            f"Error: --augmentation-factor must be >= 1, got {args.augmentation_factor}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Warn about high augmentation factor (duplicates after ~13 unique variations)
+    if args.augmentation_factor > 15:
+        print(
+            f"Warning: --augmentation-factor {args.augmentation_factor} is very high.",
+            file=sys.stderr,
+        )
+        print(
+            "Augmentation generates ~13 unique variations per example "
+            "(3 rotations + 2 flips + 5 colors + original).",
+            file=sys.stderr,
+        )
+        print(
+            f"Values >13 will include duplicates, but augmentation_factor={args.augmentation_factor} will be used.",
+            file=sys.stderr,
+        )
 
     # Print header
     print("=" * 70)
@@ -953,6 +1001,11 @@ def main() -> int:
     else:
         print("  AI Civilization: Disabled (Direct Mode)")
 
+    # Display Active Inference configuration
+    print(f"  Active Inference: {args.use_active_inference}")
+    if args.use_active_inference:
+        print(f"  Augmentation Factor: {args.augmentation_factor}")
+
     # Generate and save experiment metadata
     config = {
         "model": args.model,
@@ -975,6 +1028,8 @@ def main() -> int:
         "population_size": args.population_size,
         "mutation_rate": args.mutation_rate,
         "crossover_rate_population": args.crossover_rate_population,
+        "use_active_inference": args.use_active_inference,
+        "augmentation_factor": args.augmentation_factor,
     }
 
     metadata = generate_experiment_metadata(args.experiment_name, task_ids, config)
@@ -1023,6 +1078,9 @@ def main() -> int:
             population_size=args.population_size,
             mutation_rate=args.mutation_rate,
             crossover_rate_population=args.crossover_rate_population,
+            use_active_inference=args.use_active_inference,
+            augmentation_factor=args.augmentation_factor,
+            seed=args.seed,
         )
 
         # Display result summary

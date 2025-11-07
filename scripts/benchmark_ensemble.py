@@ -84,6 +84,8 @@ def run_ensemble_single_task(
     use_cache: bool,
     timeout: int,
     sandbox_mode: str,
+    use_active_inference: bool = False,
+    augmentation_factor: int = 10,
 ) -> dict[str, Any]:
     """Run test-time ensemble on a single task.
 
@@ -97,6 +99,8 @@ def run_ensemble_single_task(
         use_cache: Enable LLM caching
         timeout: Execution timeout
         sandbox_mode: Sandbox type
+        use_active_inference: Enable training augmentation
+        augmentation_factor: Augmentation variations
 
     Returns:
         Dictionary with task results
@@ -128,6 +132,8 @@ def run_ensemble_single_task(
             use_cache=use_cache,
             timeout=timeout,
             sandbox_mode=sandbox_mode,
+            use_active_inference=use_active_inference,
+            augmentation_factor=augmentation_factor,
         )
 
         # Evaluate predictions against ground truth
@@ -195,13 +201,18 @@ def run_ensemble_single_task(
                 "synthesis_temperature": synthesis_temperature,
                 "timeout": timeout,
                 "sandbox_mode": sandbox_mode,
+                "use_active_inference": use_active_inference,
+                "augmentation_factor": augmentation_factor,
             },
             "test_results": test_results,
             "pass_at_2_accuracy": pass_at_2_accuracy,
             "best_only_accuracy": best_only_accuracy,
             "synthesis_only_accuracy": synthesis_only_accuracy,
             "total_time": total_time,
-            "api_calls": 3,  # Analyst + Programmer + Synthesis
+            "api_calls": 3,  # Always 3: Analyst + Programmer + Synthesis
+            "token_multiplier": augmentation_factor
+            if use_active_inference
+            else 1,  # Prompt size multiplier from augmentation
         }
 
     except Exception as e:
@@ -324,6 +335,8 @@ def generate_metadata(
             "training_data": args.training_data,
             "random_sample": args.random_sample,
             "seed": args.seed,
+            "use_active_inference": args.use_active_inference,
+            "augmentation_factor": args.augmentation_factor,
         },
         "git_commit": git_commit,
         "git_branch": git_branch,
@@ -414,15 +427,52 @@ def parse_args() -> argparse.Namespace:
         help="Disable LLM response caching",
     )
 
+    # Active Inference (Phase 4)
+    parser.add_argument(
+        "--use-active-inference",
+        action="store_true",
+        help="Enable training example augmentation (Active Inference)",
+    )
+    parser.add_argument(
+        "--augmentation-factor",
+        type=int,
+        default=10,
+        help="Number of variations per training example (default: 10)",
+    )
+
     args = parser.parse_args()
     args.use_cache = not args.no_cache
 
     return args
 
 
-def main() -> None:
+def main() -> int:
     """Main entry point."""
     args = parse_args()
+
+    # Validate augmentation_factor range
+    if args.augmentation_factor < 1:
+        print(
+            f"Error: --augmentation-factor must be >= 1, got {args.augmentation_factor}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Warn about high augmentation factor (duplicates after ~13 unique variations)
+    if args.augmentation_factor > 15:
+        print(
+            f"Warning: --augmentation-factor {args.augmentation_factor} is very high.",
+            file=sys.stderr,
+        )
+        print(
+            "Augmentation generates ~13 unique variations per example "
+            "(3 rotations + 2 flips + 5 colors + original).",
+            file=sys.stderr,
+        )
+        print(
+            f"Values >13 will include duplicates, but augmentation_factor={args.augmentation_factor} will be used.",
+            file=sys.stderr,
+        )
 
     # Load task IDs
     print("=" * 70)
@@ -448,6 +498,9 @@ def main() -> None:
     print(f"  Timeout: {args.timeout}s")
     print(f"  Sandbox: {args.sandbox_mode}")
     print(f"  Cache: {args.use_cache}")
+    print(f"  Active Inference: {args.use_active_inference}")
+    if args.use_active_inference:
+        print(f"  Augmentation Factor: {args.augmentation_factor}")
     print()
 
     # Generate and save metadata
@@ -481,6 +534,8 @@ def main() -> None:
             use_cache=args.use_cache,
             timeout=args.timeout,
             sandbox_mode=args.sandbox_mode,
+            use_active_inference=args.use_active_inference,
+            augmentation_factor=args.augmentation_factor,
         )
 
         # Save individual result
@@ -537,6 +592,8 @@ def main() -> None:
     print("=" * 70)
     print()
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
