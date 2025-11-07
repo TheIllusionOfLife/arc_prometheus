@@ -11,6 +11,16 @@ Augmentation techniques:
 
 The goal is to give LLMs more "experience" with task patterns by providing
 30+ examples instead of just 3, improving code generation accuracy.
+
+IMPORTANT - Semantic Preservation Limitation:
+Geometric transformations (rotation, flip) may not preserve task semantics for
+all ARC tasks. For example, if a task involves directional concepts like "move
+up" or "find the top object", rotating the grid 90° changes the meaning from
+"up" to "right". Similarly, tasks involving left/right asymmetry may be broken
+by horizontal flips. Color permutations are generally safer but may still fail
+for tasks that assign semantic meaning to specific colors (e.g., "red means
+obstacle"). Use augmentation judiciously and monitor for accuracy degradation
+on specific task types.
 """
 
 import logging

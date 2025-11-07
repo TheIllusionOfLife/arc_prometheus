@@ -911,6 +911,14 @@ def main() -> int:
         )
         return 1
 
+    # Validate augmentation_factor range
+    if args.augmentation_factor < 1:
+        print(
+            f"Error: --augmentation-factor must be >= 1, got {args.augmentation_factor}",
+            file=sys.stderr,
+        )
+        return 1
+
     # Print header
     print("=" * 70)
     print(" ARC-Prometheus Evolution Loop Benchmark")
@@ -976,6 +984,11 @@ def main() -> int:
         print(f"  AI Civilization: {', '.join(ai_civ_features)}")
     else:
         print("  AI Civilization: Disabled (Direct Mode)")
+
+    # Display Active Inference configuration
+    print(f"  Active Inference: {args.use_active_inference}")
+    if args.use_active_inference:
+        print(f"  Augmentation Factor: {args.augmentation_factor}")
 
     # Generate and save experiment metadata
     config = {

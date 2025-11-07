@@ -446,9 +446,17 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def main() -> None:
+def main() -> int:
     """Main entry point."""
     args = parse_args()
+
+    # Validate augmentation_factor range
+    if args.augmentation_factor < 1:
+        print(
+            f"Error: --augmentation-factor must be >= 1, got {args.augmentation_factor}",
+            file=sys.stderr,
+        )
+        return 1
 
     # Load task IDs
     print("=" * 70)
@@ -568,6 +576,8 @@ def main() -> None:
     print("=" * 70)
     print()
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
