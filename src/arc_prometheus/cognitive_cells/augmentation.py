@@ -186,16 +186,37 @@ def _generate_variations(
         except (ValueError, TypeError, IndexError, KeyError) as e:
             logger.warning(f"Color permutation failed: {e}")
 
-    # Return requested count (deterministic order for testing)
-    # Note: In production, shuffle could be added for diversity
-    generated_count = len(all_variations)
-    if generated_count < count:
+    # Deduplicate variations to avoid wasting tokens on identical examples
+    # This matters when augmentation_factor > 13 (max unique variations)
+    unique_variations = []
+    seen_inputs = set()
+
+    for variation in all_variations:
+        # Convert input to hashable tuple for deduplication
+        input_key = str(variation["input"])
+        if input_key not in seen_inputs:
+            seen_inputs.add(input_key)
+            unique_variations.append(variation)
+
+    deduplicated_count = len(unique_variations)
+
+    # Warn if deduplication removed variations
+    if deduplicated_count < len(all_variations):
+        duplicates_removed = len(all_variations) - deduplicated_count
+        logger.info(
+            f"Removed {duplicates_removed} duplicate variations. "
+            f"Kept {deduplicated_count} unique variations."
+        )
+
+    # Warn if we still don't have enough variations
+    if deduplicated_count < count:
         logger.warning(
-            f"Only generated {generated_count} variations (requested {count}). "
+            f"Only generated {deduplicated_count} unique variations (requested {count}). "
             f"Some transformations may have failed or produced duplicates. "
             f"Maximum unique variations: ~13 (3 rotations + 2 flips + {MAX_COLOR_PERMUTATIONS} colors + original)."
         )
-    return all_variations[:count]
+
+    return unique_variations[:count]
 
 
 def generate_color_permutations(
