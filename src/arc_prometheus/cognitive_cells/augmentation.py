@@ -223,14 +223,20 @@ def _generate_variations(
     if count < len(unique_variations):
         rng = random.Random(seed) if seed is not None else random.Random()  # noqa: S311
 
+        # Define constants for transformation counts to avoid magic numbers
+        num_rotations = 3
+        num_flips = 2
+        flip_start_idx = num_rotations
+        color_start_idx = flip_start_idx + num_flips
+
         # Rotations (first 3), Flips (next 2), Color perms (rest)
         rotation_vars: list[dict[str, Any]] = unique_variations[
-            : min(3, len(unique_variations))
+            : min(flip_start_idx, len(unique_variations))
         ]
         flip_vars: list[dict[str, Any]] = unique_variations[
-            3 : min(5, len(unique_variations))
+            flip_start_idx : min(color_start_idx, len(unique_variations))
         ]
-        color_vars: list[dict[str, Any]] = unique_variations[5:]
+        color_vars: list[dict[str, Any]] = unique_variations[color_start_idx:]
 
         # Shuffle each category independently
         rng.shuffle(rotation_vars)
