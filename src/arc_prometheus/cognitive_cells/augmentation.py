@@ -1,0 +1,231 @@
+"""
+Training example augmentation for Active Inference.
+
+This module implements data augmentation techniques to generate diverse
+variations of ARC training examples while preserving the transformation rules.
+
+Augmentation techniques:
+- Rotations: 90°, 180°, 270°
+- Flips: horizontal, vertical
+- Color permutations: swap colors while preserving pattern
+
+The goal is to give LLMs more "experience" with task patterns by providing
+30+ examples instead of just 3, improving code generation accuracy.
+"""
+
+import logging
+import random
+from typing import Any
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+
+def augment_examples(
+    task_data: dict[str, Any], num_variations: int = 10
+) -> list[dict[str, Any]]:
+    """
+    Generate augmented variations of training examples.
+
+    Args:
+        task_data: ARC task dict with "train" key containing training examples
+        num_variations: Target number of total examples per original example
+
+    Returns:
+        List of augmented training examples (input/output dicts)
+
+    Raises:
+        ValueError: If task_data is invalid or missing required keys
+
+    Example:
+        >>> task = {"train": [{"input": [[0,1]], "output": [[1,0]]}]}
+        >>> augmented = augment_examples(task, num_variations=5)
+        >>> len(augmented)
+        5
+    """
+    # Validate input
+    if "train" not in task_data:
+        raise ValueError("Task data must have a 'train' key")
+
+    train_examples = task_data["train"]
+
+    if not train_examples:
+        raise ValueError("Task data must have at least one training example")
+
+    # Validate each example
+    for ex in train_examples:
+        if "input" not in ex or "output" not in ex:
+            raise ValueError("Each example must have 'input' and 'output' keys")
+
+    # If num_variations is 1, return original examples (cast for type checker)
+    if num_variations == 1:
+        return list(train_examples)
+
+    augmented = []
+
+    for example in train_examples:
+        # Add original example first
+        augmented.append(example)
+
+        # Calculate how many variations to generate per example
+        variations_per_example = num_variations - 1
+
+        # Generate augmented variations
+        example_augmentations = _generate_variations(example, variations_per_example)
+        augmented.extend(example_augmentations)
+
+    # Return exactly num_variations * len(train_examples) examples
+    target_count = num_variations * len(train_examples)
+    return augmented[:target_count]
+
+
+def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, Any]]:
+    """
+    Generate variations of a single example.
+
+    Args:
+        example: Single training example with input/output
+        count: Number of variations to generate
+
+    Returns:
+        List of augmented variations
+    """
+    all_variations = []
+
+    input_grid = np.array(example["input"], dtype=np.int64)
+    output_grid = np.array(example["output"], dtype=np.int64)
+
+    # Generate all transformation variations
+    # Rotations: 90°, 180°, 270°
+    for k in [1, 2, 3]:
+        try:
+            aug_input = np.rot90(input_grid, k=k)
+            aug_output = np.rot90(output_grid, k=k)
+            all_variations.append(
+                {
+                    "input": aug_input.tolist(),
+                    "output": aug_output.tolist(),
+                }
+            )
+        except Exception as e:
+            logger.debug(f"Rotation {k * 90}° failed: {e}")
+
+    # Horizontal flip
+    try:
+        aug_input = np.fliplr(input_grid)
+        aug_output = np.fliplr(output_grid)
+        all_variations.append(
+            {
+                "input": aug_input.tolist(),
+                "output": aug_output.tolist(),
+            }
+        )
+    except Exception as e:
+        logger.debug(f"Horizontal flip failed: {e}")
+
+    # Vertical flip
+    try:
+        aug_input = np.flipud(input_grid)
+        aug_output = np.flipud(output_grid)
+        all_variations.append(
+            {
+                "input": aug_input.tolist(),
+                "output": aug_output.tolist(),
+            }
+        )
+    except Exception as e:
+        logger.debug(f"Vertical flip failed: {e}")
+
+    # Color permutations
+    color_perms = generate_color_permutations(limit=5)
+    for perm in color_perms:
+        try:
+            aug_input = _apply_color_map_numpy(input_grid, perm)
+            aug_output = _apply_color_map_numpy(output_grid, perm)
+            all_variations.append(
+                {
+                    "input": aug_input.tolist(),
+                    "output": aug_output.tolist(),
+                }
+            )
+        except Exception as e:
+            logger.debug(f"Color permutation failed: {e}")
+
+    # Return requested count (deterministic order for testing)
+    # Note: In production, shuffle could be added for diversity
+    return all_variations[:count]
+
+
+def generate_color_permutations(limit: int = 3) -> list[dict[int, int]]:
+    """
+    Generate random color permutations for ARC grids.
+
+    ARC has 10 colors (0-9). This generates random bijective mappings.
+
+    Args:
+        limit: Number of permutations to generate
+
+    Returns:
+        List of color permutation dictionaries (old_color -> new_color)
+
+    Example:
+        >>> perms = generate_color_permutations(limit=2)
+        >>> len(perms)
+        2
+        >>> all(len(p) == 10 for p in perms)
+        True
+    """
+    permutations = []
+
+    for _ in range(limit):
+        # Create a random permutation of colors 0-9
+        colors = list(range(10))
+        shuffled = colors.copy()
+        random.shuffle(shuffled)
+
+        # Create mapping
+        perm = dict(zip(colors, shuffled, strict=True))
+        permutations.append(perm)
+
+    return permutations
+
+
+def apply_color_map(
+    grid: list[list[int]], permutation: dict[int, int]
+) -> list[list[int]]:
+    """
+    Apply color permutation to a grid.
+
+    Args:
+        grid: 2D grid as list of lists
+        permutation: Mapping from old color to new color
+
+    Returns:
+        Grid with colors swapped according to permutation
+
+    Example:
+        >>> grid = [[0, 1], [2, 3]]
+        >>> perm = {0: 1, 1: 0, 2: 3, 3: 2, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9}
+        >>> apply_color_map(grid, perm)
+        [[1, 0], [3, 2]]
+    """
+    return [[permutation[cell] for cell in row] for row in grid]
+
+
+def _apply_color_map_numpy(grid: np.ndarray, permutation: dict[int, int]) -> np.ndarray:
+    """
+    Apply color permutation to a numpy array.
+
+    Args:
+        grid: 2D grid as numpy array
+        permutation: Mapping from old color to new color
+
+    Returns:
+        Grid with colors swapped according to permutation
+    """
+    # Create vectorized mapping
+    result = np.zeros_like(grid)
+    for old_color, new_color in permutation.items():
+        result[grid == old_color] = new_color
+    return result
