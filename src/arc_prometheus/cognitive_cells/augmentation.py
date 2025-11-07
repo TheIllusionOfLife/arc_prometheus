@@ -45,6 +45,8 @@ def augment_examples(
         task_data: ARC task dict with "train" key containing training examples
         num_variations: Target number of total examples per original example
         seed: Random seed for reproducible augmentation (default: None)
+              Note: Seed only affects color permutations. Geometric transformations
+              (rotations, flips) are deterministic and always appear in the same order.
 
     Returns:
         List of augmented training examples (input/output dicts)
@@ -57,6 +59,11 @@ def augment_examples(
         >>> augmented = augment_examples(task, num_variations=5)
         >>> len(augmented)
         5
+
+    Note:
+        Seed propagation is limited to color permutation randomness. For full
+        reproducibility across runs, the same seed will produce identical color
+        permutations but geometric transformations remain deterministic.
     """
     # Validate input
     if "train" not in task_data:
@@ -181,6 +188,13 @@ def _generate_variations(
 
     # Return requested count (deterministic order for testing)
     # Note: In production, shuffle could be added for diversity
+    generated_count = len(all_variations)
+    if generated_count < count:
+        logger.warning(
+            f"Only generated {generated_count} variations (requested {count}). "
+            f"Some transformations may have failed or produced duplicates. "
+            f"Maximum unique variations: ~13 (3 rotations + 2 flips + {MAX_COLOR_PERMUTATIONS} colors + original)."
+        )
     return all_variations[:count]
 
 
@@ -236,6 +250,14 @@ def generate_color_permutations(
         # Create mapping
         perm = dict(zip(colors, shuffled, strict=True))
         permutations.append(perm)
+
+    # Warn if we couldn't generate the requested number of permutations
+    if len(permutations) < limit:
+        logger.warning(
+            f"Only generated {len(permutations)}/{limit} color permutations "
+            f"after {max_attempts} attempts (min_swaps={min_swaps}). "
+            f"Consider lowering min_swaps or increasing max_attempts."
+        )
 
     return permutations
 

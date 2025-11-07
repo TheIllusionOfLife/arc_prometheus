@@ -209,10 +209,10 @@ def run_ensemble_single_task(
             "best_only_accuracy": best_only_accuracy,
             "synthesis_only_accuracy": synthesis_only_accuracy,
             "total_time": total_time,
-            "api_calls": 3
-            * (
-                augmentation_factor if use_active_inference else 1
-            ),  # Analyst + Programmer + Synthesis, scaled by augmentation
+            "api_calls": 3,  # Always 3: Analyst + Programmer + Synthesis
+            "token_multiplier": augmentation_factor
+            if use_active_inference
+            else 1,  # Prompt size multiplier from augmentation
         }
 
     except Exception as e:
