@@ -201,6 +201,8 @@ def run_ensemble_single_task(
                 "synthesis_temperature": synthesis_temperature,
                 "timeout": timeout,
                 "sandbox_mode": sandbox_mode,
+                "use_active_inference": use_active_inference,
+                "augmentation_factor": augmentation_factor,
             },
             "test_results": test_results,
             "pass_at_2_accuracy": pass_at_2_accuracy,

@@ -336,6 +336,8 @@ def run_single_task_benchmark(
             "population_size": population_size,
             "mutation_rate": mutation_rate,
             "crossover_rate_population": crossover_rate_population,
+            "use_active_inference": use_active_inference,
+            "augmentation_factor": augmentation_factor,
         },
     }
 
