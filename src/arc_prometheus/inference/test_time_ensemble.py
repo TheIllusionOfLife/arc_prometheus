@@ -33,7 +33,17 @@ from ..cognitive_cells.multi_solution_programmer import (
     MultiSolutionProgrammer,
     SolutionResult,
 )
-from ..cognitive_cells.synthesis_agent import SynthesisAgent, SynthesisResult
+from ..cognitive_cells.synthesis_agent import SynthesisAgent
+
+# Optional dependency: augmentation module for Active Inference
+try:
+    from ..cognitive_cells.augmentation import augment_examples
+
+    AUGMENTATION_AVAILABLE = True
+except ImportError:
+    AUGMENTATION_AVAILABLE = False
+
+from ..cognitive_cells.synthesis_agent import SynthesisResult
 from ..crucible.sandbox import MultiprocessSandbox
 from ..crucible.sandbox_protocol import ExecutionEnvironment
 
@@ -277,7 +287,10 @@ def solve_task_ensemble(
 
     # Active Inference: Augment training examples if enabled
     if use_active_inference:
-        from ..cognitive_cells.augmentation import augment_examples
+        if not AUGMENTATION_AVAILABLE:
+            raise ImportError(
+                "The 'augmentation' module is required for Active Inference but could not be imported."
+            )
 
         original_count = len(task["train"])
         task = task.copy()  # Don't modify original

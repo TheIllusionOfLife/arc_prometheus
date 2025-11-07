@@ -92,7 +92,8 @@ class TestRotations:
             ]
         }
 
-        augmented = augment_examples(task, num_variations=5)
+        # Request all variations (10) to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # Find rotated version (should have rotated input)
         # 90° rotation of [[1,2],[3,4]] = [[3,1],[4,2]]
@@ -110,7 +111,8 @@ class TestRotations:
         """Test 180-degree rotation."""
         task = {"train": [{"input": [[1, 2]], "output": [[3, 4]]}]}
 
-        augmented = augment_examples(task, num_variations=3)
+        # Request all variations to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # 180° rotation of [[1,2]] = [[2,1]] (flipped both ways)
         found_rotation = False
@@ -135,7 +137,8 @@ class TestRotations:
             ]
         }
 
-        augmented = augment_examples(task, num_variations=4)
+        # Request all variations to ensure all rotations are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # 270° rotation of [[1,2],[3,4]] = [[2,4],[1,3]]
         found_rotation = False
@@ -155,7 +158,8 @@ class TestFlips:
         """Test horizontal flip."""
         task = {"train": [{"input": [[1, 2, 3]], "output": [[4, 5, 6]]}]}
 
-        augmented = augment_examples(task, num_variations=5)
+        # Request all variations to ensure all flips are included
+        augmented = augment_examples(task, num_variations=10, seed=42)
 
         # Horizontal flip: [[1,2,3]] → [[3,2,1]]
         found_flip = False
