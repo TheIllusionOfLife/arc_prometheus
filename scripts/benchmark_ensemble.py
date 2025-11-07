@@ -84,6 +84,8 @@ def run_ensemble_single_task(
     use_cache: bool,
     timeout: int,
     sandbox_mode: str,
+    use_active_inference: bool = False,
+    augmentation_factor: int = 10,
 ) -> dict[str, Any]:
     """Run test-time ensemble on a single task.
 
@@ -97,6 +99,8 @@ def run_ensemble_single_task(
         use_cache: Enable LLM caching
         timeout: Execution timeout
         sandbox_mode: Sandbox type
+        use_active_inference: Enable training augmentation
+        augmentation_factor: Augmentation variations
 
     Returns:
         Dictionary with task results
@@ -128,6 +132,8 @@ def run_ensemble_single_task(
             use_cache=use_cache,
             timeout=timeout,
             sandbox_mode=sandbox_mode,
+            use_active_inference=use_active_inference,
+            augmentation_factor=augmentation_factor,
         )
 
         # Evaluate predictions against ground truth
@@ -414,6 +420,19 @@ def parse_args() -> argparse.Namespace:
         help="Disable LLM response caching",
     )
 
+    # Active Inference (Phase 4)
+    parser.add_argument(
+        "--use-active-inference",
+        action="store_true",
+        help="Enable training example augmentation (Active Inference)",
+    )
+    parser.add_argument(
+        "--augmentation-factor",
+        type=int,
+        default=10,
+        help="Number of variations per training example (default: 10)",
+    )
+
     args = parser.parse_args()
     args.use_cache = not args.no_cache
 
@@ -481,6 +500,8 @@ def main() -> None:
             use_cache=args.use_cache,
             timeout=args.timeout,
             sandbox_mode=args.sandbox_mode,
+            use_active_inference=args.use_active_inference,
+            augmentation_factor=args.augmentation_factor,
         )
 
         # Save individual result
