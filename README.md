@@ -160,6 +160,13 @@ python scripts/demo_phase2_3_evolution.py [--model MODEL] [--max-generations N]
 --timeout-llm SECONDS            # LLM API timeout (default: 60)
 ```
 
+**Active Inference** (training example augmentation):
+```bash
+--use-active-inference           # Enable data augmentation
+--augmentation-factor N          # Variations per example (default: 10)
+                                 # Trade-off: +5% completion rate, 3.5x slower
+```
+
 **Kaggle Submission** (pass@2 format):
 ```bash
 --generate-submission            # Enable pass@2 prediction generation
