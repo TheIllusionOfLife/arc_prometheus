@@ -518,7 +518,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **PR #62: Address PR #60 MEDIUM Priority Feedback** ([PR #62](https://github.com/TheIllusionOfLife/arc_prometheus/pull/62) - November 08, 2025):
 - Addressed all MEDIUM priority code quality feedback from PR #60 review (gemini-code-assist + claude)
-- **Stratified Sampling**: Implemented diverse transformation mix for small augmentation counts - ensures rotations, flips, and color permutations are represented even with num_variations=3
+- **Stratified Sampling**: Implemented diverse transformation mix for small augmentation counts - ensures rotations, flips, and color permutations are represented even with a small number of variations (e.g., `num_variations=3`)
 - **PEP 8 Compliance**: Moved augmentation imports from local if blocks to top-level try/except pattern (consistent with project conventions)
 - **Real CLI Tests**: Replaced placeholder tests with actual argument parser validation for `benchmark_evolution.py` (validates default values, custom inputs, flag combinations)
 - **Named Constants**: Replaced magic numbers (3, 5) with lowercase named constants (num_rotations, num_flips) per PEP 8 function-scope requirements
@@ -566,7 +566,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - **Stratified Sampling for Diversity**: Implemented algorithm ensuring diverse transformation mix (rotations, flips, colors) for ANY augmentation count, preventing small counts from only getting geometric transforms. Uses proportional sampling with at least 1 from each category.
 - **PEP 8 Named Constants in Functions**: Learned ruff N806 requires LOWERCASE for function-scope variables even when conceptually constants (e.g., `num_rotations = 3` not `NUM_ROTATIONS = 3`). Module-level constants use UPPERCASE, function-level use lowercase.
 - **Non-Blocking Review Recommendations**: Claude marked stratified sampling test recommendations as "non-blocking action items" - still implemented them for completeness. Distinguishing blocking vs non-blocking feedback prevents delays while improving quality.
-- **Edge Case Test Coverage**: Added 6 tests for count=1, count=2, diverse categories, reproducibility with seed, category representation. These tests validate algorithm branches that standard tests missed.
+- **Edge Case Test Coverage**: Added 6 unit tests for stratified sampling edge cases (e.g., `count=1`, `count=2`), category representation, and reproducibility with seed. These tests validate algorithm branches that standard tests missed.
 - **Systematic Review Response**: Addressed gemini-code-assist feedback (magic numbers → named constants) immediately, then claude feedback (edge case tests). All reviewers approved with no additional requests.
 
 **From PR #55 (Pydantic Schema Migration + Cache Error Handling) - November 03, 2025 10:05 AM JST**:
@@ -609,7 +609,7 @@ Currently in maintenance mode - all Active Inference development complete (PR #6
 
 **Future Research Directions** (when/if resumed):
 1. **Active Inference Evaluation**: Benchmark augmentation_factor impact on diverse ARC task types
-   - Source: PR #60 - +5% success rate on 25 tasks, needs broader validation
+   - Source: PR #60 - showed a +5% success rate on a sample of 25 tasks, which needs broader validation
    - Context: Understand which task patterns benefit from augmentation vs. those where it hurts
    - Approach: Systematic evaluation across task categories (rotation, fill, pattern, logic)
 2. **Stratified Sampling Optimization**: Tune category proportions for maximum diversity
