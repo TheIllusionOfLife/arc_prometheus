@@ -997,6 +997,8 @@ def main() -> int:
         "population_size": args.population_size,
         "mutation_rate": args.mutation_rate,
         "crossover_rate_population": args.crossover_rate_population,
+        "use_active_inference": args.use_active_inference,
+        "augmentation_factor": args.augmentation_factor,
     }
 
     metadata = generate_experiment_metadata(args.experiment_name, task_ids, config)

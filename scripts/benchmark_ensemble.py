@@ -209,7 +209,10 @@ def run_ensemble_single_task(
             "best_only_accuracy": best_only_accuracy,
             "synthesis_only_accuracy": synthesis_only_accuracy,
             "total_time": total_time,
-            "api_calls": 3,  # Analyst + Programmer + Synthesis
+            "api_calls": 3
+            * (
+                augmentation_factor if use_active_inference else 1
+            ),  # Analyst + Programmer + Synthesis, scaled by augmentation
         }
 
     except Exception as e:
@@ -332,6 +335,8 @@ def generate_metadata(
             "training_data": args.training_data,
             "random_sample": args.random_sample,
             "seed": args.seed,
+            "use_active_inference": args.use_active_inference,
+            "augmentation_factor": args.augmentation_factor,
         },
         "git_commit": git_commit,
         "git_branch": git_branch,
@@ -469,6 +474,9 @@ def main() -> None:
     print(f"  Timeout: {args.timeout}s")
     print(f"  Sandbox: {args.sandbox_mode}")
     print(f"  Cache: {args.use_cache}")
+    print(f"  Active Inference: {args.use_active_inference}")
+    if args.use_active_inference:
+        print(f"  Augmentation Factor: {args.augmentation_factor}")
     print()
 
     # Generate and save metadata
