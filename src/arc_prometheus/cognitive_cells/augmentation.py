@@ -21,9 +21,12 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Constants
+MAX_COLOR_PERMUTATIONS = 5  # Number of random color permutations to generate
+
 
 def augment_examples(
-    task_data: dict[str, Any], num_variations: int = 10
+    task_data: dict[str, Any], num_variations: int = 10, seed: int | None = None
 ) -> list[dict[str, Any]]:
     """
     Generate augmented variations of training examples.
@@ -31,6 +34,7 @@ def augment_examples(
     Args:
         task_data: ARC task dict with "train" key containing training examples
         num_variations: Target number of total examples per original example
+        seed: Random seed for reproducible augmentation (default: None)
 
     Returns:
         List of augmented training examples (input/output dicts)
@@ -72,7 +76,9 @@ def augment_examples(
         variations_per_example = num_variations - 1
 
         # Generate augmented variations
-        example_augmentations = _generate_variations(example, variations_per_example)
+        example_augmentations = _generate_variations(
+            example, variations_per_example, seed
+        )
         augmented.extend(example_augmentations)
 
     # Return exactly num_variations * len(train_examples) examples
@@ -80,13 +86,16 @@ def augment_examples(
     return augmented[:target_count]
 
 
-def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, Any]]:
+def _generate_variations(
+    example: dict[str, Any], count: int, seed: int | None = None
+) -> list[dict[str, Any]]:
     """
     Generate variations of a single example.
 
     Args:
         example: Single training example with input/output
         count: Number of variations to generate
+        seed: Random seed for reproducible color permutations
 
     Returns:
         List of augmented variations
@@ -108,8 +117,8 @@ def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, 
                     "output": aug_output.tolist(),
                 }
             )
-        except Exception as e:
-            logger.debug(f"Rotation {k * 90}° failed: {e}")
+        except (ValueError, TypeError, IndexError) as e:
+            logger.warning(f"Rotation {k * 90}° failed: {e}")
 
     # Horizontal flip
     try:
@@ -121,8 +130,8 @@ def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, 
                 "output": aug_output.tolist(),
             }
         )
-    except Exception as e:
-        logger.debug(f"Horizontal flip failed: {e}")
+    except (ValueError, TypeError, IndexError) as e:
+        logger.warning(f"Horizontal flip failed: {e}")
 
     # Vertical flip
     try:
@@ -134,11 +143,11 @@ def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, 
                 "output": aug_output.tolist(),
             }
         )
-    except Exception as e:
-        logger.debug(f"Vertical flip failed: {e}")
+    except (ValueError, TypeError, IndexError) as e:
+        logger.warning(f"Vertical flip failed: {e}")
 
     # Color permutations
-    color_perms = generate_color_permutations(limit=5)
+    color_perms = generate_color_permutations(limit=MAX_COLOR_PERMUTATIONS, seed=seed)
     for perm in color_perms:
         try:
             aug_input = _apply_color_map_numpy(input_grid, perm)
@@ -149,15 +158,17 @@ def _generate_variations(example: dict[str, Any], count: int) -> list[dict[str, 
                     "output": aug_output.tolist(),
                 }
             )
-        except Exception as e:
-            logger.debug(f"Color permutation failed: {e}")
+        except (ValueError, TypeError, IndexError, KeyError) as e:
+            logger.warning(f"Color permutation failed: {e}")
 
     # Return requested count (deterministic order for testing)
     # Note: In production, shuffle could be added for diversity
     return all_variations[:count]
 
 
-def generate_color_permutations(limit: int = 3) -> list[dict[int, int]]:
+def generate_color_permutations(
+    limit: int = 3, seed: int | None = None
+) -> list[dict[int, int]]:
     """
     Generate random color permutations for ARC grids.
 
@@ -165,6 +176,7 @@ def generate_color_permutations(limit: int = 3) -> list[dict[int, int]]:
 
     Args:
         limit: Number of permutations to generate
+        seed: Random seed for reproducibility (default: None)
 
     Returns:
         List of color permutation dictionaries (old_color -> new_color)
@@ -176,13 +188,17 @@ def generate_color_permutations(limit: int = 3) -> list[dict[int, int]]:
         >>> all(len(p) == 10 for p in perms)
         True
     """
+    # Create Random instance for reproducibility
+    # noqa: S311 - Not used for cryptographic purposes
+    rng = random.Random(seed) if seed is not None else random.Random()  # noqa: S311
+
     permutations = []
 
     for _ in range(limit):
         # Create a random permutation of colors 0-9
         colors = list(range(10))
         shuffled = colors.copy()
-        random.shuffle(shuffled)
+        rng.shuffle(shuffled)
 
         # Create mapping
         perm = dict(zip(colors, shuffled, strict=True))

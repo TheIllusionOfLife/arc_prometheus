@@ -85,6 +85,7 @@ def run_evolution_loop(
     solver_library: SolverLibrary | None = None,
     use_active_inference: bool = False,
     augmentation_factor: int = 10,
+    seed: int | None = None,
 ) -> list[GenerationResult]:
     """Run multi-generation evolution loop on ARC task.
 
@@ -164,7 +165,7 @@ def run_evolution_loop(
         original_count = len(train_pairs)
         task_data = task_data.copy()  # Don't modify original
         task_data["train"] = augment_examples(
-            task_data, num_variations=augmentation_factor
+            task_data, num_variations=augmentation_factor, seed=seed
         )
         train_pairs = task_data["train"]
         if verbose:

@@ -265,6 +265,7 @@ def run_single_task_benchmark(
     crossover_rate_population: float = 0.5,
     use_active_inference: bool = False,
     augmentation_factor: int = 10,
+    seed: int | None = None,
 ) -> dict:
     """Run evolution loop benchmark on a single ARC task.
 
@@ -464,6 +465,7 @@ def run_single_task_benchmark(
                     crossover_temperature=crossover_temperature,
                     use_active_inference=use_active_inference,
                     augmentation_factor=augmentation_factor,
+                    seed=seed,
                 )
 
                 # Calculate metrics
@@ -1049,6 +1051,7 @@ def main() -> int:
             crossover_rate_population=args.crossover_rate_population,
             use_active_inference=args.use_active_inference,
             augmentation_factor=args.augmentation_factor,
+            seed=args.seed,
         )
 
         # Display result summary

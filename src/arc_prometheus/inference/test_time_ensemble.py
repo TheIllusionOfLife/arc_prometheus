@@ -225,6 +225,7 @@ def solve_task_ensemble(
     sandbox_mode: str = "multiprocess",
     use_active_inference: bool = False,
     augmentation_factor: int = 10,
+    seed: int | None = None,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate pass@2 predictions for all test inputs using ensemble.
 
@@ -280,7 +281,9 @@ def solve_task_ensemble(
 
         original_count = len(task["train"])
         task = task.copy()  # Don't modify original
-        task["train"] = augment_examples(task, num_variations=augmentation_factor)
+        task["train"] = augment_examples(
+            task, num_variations=augmentation_factor, seed=seed
+        )
         logger.info(
             f"Active Inference: Augmented {original_count} examples → "
             f"{len(task['train'])} examples ({augmentation_factor}x)"
