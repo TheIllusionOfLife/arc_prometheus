@@ -39,9 +39,6 @@ class TestEnsembleWithActiveInference:
         assert len(task["train"]) == 2
         assert len(augmented_task["train"]) == 10
 
-    @pytest.mark.skip(
-        reason="Integration not yet complete - will be enabled after test_time_ensemble.py integration"
-    )
     @patch(
         "arc_prometheus.inference.test_time_ensemble.MultiPersonaAnalyst.analyze_task"
     )

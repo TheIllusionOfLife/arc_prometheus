@@ -223,6 +223,8 @@ def solve_task_ensemble(
     use_cache: bool = True,
     timeout: int = 5,
     sandbox_mode: str = "multiprocess",
+    use_active_inference: bool = False,
+    augmentation_factor: int = 10,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate pass@2 predictions for all test inputs using ensemble.
 
@@ -243,6 +245,8 @@ def solve_task_ensemble(
         use_cache: Whether to use LLM response caching (default True)
         timeout: Timeout in seconds for solution execution (default 5)
         sandbox_mode: Sandbox mode ("multiprocess" or "docker", default "multiprocess")
+        use_active_inference: Enable training example augmentation (default False)
+        augmentation_factor: Number of variations per training example (default 10)
 
     Returns:
         List of (best_prediction, synthesis_prediction) tuples as numpy arrays,
@@ -259,11 +263,28 @@ def solve_task_ensemble(
         }
         predictions = solve_task_ensemble(task)
         # predictions = [(best_pred, synthesis_pred)]
+
+        # With Active Inference
+        predictions = solve_task_ensemble(
+            task, use_active_inference=True, augmentation_factor=10
+        )
         ```
     """
     # Validate task has test inputs
     if "test" not in task or not task["test"]:
         raise ValueError("Task must have at least one test input")
+
+    # Active Inference: Augment training examples if enabled
+    if use_active_inference:
+        from ..cognitive_cells.augmentation import augment_examples
+
+        original_count = len(task["train"])
+        task = task.copy()  # Don't modify original
+        task["train"] = augment_examples(task, num_variations=augmentation_factor)
+        logger.info(
+            f"Active Inference: Augmented {original_count} examples → "
+            f"{len(task['train'])} examples ({augmentation_factor}x)"
+        )
 
     test_inputs = task["test"]
     logger.info(
