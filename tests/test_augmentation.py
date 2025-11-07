@@ -374,3 +374,57 @@ class TestDiversityAndCount:
 
         # First example should be original
         assert augmented[0] == task["train"][0]
+
+
+class TestSeedReproducibility:
+    """Test seed parameter for reproducible augmentation."""
+
+    def test_same_seed_produces_identical_augmentations(self):
+        """Test that same seed produces identical augmentations across runs."""
+        task = {"train": [{"input": [[0, 1], [2, 3]], "output": [[1, 0], [3, 2]]}]}
+
+        # Run twice with same seed
+        aug1 = augment_examples(task, num_variations=10, seed=42)
+        aug2 = augment_examples(task, num_variations=10, seed=42)
+
+        # Should produce identical results
+        assert len(aug1) == len(aug2)
+        for ex1, ex2 in zip(aug1, aug2, strict=True):
+            assert ex1["input"] == ex2["input"]
+            assert ex1["output"] == ex2["output"]
+
+    def test_different_seeds_produce_different_augmentations(self):
+        """Test that different seeds produce different color permutations."""
+        task = {"train": [{"input": [[0, 1], [2, 3]], "output": [[1, 0], [3, 2]]}]}
+
+        # Run with different seeds
+        aug1 = augment_examples(task, num_variations=10, seed=42)
+        aug2 = augment_examples(task, num_variations=10, seed=123)
+
+        # Should have same count and structure
+        assert len(aug1) == len(aug2)
+
+        # But color permutations should differ (check last few examples which are color perms)
+        # Note: First 6 examples are geometric transforms (deterministic), last 4 are color perms
+        color_perm_start = 6  # After original + 3 rotations + 2 flips
+        found_difference = False
+        for i in range(color_perm_start, len(aug1)):
+            if aug1[i]["input"] != aug2[i]["input"]:
+                found_difference = True
+                break
+
+        assert found_difference, (
+            "Different seeds should produce different color permutations"
+        )
+
+    def test_color_permutation_diversity_with_seed(self):
+        """Test that color permutations with seed have minimum diversity."""
+        # Generate permutations with seed
+        perms = generate_color_permutations(limit=5, seed=42, min_swaps=5)
+
+        assert len(perms) == 5
+
+        # Each permutation should have at least 5 colors changed
+        for perm in perms:
+            swaps = sum(1 for i in range(10) if perm[i] != i)
+            assert swaps >= 5, f"Permutation only has {swaps} swaps, expected >= 5"

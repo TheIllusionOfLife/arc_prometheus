@@ -458,6 +458,22 @@ def main() -> int:
         )
         return 1
 
+    # Warn about high augmentation factor (duplicates after ~13 unique variations)
+    if args.augmentation_factor > 15:
+        print(
+            f"Warning: --augmentation-factor {args.augmentation_factor} is very high.",
+            file=sys.stderr,
+        )
+        print(
+            "Augmentation generates ~13 unique variations per example "
+            "(3 rotations + 2 flips + 5 colors + original).",
+            file=sys.stderr,
+        )
+        print(
+            f"Values >13 will include duplicates, but augmentation_factor={args.augmentation_factor} will be used.",
+            file=sys.stderr,
+        )
+
     # Load task IDs
     print("=" * 70)
     print(" Test-Time Ensemble Benchmark")
